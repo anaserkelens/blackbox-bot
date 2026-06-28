@@ -1270,7 +1270,7 @@ function normalizeActivityType(value) {
 function normalizePresenceInterval(value) {
   const interval = Number.parseInt(value, 10);
 
-  return Number.isInteger(interval) && interval >= 15 && interval <= 86400 ? interval : 30;
+  return Number.isInteger(interval) && interval >= 5 && interval <= 86400 ? interval : 30;
 }
 
 function updatePresenceUrlVisibility() {

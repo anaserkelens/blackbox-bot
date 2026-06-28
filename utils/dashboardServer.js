@@ -631,8 +631,8 @@ function normalizePresenceBody(body) {
     throw new Error('Each activity text must be 128 characters or fewer.');
   }
 
-  if (!Number.isInteger(intervalSeconds) || intervalSeconds < 15 || intervalSeconds > 86400) {
-    throw new Error('Rotation interval must be between 15 and 86400 seconds.');
+  if (!Number.isInteger(intervalSeconds) || intervalSeconds < 5 || intervalSeconds > 86400) {
+    throw new Error('Rotation interval must be between 5 and 86400 seconds.');
   }
 
   if (activityType === 'Streaming') {

@@ -53,7 +53,7 @@ const config = {
   autoRegisterCommands: readBoolean('AUTO_REGISTER_COMMANDS', true),
   presenceText,
   presenceTexts: readCsv('PRESENCE_TEXTS', [presenceText]),
-  presenceRotationSeconds: Math.min(86400, Math.max(15, readInteger('PRESENCE_ROTATION_SECONDS', 30))),
+  presenceRotationSeconds: Math.min(86400, Math.max(5, readInteger('PRESENCE_ROTATION_SECONDS', 30))),
   communityName: readEnv('COMMUNITY_NAME') || 'UNDR CTRL',
   communityDescription:
     readEnv('COMMUNITY_DESCRIPTION') ||
