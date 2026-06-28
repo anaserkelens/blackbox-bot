@@ -16,6 +16,10 @@ const {
 
 function createStreamAnnouncementPayload(settings, context) {
   const values = createPlaceholderValues(context);
+  return createAnnouncementPayload(settings, values, context.timestamp || new Date());
+}
+
+function createAnnouncementPayload(settings, values, timestamp = new Date()) {
   const content = replacePlaceholders(settings.content, values);
   const embedSettings = settings.embed;
   const embed = new EmbedBuilder();
@@ -90,7 +94,7 @@ function createStreamAnnouncementPayload(settings, context) {
   }
 
   if (embedSettings.timestamp) {
-    embed.setTimestamp(context.timestamp || new Date());
+    embed.setTimestamp(timestamp);
     hasEmbed = true;
   }
 
@@ -128,7 +132,7 @@ function createStreamAnnouncementPayload(settings, context) {
       imageUrl,
       footerText,
       buttons,
-      context,
+      timestamp,
     });
   }
 
@@ -155,7 +159,7 @@ function createComponentsV2AnnouncementPayload(options) {
     imageUrl,
     footerText,
     buttons,
-    context,
+    timestamp,
   } = options;
   const container = new ContainerBuilder();
   const components = [];
@@ -237,8 +241,8 @@ function createComponentsV2AnnouncementPayload(options) {
   }
 
   if (settings.embed.timestamp) {
-    const timestamp = Math.floor((context.timestamp || new Date()).getTime() / 1000);
-    footerParts.push(`<t:${timestamp}:f>`);
+    const timestampSeconds = Math.floor(timestamp.getTime() / 1000);
+    footerParts.push(`<t:${timestampSeconds}:f>`);
   }
 
   if (footerParts.length > 0) {
@@ -377,9 +381,8 @@ function createPlaceholderValues(context) {
 }
 
 function replacePlaceholders(template, values) {
-  return String(template || '').replace(
-    /\{(member|displayName|streamTitle|streamUrl|gameName|twitchUsername|previewUrl|avatarUrl)\}/g,
-    (_, key) => values[key],
+  return String(template || '').replace(/\{([a-zA-Z][a-zA-Z0-9]*)\}/g, (placeholder, key) =>
+    Object.hasOwn(values, key) ? values[key] : placeholder,
   );
 }
 
@@ -406,6 +409,7 @@ function resolveOptionalUrl(template, values, label) {
 }
 
 module.exports = {
+  createAnnouncementPayload,
   createStreamAnnouncementPayload,
   replacePlaceholders,
 };

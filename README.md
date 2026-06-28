@@ -9,7 +9,7 @@ A Discord.js bot for the UNDR CTRL community, ready to run locally and deploy to
 - Keeps secrets in environment variables instead of files.
 - Uses the same folder shape as the reference bot: `commands`, `events`, `images`, and `utils`.
 - Includes a protected browser dashboard for sending Components v2 messages instantly.
-- Includes `/ping`, `/about`, `/server`, `/help`, `/clear`, `/postwelcome`, `/ticketsetup`, `/setupreactionrole`, and `/teststream`.
+- Includes `/ping`, `/about`, `/server`, `/help`, `/clear`, `/ticketsetup`, `/setupreactionrole`, `/teststream`, and `/testwelcome`.
 - Includes optional event systems for tickets, member logs, message logs, channel logs, scheduled event logs, moderation logs, user logs, invite moderation, reaction roles, and stream monitoring.
 
 ## Local Setup
@@ -31,9 +31,7 @@ A Discord.js bot for the UNDR CTRL community, ready to run locally and deploy to
    DASHBOARD_PASSWORD=...
    ```
 
-3. Add your UNDR CTRL welcome header image at `images/UNDR_CTRL_Welcome_Header.png`.
-
-4. Start the bot:
+3. Start the bot:
 
    ```bash
    npm start
@@ -59,7 +57,7 @@ Enable these privileged gateway intents in the Bot page only if you also enable 
 - Server Members Intent -> `ENABLE_SERVER_MEMBERS_INTENT=true`
 - Message Content Intent -> `ENABLE_MESSAGE_CONTENT_INTENT=true`
 
-Leave those Railway variables `false` while getting the bot online for the first time. Core slash commands and `/postwelcome` do not need privileged intents.
+Automatic welcome messages require the Server Members Intent in the Discord Developer Portal and `ENABLE_SERVER_MEMBERS_INTENT=true`.
 
 Invite the bot with both `bot` and `applications.commands` scopes. The imported systems need message, moderation, member, invite, reaction, and thread permissions.
 
@@ -88,6 +86,7 @@ https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=412317
    DASHBOARD_SAVED_MESSAGES_PATH
    DASHBOARD_PRESENCE_PATH
    DASHBOARD_STREAM_EMBED_PATH
+   DASHBOARD_WELCOME_EMBED_PATH
    ENABLE_SERVER_MEMBERS_INTENT
    ENABLE_MESSAGE_CONTENT_INTENT
    ENABLE_PRESENCE_INTENT
@@ -99,7 +98,7 @@ https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=412317
 
 Slash commands are synced on startup. If `DISCORD_GUILD_ID` is set, commands update instantly in that server. Without it, commands are global and can take a while to appear.
 
-`/postwelcome` is administrator-only, so Discord will only show it to members who can use administrator commands.
+`/testwelcome` posts the currently saved Welcome Message template in the current channel. Like `/teststream`, it is restricted to `BOT_OWNER_USER_ID`, who must also have `FOUNDER_ROLE_ID`.
 
 Optional systems are controlled by environment variables. For example, tickets need `TICKET_CHANNEL_ID`, ticket logs need `TICKET_LOG_CHANNEL_ID`, and reaction roles need `REACTION_ROLE_MESSAGE_ID`, `REACTION_ROLE_EMOJI_ID`, and `VERIFIED_ROLE_ID`. See [.env.example](.env.example) for the full list.
 
@@ -107,11 +106,13 @@ The stream monitor has two paths. `FEATURED_STREAMER_USER_ID` receives a Twitch 
 
 The dashboard Live Embed tab controls the featured Twitch announcement template, including advanced embed fields, link buttons, and embed-safe divider/spacer layout blocks. Its settings are stored in `stream-embed.json`, automatically on `RAILWAY_VOLUME_MOUNT_PATH` when a volume is attached. Use `DASHBOARD_STREAM_EMBED_PATH` to override that location.
 
+The Welcome Message tab provides the same builder for automatic member greetings. New members are welcomed in `WELCOME_CHANNEL_ID` (default `1520407983354544171`) using member, server, timestamp, and avatar placeholders. Its settings are stored in `welcome-embed.json` on the Railway volume, or at `DASHBOARD_WELCOME_EMBED_PATH` when overridden. Enable the Server Members Intent in Discord and set `ENABLE_SERVER_MEMBERS_INTENT=true` so join events reach the bot.
+
 Announcements with link buttons use a Discord Components V2 container so the buttons render inside the same bordered announcement block. Each button can optionally show a Unicode emoji or a custom Discord emoji such as `<:name:id>`. Buttonless announcements continue to use standard Discord embeds.
 
 Member and role mentions in live announcement message content are enabled for both real announcements and `/teststream`.
 
-To keep live embed settings across Railway restarts and redeploys, attach a volume to the bot service (for example at `/data`). Railway provides `RAILWAY_VOLUME_MOUNT_PATH` automatically and the bot stores `stream-embed.json` there. The dashboard shows whether storage is persistent and keeps a browser backup that can restore a missing server-side file when the dashboard is reopened.
+To keep live and welcome embed settings across Railway restarts and redeploys, attach a volume to the bot service (for example at `/data`). Railway provides `RAILWAY_VOLUME_MOUNT_PATH` automatically and the bot stores both settings files there. The dashboard shows whether storage is persistent and keeps separate browser backups that can restore missing server-side files when the dashboard is reopened.
 
 `/teststream` posts the currently saved live embed in the channel where the command is used. It is restricted at runtime to `BOT_OWNER_USER_ID`, who must also have `FOUNDER_ROLE_ID`; both IDs have UNDR CTRL defaults in `.env.example`.
 

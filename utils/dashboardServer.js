@@ -23,6 +23,12 @@ const {
   loadStreamEmbedSettings,
   saveStreamEmbedSettings,
 } = require('./streamEmbedSettings');
+const {
+  getWelcomeEmbedStorageInfo,
+  getWelcomeEmbedStorageStatus,
+  loadWelcomeEmbedSettings,
+  saveWelcomeEmbedSettings,
+} = require('./welcomeEmbedSettings');
 
 const dashboardDirectory = path.join(__dirname, '..', 'dashboard');
 const sessionCookieName = 'blackbox_dashboard';
@@ -40,6 +46,7 @@ function startDashboard(client) {
 
   logSavedMessagesStorage();
   logStreamEmbedStorage();
+  logWelcomeEmbedStorage();
 
   const server = http.createServer((request, response) => {
     handleRequest(client, request, response).catch((error) => {
@@ -80,6 +87,18 @@ function logStreamEmbedStorage() {
 
   if (!storage.persistent) {
     console.warn('Live embed settings will reset after redeploys unless a Railway volume is attached.');
+  }
+}
+
+function logWelcomeEmbedStorage() {
+  const storage = getWelcomeEmbedStorageInfo(config);
+
+  console.log(
+    `Welcome embed storage: ${storage.filePath} (${storage.persistent ? 'persistent' : 'ephemeral'}, ${storage.source}).`,
+  );
+
+  if (!storage.persistent) {
+    console.warn('Welcome embed settings will reset after redeploys unless a Railway volume is attached.');
   }
 }
 
@@ -161,6 +180,16 @@ async function handleRequest(client, request, response) {
 
     if (request.method === 'PUT' && url.pathname === '/api/stream-embed') {
       await handleSaveStreamEmbed(request, response);
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/welcome-embed') {
+      await handleGetWelcomeEmbed(response);
+      return;
+    }
+
+    if (request.method === 'PUT' && url.pathname === '/api/welcome-embed') {
+      await handleSaveWelcomeEmbed(request, response);
       return;
     }
 
@@ -353,6 +382,37 @@ async function handleSaveStreamEmbed(request, response) {
     ok: true,
     settings,
     storage: await getStreamEmbedStorageStatus(config),
+  });
+}
+
+async function handleGetWelcomeEmbed(response) {
+  const [settings, storage] = await Promise.all([
+    loadWelcomeEmbedSettings(config),
+    getWelcomeEmbedStorageStatus(config),
+  ]);
+
+  sendJson(response, 200, {
+    ok: true,
+    settings,
+    storage,
+  });
+}
+
+async function handleSaveWelcomeEmbed(request, response) {
+  const body = await readJsonBody(request, 256 * 1024);
+  let settings;
+
+  try {
+    settings = await saveWelcomeEmbedSettings(config, body.settings);
+  } catch (error) {
+    sendJson(response, 400, { error: error.message });
+    return;
+  }
+
+  sendJson(response, 200, {
+    ok: true,
+    settings,
+    storage: await getWelcomeEmbedStorageStatus(config),
   });
 }
 

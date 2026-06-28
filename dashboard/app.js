@@ -66,6 +66,16 @@ const previewSections = document.querySelector('#preview-sections');
 const previewButtons = document.querySelector('#preview-buttons');
 const sectionCount = document.querySelector('#section-count');
 const liveEmbedForm = document.querySelector('#live-embed-form');
+const embedBuilderWorkspace = document.querySelector('#embed-builder-workspace');
+const embedBuilderTitle = document.querySelector('#embed-builder-title');
+const embedBuilderSubtitle = document.querySelector('#embed-builder-subtitle');
+const embedPlaceholderList = document.querySelector('#embed-placeholder-list');
+const embedChannelLabel = document.querySelector('#embed-channel-label');
+const embedSaveHint = document.querySelector('#embed-save-hint');
+const embedPreviewSubtitle = document.querySelector('#embed-preview-subtitle');
+const embedTimestampLabel = document.querySelector('#embed-timestamp-label');
+const liveEmbedPanel = document.querySelector('[data-panel="live-embed"]');
+const welcomeEmbedPanel = document.querySelector('[data-panel="welcome-embed"]');
 const refreshLiveEmbedButton = document.querySelector('#refresh-live-embed');
 const saveLiveEmbedButton = document.querySelector('#save-live-embed');
 const liveEmbedStorageStatus = document.querySelector('#live-embed-storage-status');
@@ -111,7 +121,64 @@ const sessionStorageKey = 'blackbox_dashboard_session';
 const savedMessagesStorageKey = 'blackbox_dashboard_saved_messages';
 const presenceStorageKey = 'blackbox_dashboard_presence';
 const liveEmbedStorageKey = 'blackbox_dashboard_live_embed';
+const welcomeEmbedStorageKey = 'blackbox_dashboard_welcome_embed';
 const welcomeMessageId = 'welcome-message';
+
+const embedBuilderDefinitions = {
+  live: {
+    endpoint: '/api/stream-embed',
+    panel: liveEmbedPanel,
+    storageKey: liveEmbedStorageKey,
+    title: 'Live Announcement Builder',
+    subtitle: 'Used when the featured Twitch account goes live.',
+    channelLabel: 'Announcement channel ID',
+    channelPlaceholder: '1520519675543293972',
+    saveHint: 'Changes apply to the next featured stream announcement.',
+    saveLabel: 'Save Live Embed',
+    previewSubtitle: 'Sample stream data',
+    titlePlaceholder: '{displayName} is live!',
+    titleUrlPlaceholder: '{streamUrl}',
+    imageUrlPlaceholder: '{previewUrl}',
+    timestampLabel: 'Show the time the stream was detected',
+    placeholders: [
+      'member',
+      'displayName',
+      'streamTitle',
+      'streamUrl',
+      'gameName',
+      'twitchUsername',
+      'previewUrl',
+      'avatarUrl',
+    ],
+  },
+  welcome: {
+    endpoint: '/api/welcome-embed',
+    panel: welcomeEmbedPanel,
+    storageKey: welcomeEmbedStorageKey,
+    title: 'Welcome Message Builder',
+    subtitle: 'Sent automatically whenever a new member joins.',
+    channelLabel: 'Welcome channel ID',
+    channelPlaceholder: '1520407983354544171',
+    saveHint: 'Changes apply to the next member who joins.',
+    saveLabel: 'Save Welcome Message',
+    previewSubtitle: 'Sample new-member data',
+    titlePlaceholder: 'Welcome, {displayName}!',
+    titleUrlPlaceholder: 'Optional link',
+    imageUrlPlaceholder: 'Optional welcome image URL',
+    timestampLabel: 'Show the time the member joined',
+    placeholders: [
+      'member',
+      'displayName',
+      'username',
+      'userId',
+      'serverName',
+      'memberCount',
+      'avatarUrl',
+      'createdAt',
+      'joinedAt',
+    ],
+  },
+};
 
 const state = {
   currentMessageId: null,
@@ -120,8 +187,10 @@ const state = {
   botBannerImage: null,
   savedMessages: [],
   composerInitialized: false,
-  liveEmbedLoaded: false,
-  liveEmbedRestoreAttempted: false,
+  activeEmbedBuilder: 'live',
+  embedBuilderSettings: { live: null, welcome: null },
+  embedBuilderStorage: { live: null, welcome: null },
+  embedBuilderRestoreAttempted: { live: false, welcome: false },
   presenceRestoreAttempted: false,
   savedMessagesRefreshTimer: null,
   savedMessagesRequest: null,
@@ -705,8 +774,11 @@ function setActiveTab(tab) {
     refreshBotSettings().catch((error) => setSendStatus(error.message, 'error'));
   }
 
-  if (nextTab === 'live-embed' && !dashboardView.hidden && !state.liveEmbedLoaded) {
-    loadLiveEmbedSettings().catch((error) => setSendStatus(error.message, 'error'));
+  if ((nextTab === 'live-embed' || nextTab === 'welcome-embed') && !dashboardView.hidden) {
+    const builderKind = nextTab === 'welcome-embed' ? 'welcome' : 'live';
+
+    activateEmbedBuilder(builderKind);
+    loadLiveEmbedSettings(false, builderKind).catch((error) => setSendStatus(error.message, 'error'));
   }
 
   if (nextTab === 'messages' && !dashboardView.hidden) {
@@ -1407,48 +1479,91 @@ function normalizeMessageColor(value) {
   return /^[0-9a-fA-F]{6}$/.test(normalized) ? `#${normalized.toUpperCase()}` : '';
 }
 
-async function loadLiveEmbedSettings(showNotification = false) {
-  let result = await api('/api/stream-embed');
+function activateEmbedBuilder(kind) {
+  const definition = embedBuilderDefinitions[kind];
 
-  result = await restoreLiveEmbedBackupIfNeeded(result);
+  state.activeEmbedBuilder = kind;
+  definition.panel.append(embedBuilderWorkspace);
+  embedBuilderTitle.textContent = definition.title;
+  embedBuilderSubtitle.textContent = definition.subtitle;
+  embedChannelLabel.textContent = definition.channelLabel;
+  liveChannelIdInput.placeholder = definition.channelPlaceholder;
+  embedSaveHint.textContent = definition.saveHint;
+  saveLiveEmbedButton.textContent = definition.saveLabel;
+  embedPreviewSubtitle.textContent = definition.previewSubtitle;
+  liveTitleInput.placeholder = definition.titlePlaceholder;
+  liveTitleUrlInput.placeholder = definition.titleUrlPlaceholder;
+  liveImageUrlInput.placeholder = definition.imageUrlPlaceholder;
+  embedTimestampLabel.textContent = definition.timestampLabel;
+  embedPlaceholderList.replaceChildren(
+    ...definition.placeholders.map((placeholder) => {
+      const code = document.createElement('code');
 
-  applyLiveEmbedSettings(result.settings || {});
-  renderLiveEmbedStorageStatus(result.storage);
-  state.liveEmbedLoaded = true;
+      code.textContent = `{${placeholder}}`;
+      return code;
+    }),
+  );
 
-  if (result.storage?.hasSavedSettings) {
-    writeLiveEmbedBackup(result.settings);
-  }
-
-  if (showNotification) {
-    setSendStatus('Live embed settings refreshed.', 'success');
+  if (state.embedBuilderSettings[kind]) {
+    applyLiveEmbedSettings(state.embedBuilderSettings[kind]);
+    renderLiveEmbedStorageStatus(state.embedBuilderStorage[kind]);
   }
 }
 
-async function restoreLiveEmbedBackupIfNeeded(result) {
-  if (state.liveEmbedRestoreAttempted || result.storage?.hasSavedSettings) {
+async function loadLiveEmbedSettings(showNotification = false, kind = state.activeEmbedBuilder) {
+  const definition = embedBuilderDefinitions[kind];
+  let result = await api(definition.endpoint);
+
+  result = await restoreLiveEmbedBackupIfNeeded(result, kind);
+  state.embedBuilderSettings[kind] = result.settings || {};
+  state.embedBuilderStorage[kind] = result.storage || null;
+
+  if (state.activeEmbedBuilder === kind) {
+    applyLiveEmbedSettings(result.settings || {});
+    renderLiveEmbedStorageStatus(result.storage);
+  }
+
+  if (result.storage?.hasSavedSettings) {
+    writeLiveEmbedBackup(result.settings, kind);
+  }
+
+  if (showNotification && state.activeEmbedBuilder === kind) {
+    setSendStatus(`${kind === 'welcome' ? 'Welcome message' : 'Live embed'} settings refreshed.`, 'success');
+  }
+}
+
+async function restoreLiveEmbedBackupIfNeeded(result, kind) {
+  const definition = embedBuilderDefinitions[kind];
+
+  if (state.embedBuilderRestoreAttempted[kind] || result.storage?.hasSavedSettings) {
     return result;
   }
 
-  const backup = readLiveEmbedBackup();
+  const backup = readLiveEmbedBackup(kind);
 
   if (!backup) {
     return result;
   }
 
-  state.liveEmbedRestoreAttempted = true;
+  state.embedBuilderRestoreAttempted[kind] = true;
 
   try {
-    const restored = await api('/api/stream-embed', {
+    const restored = await api(definition.endpoint, {
       method: 'PUT',
       body: { settings: backup },
     });
 
-    setSendStatus('Live embed restored from this browser after the bot restart.', 'success');
+    setSendStatus(
+      `${kind === 'welcome' ? 'Welcome message' : 'Live embed'} restored from this browser after the bot restart.`,
+      'success',
+    );
     return restored;
   } catch (error) {
-    state.liveEmbedRestoreAttempted = false;
-    setSendStatus(`Could not restore the live embed browser backup: ${error.message}`, 'error');
+    state.embedBuilderRestoreAttempted[kind] = false;
+    setSendStatus(
+      `Could not restore the ${kind === 'welcome' ? 'welcome message' : 'live embed'} browser backup: ${error.message}`,
+      'error',
+    );
     return result;
   }
 }
@@ -1492,18 +1607,21 @@ function applyLiveEmbedSettings(settings) {
 async function handleSaveLiveEmbed(event) {
   event.preventDefault();
   saveLiveEmbedButton.disabled = true;
+  const kind = state.activeEmbedBuilder;
+  const definition = embedBuilderDefinitions[kind];
 
   try {
-    const result = await api('/api/stream-embed', {
+    const result = await api(definition.endpoint, {
       method: 'PUT',
       body: { settings: collectLiveEmbedSettings() },
     });
 
+    state.embedBuilderSettings[kind] = result.settings || {};
+    state.embedBuilderStorage[kind] = result.storage || null;
     applyLiveEmbedSettings(result.settings || {});
-    writeLiveEmbedBackup(result.settings);
+    writeLiveEmbedBackup(result.settings, kind);
     renderLiveEmbedStorageStatus(result.storage);
-    state.liveEmbedLoaded = true;
-    setSendStatus('Live embed saved.', 'success');
+    setSendStatus(`${kind === 'welcome' ? 'Welcome message' : 'Live embed'} saved.`, 'success');
   } catch (error) {
     setSendStatus(error.message, 'error');
   } finally {
@@ -1511,21 +1629,23 @@ async function handleSaveLiveEmbed(event) {
   }
 }
 
-function writeLiveEmbedBackup(settings) {
+function writeLiveEmbedBackup(settings, kind = state.activeEmbedBuilder) {
   if (!settings?.embed || !Array.isArray(settings.buttons) || !Array.isArray(settings.embed.fields)) {
     return;
   }
 
   try {
-    window.localStorage.setItem(liveEmbedStorageKey, JSON.stringify(settings));
+    window.localStorage.setItem(embedBuilderDefinitions[kind].storageKey, JSON.stringify(settings));
   } catch {
     // Server-side storage remains authoritative when browser storage is unavailable.
   }
 }
 
-function readLiveEmbedBackup() {
+function readLiveEmbedBackup(kind = state.activeEmbedBuilder) {
   try {
-    const settings = JSON.parse(window.localStorage.getItem(liveEmbedStorageKey) || 'null');
+    const settings = JSON.parse(
+      window.localStorage.getItem(embedBuilderDefinitions[kind].storageKey) || 'null',
+    );
 
     if (!settings?.embed || !Array.isArray(settings.buttons) || !Array.isArray(settings.embed.fields)) {
       return null;
@@ -1931,20 +2051,32 @@ function appendLivePreviewButtonContent(anchor, button) {
 }
 
 function replaceLivePreviewPlaceholders(template) {
-  const values = {
+  const sharedValues = {
     member: '<@185282790969835520>',
     displayName: '5noof',
-    streamTitle: 'Building something under control',
-    streamUrl: 'https://twitch.tv/5noof',
-    gameName: 'Just Chatting',
-    twitchUsername: '5noof',
-    previewUrl: 'https://static-cdn.jtvnw.net/previews-ttv/live_user_5noof-1920x1080.jpg',
     avatarUrl: 'https://cdn.discordapp.com/embed/avatars/0.png',
   };
+  const values = state.activeEmbedBuilder === 'welcome'
+    ? {
+        ...sharedValues,
+        username: '5noof',
+        userId: '185282790969835520',
+        serverName: 'UNDR CTRL',
+        memberCount: '1,337',
+        createdAt: '14 March 2025',
+        joinedAt: 'Today',
+      }
+    : {
+        ...sharedValues,
+        streamTitle: 'Building something under control',
+        streamUrl: 'https://twitch.tv/5noof',
+        gameName: 'Just Chatting',
+        twitchUsername: '5noof',
+        previewUrl: 'https://static-cdn.jtvnw.net/previews-ttv/live_user_5noof-1920x1080.jpg',
+      };
 
-  return String(template || '').replace(
-    /\{(member|displayName|streamTitle|streamUrl|gameName|twitchUsername|previewUrl|avatarUrl)\}/g,
-    (_, key) => values[key],
+  return String(template || '').replace(/\{([a-zA-Z][a-zA-Z0-9]*)\}/g, (placeholder, key) =>
+    Object.hasOwn(values, key) ? values[key] : placeholder,
   );
 }
 

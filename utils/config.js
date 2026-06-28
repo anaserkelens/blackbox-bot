@@ -60,7 +60,7 @@ const config = {
     'A community for UNDR CTRL members to connect, create, and build together.',
   ownerUserId: readEnv('BOT_OWNER_USER_ID') || '185282790969835520',
   channels: {
-    welcome: readEnv('WELCOME_CHANNEL_ID'),
+    welcome: readEnv('WELCOME_CHANNEL_ID') || '1520407983354544171',
     guidelines: readEnv('GUIDELINES_CHANNEL_ID'),
     introductions: readEnv('INTRODUCTIONS_CHANNEL_ID'),
     rules: readEnv('RULES_CHANNEL_ID') || readEnv('GUIDELINES_CHANNEL_ID'),
@@ -106,6 +106,7 @@ const config = {
     savedMessagesPath: readEnv('DASHBOARD_SAVED_MESSAGES_PATH'),
     presencePath: readEnv('DASHBOARD_PRESENCE_PATH'),
     streamEmbedPath: readEnv('DASHBOARD_STREAM_EMBED_PATH'),
+    welcomeEmbedPath: readEnv('DASHBOARD_WELCOME_EMBED_PATH'),
     railwayVolumeMountPath: readEnv('RAILWAY_VOLUME_MOUNT_PATH'),
   },
 };

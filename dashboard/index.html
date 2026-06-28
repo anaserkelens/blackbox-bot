@@ -45,6 +45,7 @@
           <button class="tab-button" type="button" data-tab="overview" aria-selected="true">Overview</button>
           <button class="tab-button" type="button" data-tab="messages" aria-selected="false">Messages</button>
           <button class="tab-button" type="button" data-tab="live-embed" aria-selected="false">Live Embed</button>
+          <button class="tab-button" type="button" data-tab="welcome-embed" aria-selected="false">Welcome Message</button>
           <button class="tab-button" type="button" data-tab="bot" aria-selected="false">Bot</button>
           <button class="tab-button" type="button" data-tab="settings" aria-selected="false">Settings</button>
         </nav>
@@ -180,13 +181,15 @@
           </section>
         </section>
 
+        <section class="tab-panel" data-panel="welcome-embed" hidden></section>
+
         <section class="tab-panel" data-panel="live-embed" hidden>
-          <section class="live-embed-workspace">
+          <section id="embed-builder-workspace" class="live-embed-workspace">
             <form id="live-embed-form" class="live-embed-editor">
               <div class="toolbar-row">
                 <div>
-                  <h2>Live Announcement Builder</h2>
-                  <span class="muted">Used when the featured Twitch account goes live.</span>
+                  <h2 id="embed-builder-title">Live Announcement Builder</h2>
+                  <span id="embed-builder-subtitle" class="muted">Used when the featured Twitch account goes live.</span>
                 </div>
                 <div class="toolbar-actions">
                   <span id="live-embed-storage-status" class="status-pill">Checking storage</span>
@@ -196,7 +199,7 @@
 
               <section class="live-editor-section live-placeholder-guide">
                 <h2>Dynamic placeholders</h2>
-                <div class="placeholder-list">
+                <div id="embed-placeholder-list" class="placeholder-list">
                   <code>{member}</code>
                   <code>{displayName}</code>
                   <code>{streamTitle}</code>
@@ -209,10 +212,10 @@
               </section>
 
               <section class="live-editor-section">
-                <h2>Delivery</h2>
+                <h2 id="embed-delivery-title">Delivery</h2>
                 <div class="form-grid">
                   <label class="field span-2">
-                    Announcement channel ID
+                    <span id="embed-channel-label">Announcement channel ID</span>
                     <input
                       id="live-channel-id"
                       inputmode="numeric"
@@ -326,7 +329,7 @@
 
                   <label class="toggle-row span-2">
                     <input id="live-timestamp" type="checkbox" />
-                    <span>Show the time the stream was detected</span>
+                    <span id="embed-timestamp-label">Show the time the stream was detected</span>
                   </label>
                 </div>
               </section>
@@ -359,7 +362,7 @@
               </section>
 
               <div class="action-row">
-                <span class="muted">Changes apply to the next featured stream announcement.</span>
+                <span id="embed-save-hint" class="muted">Changes apply to the next featured stream announcement.</span>
                 <button id="save-live-embed" type="submit">Save Live Embed</button>
               </div>
             </form>
@@ -367,7 +370,7 @@
             <aside class="live-embed-preview-panel">
               <div class="toolbar-row">
                 <h2>Discord Preview</h2>
-                <span class="muted">Sample stream data</span>
+                <span id="embed-preview-subtitle" class="muted">Sample stream data</span>
               </div>
 
               <div class="live-discord-message">

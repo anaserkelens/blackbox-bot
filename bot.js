@@ -59,5 +59,12 @@ process.on('unhandledRejection', (error) => {
 });
 
 console.log(`Starting ${config.communityName} Blackbox bot...`);
+
+if (!config.intents.members) {
+  console.warn(
+    'Automatic welcome messages are disabled. Enable the Server Members Intent in Discord and set ENABLE_SERVER_MEMBERS_INTENT=true.',
+  );
+}
+
 startDashboard(client);
 client.login(config.discordToken);
