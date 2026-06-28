@@ -1,6 +1,8 @@
-const { ActivityType, EmbedBuilder, Events } = require('discord.js');
+const { ActivityType, Events } = require('discord.js');
 
 const { config } = require('../utils/config');
+const { createStreamAnnouncementPayload } = require('../utils/streamAnnouncement');
+const { loadStreamEmbedSettings } = require('../utils/streamEmbedSettings');
 
 const announcedFeaturedStreams = new Set();
 
@@ -47,28 +49,32 @@ async function handleFeaturedStreamer(oldPresence, member, streamingActivity, cl
 
   const streamUrl = streamingActivity.url;
 
-  if (announcedFeaturedStreams.has(streamUrl) || !config.channels.streamAnnouncements) {
+  if (announcedFeaturedStreams.has(streamUrl)) {
     return;
   }
 
   announcedFeaturedStreams.add(streamUrl);
 
   try {
-    const channel = await client.channels.fetch(config.channels.streamAnnouncements);
+    const settings = await loadStreamEmbedSettings(config);
+    const channelId = settings.channelId || config.channels.streamAnnouncements;
+    const channel = await client.channels.fetch(channelId);
 
     if (!channel?.isSendable()) {
       throw new Error('Featured stream announcement channel is not sendable.');
     }
 
     const twitchUsername = new URL(streamUrl).pathname.split('/').filter(Boolean).pop();
-    const streamTitle = streamingActivity.details || 'Live on Twitch';
     const streamPreviewUrl = `https://static-cdn.jtvnw.net/previews-ttv/live_user_${twitchUsername}-1920x1080.jpg`;
-    const embed = new EmbedBuilder()
-      .setDescription(`# **${member} is now live!**\n\n-# ${streamTitle}\n\n-# [Watch Stream](${streamUrl})`)
-      .setColor(0x2dd4bf)
-      .setImage(streamPreviewUrl);
+    const payload = createStreamAnnouncementPayload(settings, {
+      member,
+      streamingActivity,
+      twitchUsername,
+      previewUrl: streamPreviewUrl,
+      timestamp: new Date(),
+    });
 
-    await channel.send({ embeds: [embed] });
+    await channel.send(payload);
   } catch (error) {
     console.error('Error announcing featured stream:', error);
     announcedFeaturedStreams.delete(streamUrl);

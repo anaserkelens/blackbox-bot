@@ -6,13 +6,22 @@ const path = require('node:path');
 const { config } = require('./config');
 const { createDashboardMessagePayload } = require('./dashboardMessage');
 const { getPresenceState, updatePresenceRotation } = require('./presenceManager');
-const { normalizePresenceSettings, savePresenceSettings } = require('./presenceSettings');
+const {
+  getPresenceSettingsStorageStatus,
+  normalizePresenceSettings,
+  savePresenceSettings,
+} = require('./presenceSettings');
 const {
   deleteSavedMessage,
   getSavedMessagesStorageInfo,
   loadSavedMessages,
   saveSavedMessages,
 } = require('./savedMessages');
+const {
+  getStreamEmbedStorageInfo,
+  loadStreamEmbedSettings,
+  saveStreamEmbedSettings,
+} = require('./streamEmbedSettings');
 
 const dashboardDirectory = path.join(__dirname, '..', 'dashboard');
 const sessionCookieName = 'blackbox_dashboard';
@@ -29,6 +38,7 @@ function startDashboard(client) {
   }
 
   logSavedMessagesStorage();
+  logStreamEmbedStorage();
 
   const server = http.createServer((request, response) => {
     handleRequest(client, request, response).catch((error) => {
@@ -57,6 +67,18 @@ function logSavedMessagesStorage() {
 
   if (!storage.persistent) {
     console.warn('Dashboard saved messages will reset after redeploys unless a Railway volume is attached.');
+  }
+}
+
+function logStreamEmbedStorage() {
+  const storage = getStreamEmbedStorageInfo(config);
+
+  console.log(
+    `Live embed storage: ${storage.filePath} (${storage.persistent ? 'persistent' : 'ephemeral'}, ${storage.source}).`,
+  );
+
+  if (!storage.persistent) {
+    console.warn('Live embed settings will reset after redeploys unless a Railway volume is attached.');
   }
 }
 
@@ -128,6 +150,16 @@ async function handleRequest(client, request, response) {
 
     if (request.method === 'POST' && url.pathname === '/api/import-message') {
       await handleImportMessage(client, request, response);
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/stream-embed') {
+      await handleGetStreamEmbed(response);
+      return;
+    }
+
+    if (request.method === 'PUT' && url.pathname === '/api/stream-embed') {
+      await handleSaveStreamEmbed(request, response);
       return;
     }
 
@@ -290,6 +322,32 @@ async function handleDeleteSavedMessage(pathname, response) {
     const status = error.code === 'SAVED_MESSAGE_NOT_FOUND' ? 404 : 400;
     sendJson(response, status, { error: error.message });
   }
+}
+
+async function handleGetStreamEmbed(response) {
+  const settings = await loadStreamEmbedSettings(config);
+
+  sendJson(response, 200, {
+    ok: true,
+    settings,
+  });
+}
+
+async function handleSaveStreamEmbed(request, response) {
+  const body = await readJsonBody(request, 256 * 1024);
+  let settings;
+
+  try {
+    settings = await saveStreamEmbedSettings(config, body.settings);
+  } catch (error) {
+    sendJson(response, 400, { error: error.message });
+    return;
+  }
+
+  sendJson(response, 200, {
+    ok: true,
+    settings,
+  });
 }
 
 async function handleImportMessage(client, request, response) {
@@ -675,6 +733,7 @@ async function handleUpdateBotImage(client, request, response, kind) {
 async function createBotState(client) {
   const user = client.user || null;
   const application = client.application || null;
+  const presenceStorage = await getPresenceSettingsStorageStatus(config);
 
   if (client.isReady() && user && typeof user.fetch === 'function') {
     await user.fetch(true).catch(() => null);
@@ -694,6 +753,7 @@ async function createBotState(client) {
     bannerUrl: getBannerUrl(user),
     bio: application?.description || '',
     presence: getPresenceState(),
+    presenceStorage,
   };
 }
 

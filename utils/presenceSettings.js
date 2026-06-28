@@ -143,6 +143,26 @@ function getPresenceSettingsStorageInfo(config) {
   };
 }
 
+async function getPresenceSettingsStorageStatus(config) {
+  const storage = getPresenceSettingsStorageInfo(config);
+  let hasSavedSettings = true;
+
+  try {
+    await fs.access(storage.filePath);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      hasSavedSettings = false;
+    } else {
+      throw error;
+    }
+  }
+
+  return {
+    ...storage,
+    hasSavedSettings,
+  };
+}
+
 function assertHttpUrl(value, label) {
   let url;
 
@@ -160,6 +180,7 @@ function assertHttpUrl(value, label) {
 module.exports = {
   createDefaultPresenceSettings,
   getPresenceSettingsStorageInfo,
+  getPresenceSettingsStorageStatus,
   loadPresenceSettings,
   normalizePresenceSettings,
   savePresenceSettings,

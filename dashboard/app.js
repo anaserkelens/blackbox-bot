@@ -39,6 +39,7 @@ const presenceActivityUrlInput = document.querySelector('#presence-activity-url'
 const presenceActivityList = document.querySelector('#presence-activity-list');
 const addPresenceActivityButton = document.querySelector('#add-presence-activity');
 const saveBotPresenceButton = document.querySelector('#save-bot-presence');
+const presenceStorageStatus = document.querySelector('#presence-storage-status');
 const composer = document.querySelector('#composer');
 const messageNameInput = document.querySelector('#message-name');
 const channelInput = document.querySelector('#channel-id');
@@ -64,8 +65,45 @@ const previewImage = document.querySelector('#preview-image');
 const previewSections = document.querySelector('#preview-sections');
 const previewButtons = document.querySelector('#preview-buttons');
 const sectionCount = document.querySelector('#section-count');
+const liveEmbedForm = document.querySelector('#live-embed-form');
+const refreshLiveEmbedButton = document.querySelector('#refresh-live-embed');
+const saveLiveEmbedButton = document.querySelector('#save-live-embed');
+const liveChannelIdInput = document.querySelector('#live-channel-id');
+const liveContentInput = document.querySelector('#live-content');
+const liveMentionStreamerInput = document.querySelector('#live-mention-streamer');
+const liveTitleInput = document.querySelector('#live-title');
+const liveTitleUrlInput = document.querySelector('#live-title-url');
+const liveDescriptionInput = document.querySelector('#live-description');
+const liveColorPicker = document.querySelector('#live-color-picker');
+const liveColorInput = document.querySelector('#live-color');
+const liveAuthorNameInput = document.querySelector('#live-author-name');
+const liveAuthorUrlInput = document.querySelector('#live-author-url');
+const liveAuthorIconUrlInput = document.querySelector('#live-author-icon-url');
+const liveThumbnailUrlInput = document.querySelector('#live-thumbnail-url');
+const liveImageUrlInput = document.querySelector('#live-image-url');
+const liveFooterTextInput = document.querySelector('#live-footer-text');
+const liveFooterIconUrlInput = document.querySelector('#live-footer-icon-url');
+const liveTimestampInput = document.querySelector('#live-timestamp');
+const liveFieldsContainer = document.querySelector('#live-fields');
+const liveFieldCount = document.querySelector('#live-field-count');
+const addLiveFieldButton = document.querySelector('#add-live-field');
+const livePreviewContent = document.querySelector('#live-preview-content');
+const livePreviewCard = document.querySelector('#live-preview-card');
+const livePreviewAuthor = document.querySelector('#live-preview-author');
+const livePreviewAuthorIcon = document.querySelector('#live-preview-author-icon');
+const livePreviewAuthorName = document.querySelector('#live-preview-author-name');
+const livePreviewTitle = document.querySelector('#live-preview-title');
+const livePreviewDescription = document.querySelector('#live-preview-description');
+const livePreviewFields = document.querySelector('#live-preview-fields');
+const livePreviewThumbnail = document.querySelector('#live-preview-thumbnail');
+const livePreviewImage = document.querySelector('#live-preview-image');
+const livePreviewFooter = document.querySelector('#live-preview-footer');
+const livePreviewFooterIcon = document.querySelector('#live-preview-footer-icon');
+const livePreviewFooterText = document.querySelector('#live-preview-footer-text');
+const livePreviewTimestamp = document.querySelector('#live-preview-timestamp');
 const sessionStorageKey = 'blackbox_dashboard_session';
 const savedMessagesStorageKey = 'blackbox_dashboard_saved_messages';
+const presenceStorageKey = 'blackbox_dashboard_presence';
 const welcomeMessageId = 'welcome-message';
 
 const state = {
@@ -75,6 +113,8 @@ const state = {
   botBannerImage: null,
   savedMessages: [],
   composerInitialized: false,
+  liveEmbedLoaded: false,
+  presenceRestoreAttempted: false,
   savedMessagesRefreshTimer: null,
   savedMessagesRequest: null,
 };
@@ -153,6 +193,16 @@ function bindEvents() {
   sectionsContainer.addEventListener('input', updatePreview);
   sectionsContainer.addEventListener('change', updatePreview);
   buttonsContainer.addEventListener('input', updatePreview);
+  liveEmbedForm.addEventListener('submit', handleSaveLiveEmbed);
+  liveEmbedForm.addEventListener('input', updateLiveEmbedPreview);
+  liveEmbedForm.addEventListener('change', updateLiveEmbedPreview);
+  refreshLiveEmbedButton.addEventListener('click', () => {
+    loadLiveEmbedSettings(true).catch((error) => setSendStatus(error.message, 'error'));
+  });
+  liveColorPicker.addEventListener('input', handleLiveColorPickerInput);
+  liveColorInput.addEventListener('input', handleLiveColorInput);
+  addLiveFieldButton.addEventListener('click', () => addLiveEmbedField({}, true));
+  liveFieldsContainer.addEventListener('click', handleLiveFieldsClick);
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && getActiveTab() === 'messages' && !dashboardView.hidden) {
       loadSavedMessages({ silent: true }).catch(() => null);
@@ -246,9 +296,14 @@ async function handleSend(event) {
 }
 
 async function refreshBotSettings(showNotification = false) {
-  const bot = await api('/api/bot');
+  let bot = await api('/api/bot');
 
+  bot = await restorePresenceBackupIfNeeded(bot);
   renderBotSettings(bot);
+
+  if (bot.presenceStorage?.hasSavedSettings) {
+    writePresenceBackup(bot.presence);
+  }
 
   if (showNotification) {
     setSendStatus('Bot profile refreshed.', 'success');
@@ -293,6 +348,7 @@ function renderBotSettings(bot) {
   presenceActivityUrlInput.value = presence.activityUrl || '';
   renderPresenceActivities(presence.activityNames);
   updatePresenceUrlVisibility();
+  renderPresenceStorageStatus(bot.presenceStorage);
 }
 
 async function handleBotImageChange(kind) {
@@ -406,12 +462,107 @@ async function handleUpdateBotPresence(event) {
       },
     });
 
+    writePresenceBackup(bot.presence);
     renderBotSettings(bot);
     setSendStatus('Bot presence updated.', 'success');
   } catch (error) {
     setSendStatus(error.message, 'error');
   } finally {
     saveBotPresenceButton.disabled = false;
+  }
+}
+
+async function restorePresenceBackupIfNeeded(bot) {
+  if (
+    state.presenceRestoreAttempted ||
+    !bot?.botReady ||
+    bot.presenceStorage?.hasSavedSettings
+  ) {
+    return bot;
+  }
+
+  const backup = readPresenceBackup();
+
+  if (!backup) {
+    return bot;
+  }
+
+  state.presenceRestoreAttempted = true;
+
+  try {
+    const restoredBot = await api('/api/bot/presence', {
+      method: 'POST',
+      body: backup,
+    });
+
+    setSendStatus('Presence rotation restored from this browser.', 'success');
+    return restoredBot;
+  } catch (error) {
+    state.presenceRestoreAttempted = false;
+    setSendStatus(`Could not restore the browser presence backup: ${error.message}`, 'error');
+    return bot;
+  }
+}
+
+function writePresenceBackup(presence) {
+  if (!presence || !Array.isArray(presence.activityNames)) {
+    return;
+  }
+
+  const backup = {
+    status: presence.status,
+    activityType: presence.activityType,
+    activityNames: [...presence.activityNames],
+    activityUrl: presence.activityUrl || '',
+    intervalSeconds: presence.intervalSeconds,
+  };
+
+  try {
+    window.localStorage.setItem(presenceStorageKey, JSON.stringify(backup));
+  } catch {
+    // Server-side storage remains authoritative when browser storage is unavailable.
+  }
+}
+
+function readPresenceBackup() {
+  try {
+    const backup = JSON.parse(window.localStorage.getItem(presenceStorageKey) || 'null');
+
+    if (!backup || !Array.isArray(backup.activityNames)) {
+      return null;
+    }
+
+    return backup;
+  } catch {
+    return null;
+  }
+}
+
+function renderPresenceStorageStatus(storage) {
+  if (!storage) {
+    presenceStorageStatus.textContent = 'Storage unavailable';
+    presenceStorageStatus.classList.remove('ready');
+    presenceStorageStatus.classList.add('offline');
+    return;
+  }
+
+  if (!storage.hasSavedSettings) {
+    presenceStorageStatus.textContent = 'Using deployment defaults';
+    presenceStorageStatus.classList.remove('ready');
+    presenceStorageStatus.classList.add('offline');
+    presenceStorageStatus.title = 'Save the rotation to create a presence settings file.';
+    return;
+  }
+
+  presenceStorageStatus.classList.remove('offline');
+  presenceStorageStatus.classList.add('ready');
+
+  if (storage.persistent) {
+    presenceStorageStatus.textContent = 'Saved persistently';
+    presenceStorageStatus.title = storage.filePath || '';
+  } else {
+    presenceStorageStatus.textContent = 'Saved locally';
+    presenceStorageStatus.title = 'This survives process restarts, but a Railway redeploy can replace it.';
   }
 }
 
@@ -540,6 +691,10 @@ function setActiveTab(tab) {
 
   if (nextTab === 'bot' && !dashboardView.hidden) {
     refreshBotSettings().catch((error) => setSendStatus(error.message, 'error'));
+  }
+
+  if (nextTab === 'live-embed' && !dashboardView.hidden && !state.liveEmbedLoaded) {
+    loadLiveEmbedSettings().catch((error) => setSendStatus(error.message, 'error'));
   }
 
   if (nextTab === 'messages' && !dashboardView.hidden) {
@@ -1238,6 +1393,309 @@ function normalizeMessageColor(value) {
   const normalized = String(value || '').trim().replace(/^#/, '');
 
   return /^[0-9a-fA-F]{6}$/.test(normalized) ? `#${normalized.toUpperCase()}` : '';
+}
+
+async function loadLiveEmbedSettings(showNotification = false) {
+  const result = await api('/api/stream-embed');
+
+  applyLiveEmbedSettings(result.settings || {});
+  state.liveEmbedLoaded = true;
+
+  if (showNotification) {
+    setSendStatus('Live embed settings refreshed.', 'success');
+  }
+}
+
+function applyLiveEmbedSettings(settings) {
+  const embed = settings.embed || {};
+
+  liveChannelIdInput.value = settings.channelId || '';
+  liveContentInput.value = settings.content || '';
+  liveMentionStreamerInput.checked = Boolean(settings.mentionStreamer);
+  liveTitleInput.value = embed.title || '';
+  liveTitleUrlInput.value = embed.titleUrl || '';
+  liveDescriptionInput.value = embed.description || '';
+  liveColorInput.value = normalizeMessageColor(embed.color);
+  liveColorPicker.value = liveColorInput.value || '#2DD4BF';
+  liveAuthorNameInput.value = embed.authorName || '';
+  liveAuthorUrlInput.value = embed.authorUrl || '';
+  liveAuthorIconUrlInput.value = embed.authorIconUrl || '';
+  liveThumbnailUrlInput.value = embed.thumbnailUrl || '';
+  liveImageUrlInput.value = embed.imageUrl || '';
+  liveFooterTextInput.value = embed.footerText || '';
+  liveFooterIconUrlInput.value = embed.footerIconUrl || '';
+  liveTimestampInput.checked = Boolean(embed.timestamp);
+  liveFieldsContainer.replaceChildren();
+
+  for (const field of embed.fields || []) {
+    addLiveEmbedField(field);
+  }
+
+  updateLiveEmbedPreview();
+}
+
+async function handleSaveLiveEmbed(event) {
+  event.preventDefault();
+  saveLiveEmbedButton.disabled = true;
+
+  try {
+    const result = await api('/api/stream-embed', {
+      method: 'PUT',
+      body: { settings: collectLiveEmbedSettings() },
+    });
+
+    applyLiveEmbedSettings(result.settings || {});
+    state.liveEmbedLoaded = true;
+    setSendStatus('Live embed saved.', 'success');
+  } catch (error) {
+    setSendStatus(error.message, 'error');
+  } finally {
+    saveLiveEmbedButton.disabled = false;
+  }
+}
+
+function collectLiveEmbedSettings() {
+  return {
+    channelId: liveChannelIdInput.value.trim(),
+    content: liveContentInput.value,
+    mentionStreamer: liveMentionStreamerInput.checked,
+    embed: {
+      title: liveTitleInput.value,
+      titleUrl: liveTitleUrlInput.value,
+      description: liveDescriptionInput.value,
+      color: liveColorInput.value.trim(),
+      authorName: liveAuthorNameInput.value,
+      authorUrl: liveAuthorUrlInput.value,
+      authorIconUrl: liveAuthorIconUrlInput.value,
+      thumbnailUrl: liveThumbnailUrlInput.value,
+      imageUrl: liveImageUrlInput.value,
+      footerText: liveFooterTextInput.value,
+      footerIconUrl: liveFooterIconUrlInput.value,
+      timestamp: liveTimestampInput.checked,
+      fields: [...liveFieldsContainer.querySelectorAll('.live-field-block')].map((field) => ({
+        name: field.querySelector('.live-field-name').value,
+        value: field.querySelector('.live-field-value').value,
+        inline: field.querySelector('.live-field-inline').checked,
+      })),
+    },
+  };
+}
+
+function addLiveEmbedField(field = {}, focus = false) {
+  if (liveFieldsContainer.querySelectorAll('.live-field-block').length >= 25) {
+    setSendStatus('Live embeds can contain up to 25 fields.', 'error');
+    return;
+  }
+
+  const block = document.createElement('section');
+  block.className = 'live-field-block';
+  block.innerHTML = `
+    <div class="block-header">
+      <h2>Embed Field</h2>
+      <div class="block-actions">
+        <button class="secondary move-live-field-up" type="button">Up</button>
+        <button class="secondary move-live-field-down" type="button">Down</button>
+        <button class="secondary remove-live-field" type="button">Remove</button>
+      </div>
+    </div>
+    <div class="form-grid">
+      <label class="field span-2">
+        Field name
+        <input class="live-field-name" maxlength="256" />
+      </label>
+      <label class="field span-2">
+        Field value
+        <textarea class="live-field-value compact-textarea" maxlength="1024"></textarea>
+      </label>
+      <label class="toggle-row span-2">
+        <input class="live-field-inline" type="checkbox" />
+        <span>Display inline</span>
+      </label>
+    </div>
+  `;
+
+  block.querySelector('.live-field-name').value = field.name || '';
+  block.querySelector('.live-field-value').value = field.value || '';
+  block.querySelector('.live-field-inline').checked = Boolean(field.inline);
+  liveFieldsContainer.append(block);
+  updateLiveFieldCount();
+
+  if (focus) {
+    block.querySelector('.live-field-name').focus();
+  }
+
+  updateLiveEmbedPreview();
+}
+
+function handleLiveFieldsClick(event) {
+  const block = event.target.closest('.live-field-block');
+
+  if (!block) {
+    return;
+  }
+
+  if (event.target.closest('.remove-live-field')) {
+    block.remove();
+  } else if (event.target.closest('.move-live-field-up') && block.previousElementSibling) {
+    liveFieldsContainer.insertBefore(block, block.previousElementSibling);
+  } else if (event.target.closest('.move-live-field-down') && block.nextElementSibling) {
+    liveFieldsContainer.insertBefore(block.nextElementSibling, block);
+  } else {
+    return;
+  }
+
+  updateLiveFieldCount();
+  updateLiveEmbedPreview();
+}
+
+function updateLiveFieldCount() {
+  const count = liveFieldsContainer.querySelectorAll('.live-field-block').length;
+  liveFieldCount.textContent = `${count} / 25 field${count === 1 ? '' : 's'}`;
+  addLiveFieldButton.disabled = count >= 25;
+}
+
+function handleLiveColorPickerInput() {
+  liveColorInput.value = liveColorPicker.value.toUpperCase();
+  updateLiveEmbedPreview();
+}
+
+function handleLiveColorInput() {
+  const color = normalizeMessageColor(liveColorInput.value);
+
+  if (color) {
+    liveColorPicker.value = color;
+  }
+
+  updateLiveEmbedPreview();
+}
+
+function updateLiveEmbedPreview() {
+  const settings = collectLiveEmbedSettings();
+  const embed = settings.embed;
+  const content = replaceLivePreviewPlaceholders(settings.content);
+  const authorName = replaceLivePreviewPlaceholders(embed.authorName);
+  const title = replaceLivePreviewPlaceholders(embed.title);
+  const description = replaceLivePreviewPlaceholders(embed.description);
+  const footerText = replaceLivePreviewPlaceholders(embed.footerText);
+  const fields = embed.fields
+    .map((field) => ({
+      name: replaceLivePreviewPlaceholders(field.name),
+      value: replaceLivePreviewPlaceholders(field.value),
+      inline: field.inline,
+    }))
+    .filter((field) => field.name || field.value);
+
+  livePreviewContent.textContent = content;
+  livePreviewContent.hidden = !content;
+  livePreviewCard.style.setProperty('--live-embed-color', normalizeMessageColor(embed.color) || '#4E5058');
+
+  updateLivePreviewLink(
+    livePreviewAuthorName,
+    authorName,
+    resolveLivePreviewUrl(embed.authorUrl),
+  );
+  livePreviewAuthor.hidden = !authorName;
+  updateLivePreviewImage(livePreviewAuthorIcon, authorName ? resolveLivePreviewUrl(embed.authorIconUrl) : '');
+
+  updateLivePreviewLink(livePreviewTitle, title, resolveLivePreviewUrl(embed.titleUrl));
+
+  livePreviewDescription.textContent = description;
+  livePreviewDescription.hidden = !description;
+
+  updateLivePreviewImage(livePreviewThumbnail, resolveLivePreviewUrl(embed.thumbnailUrl));
+  updateLivePreviewImage(livePreviewImage, resolveLivePreviewUrl(embed.imageUrl));
+
+  livePreviewFields.replaceChildren();
+
+  for (const field of fields) {
+    const fieldElement = document.createElement('section');
+    const nameElement = document.createElement('strong');
+    const valueElement = document.createElement('p');
+
+    fieldElement.className = `live-preview-field${field.inline ? ' inline' : ''}`;
+    nameElement.textContent = field.name || 'Untitled field';
+    valueElement.textContent = field.value || 'Empty field';
+    fieldElement.append(nameElement, valueElement);
+    livePreviewFields.append(fieldElement);
+  }
+
+  const timestampText = embed.timestamp
+    ? new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(new Date())
+    : '';
+  livePreviewFooterText.textContent = footerText;
+  livePreviewTimestamp.textContent = timestampText ? `${footerText ? '• ' : ''}Today at ${timestampText}` : '';
+  livePreviewFooter.hidden = !footerText && !timestampText;
+  updateLivePreviewImage(livePreviewFooterIcon, footerText ? resolveLivePreviewUrl(embed.footerIconUrl) : '');
+
+  const hasEmbed =
+    authorName ||
+    title ||
+    description ||
+    fields.length > 0 ||
+    !livePreviewThumbnail.hidden ||
+    !livePreviewImage.hidden ||
+    footerText ||
+    timestampText;
+  livePreviewCard.hidden = !hasEmbed;
+  updateLiveFieldCount();
+}
+
+function replaceLivePreviewPlaceholders(template) {
+  const values = {
+    member: '<@185282790969835520>',
+    displayName: '5noof',
+    streamTitle: 'Building something under control',
+    streamUrl: 'https://twitch.tv/5noof',
+    gameName: 'Just Chatting',
+    twitchUsername: '5noof',
+    previewUrl: 'https://static-cdn.jtvnw.net/previews-ttv/live_user_5noof-1920x1080.jpg',
+    avatarUrl: 'https://cdn.discordapp.com/embed/avatars/0.png',
+  };
+
+  return String(template || '').replace(
+    /\{(member|displayName|streamTitle|streamUrl|gameName|twitchUsername|previewUrl|avatarUrl)\}/g,
+    (_, key) => values[key],
+  );
+}
+
+function resolveLivePreviewUrl(template) {
+  const value = replaceLivePreviewPlaceholders(template).trim();
+
+  if (!value) {
+    return '';
+  }
+
+  try {
+    const url = new URL(value);
+    return ['http:', 'https:'].includes(url.protocol) ? url.toString() : '';
+  } catch {
+    return '';
+  }
+}
+
+function updateLivePreviewLink(element, text, url) {
+  element.textContent = text;
+  element.hidden = !text;
+
+  if (url) {
+    element.href = url;
+    element.target = '_blank';
+    element.rel = 'noreferrer';
+  } else {
+    element.removeAttribute('href');
+    element.removeAttribute('target');
+    element.removeAttribute('rel');
+  }
+}
+
+function updateLivePreviewImage(element, url) {
+  element.hidden = !url;
+
+  if (url) {
+    element.src = url;
+  } else {
+    element.removeAttribute('src');
+  }
 }
 
 function setSendStatus(message, type) {

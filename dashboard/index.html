@@ -44,6 +44,7 @@
         <nav class="dashboard-tabs" aria-label="Dashboard tabs">
           <button class="tab-button" type="button" data-tab="overview" aria-selected="true">Overview</button>
           <button class="tab-button" type="button" data-tab="messages" aria-selected="false">Messages</button>
+          <button class="tab-button" type="button" data-tab="live-embed" aria-selected="false">Live Embed</button>
           <button class="tab-button" type="button" data-tab="bot" aria-selected="false">Bot</button>
           <button class="tab-button" type="button" data-tab="settings" aria-selected="false">Settings</button>
         </nav>
@@ -179,6 +180,203 @@
           </section>
         </section>
 
+        <section class="tab-panel" data-panel="live-embed" hidden>
+          <section class="live-embed-workspace">
+            <form id="live-embed-form" class="live-embed-editor">
+              <div class="toolbar-row">
+                <div>
+                  <h2>Live Announcement Builder</h2>
+                  <span class="muted">Used when the featured Twitch account goes live.</span>
+                </div>
+                <button id="refresh-live-embed" class="secondary" type="button">Refresh</button>
+              </div>
+
+              <section class="live-editor-section live-placeholder-guide">
+                <h2>Dynamic placeholders</h2>
+                <div class="placeholder-list">
+                  <code>{member}</code>
+                  <code>{displayName}</code>
+                  <code>{streamTitle}</code>
+                  <code>{streamUrl}</code>
+                  <code>{gameName}</code>
+                  <code>{twitchUsername}</code>
+                  <code>{previewUrl}</code>
+                  <code>{avatarUrl}</code>
+                </div>
+              </section>
+
+              <section class="live-editor-section">
+                <h2>Delivery</h2>
+                <div class="form-grid">
+                  <label class="field span-2">
+                    Announcement channel ID
+                    <input
+                      id="live-channel-id"
+                      inputmode="numeric"
+                      maxlength="20"
+                      placeholder="1520519675543293972"
+                    />
+                  </label>
+
+                  <label class="field span-2">
+                    Message content
+                    <textarea
+                      id="live-content"
+                      class="compact-textarea"
+                      maxlength="2000"
+                      placeholder="Optional text outside the embed"
+                    ></textarea>
+                  </label>
+
+                  <label class="toggle-row span-2">
+                    <input id="live-mention-streamer" type="checkbox" />
+                    <span>Allow the message content to mention the streamer</span>
+                  </label>
+                </div>
+              </section>
+
+              <section class="live-editor-section">
+                <h2>Embed basics</h2>
+                <div class="form-grid">
+                  <label class="field">
+                    Title
+                    <input id="live-title" maxlength="256" placeholder="{displayName} is live!" />
+                  </label>
+
+                  <label class="field">
+                    Title URL
+                    <input id="live-title-url" maxlength="2048" placeholder="{streamUrl}" />
+                  </label>
+
+                  <label class="field span-2">
+                    Description
+                    <textarea id="live-description" maxlength="4096"></textarea>
+                  </label>
+
+                  <label class="field span-2">
+                    Embed color
+                    <span class="color-control">
+                      <input
+                        id="live-color-picker"
+                        type="color"
+                        value="#2dd4bf"
+                        aria-label="Choose live embed color"
+                      />
+                      <input
+                        id="live-color"
+                        maxlength="7"
+                        pattern="#?[0-9a-fA-F]{6}"
+                        placeholder="Optional, e.g. #2DD4BF"
+                        title="Enter a 6-digit hex color"
+                      />
+                    </span>
+                  </label>
+                </div>
+              </section>
+
+              <section class="live-editor-section">
+                <h2>Author</h2>
+                <div class="form-grid">
+                  <label class="field span-2">
+                    Author name
+                    <input id="live-author-name" maxlength="256" placeholder="{displayName}" />
+                  </label>
+
+                  <label class="field">
+                    Author URL
+                    <input id="live-author-url" maxlength="2048" placeholder="{streamUrl}" />
+                  </label>
+
+                  <label class="field">
+                    Author icon URL
+                    <input id="live-author-icon-url" maxlength="2048" placeholder="{avatarUrl}" />
+                  </label>
+                </div>
+              </section>
+
+              <section class="live-editor-section">
+                <h2>Media</h2>
+                <div class="form-grid">
+                  <label class="field">
+                    Thumbnail URL
+                    <input id="live-thumbnail-url" maxlength="2048" placeholder="{avatarUrl}" />
+                  </label>
+
+                  <label class="field">
+                    Main image URL
+                    <input id="live-image-url" maxlength="2048" placeholder="{previewUrl}" />
+                  </label>
+                </div>
+              </section>
+
+              <section class="live-editor-section">
+                <h2>Footer</h2>
+                <div class="form-grid">
+                  <label class="field">
+                    Footer text
+                    <input id="live-footer-text" maxlength="2048" placeholder="UNDR CTRL" />
+                  </label>
+
+                  <label class="field">
+                    Footer icon URL
+                    <input id="live-footer-icon-url" maxlength="2048" placeholder="{avatarUrl}" />
+                  </label>
+
+                  <label class="toggle-row span-2">
+                    <input id="live-timestamp" type="checkbox" />
+                    <span>Show the time the stream was detected</span>
+                  </label>
+                </div>
+              </section>
+
+              <section class="live-editor-section">
+                <div class="toolbar-row">
+                  <div>
+                    <h2>Embed fields</h2>
+                    <span id="live-field-count" class="muted">0 / 25 fields</span>
+                  </div>
+                  <button id="add-live-field" class="secondary" type="button">Add Field</button>
+                </div>
+                <div id="live-fields" class="stack"></div>
+              </section>
+
+              <div class="action-row">
+                <span class="muted">Changes apply to the next featured stream announcement.</span>
+                <button id="save-live-embed" type="submit">Save Live Embed</button>
+              </div>
+            </form>
+
+            <aside class="live-embed-preview-panel">
+              <div class="toolbar-row">
+                <h2>Discord Preview</h2>
+                <span class="muted">Sample stream data</span>
+              </div>
+
+              <div class="live-discord-message">
+                <p id="live-preview-content" class="live-preview-content" hidden></p>
+                <article id="live-preview-card" class="live-preview-card">
+                  <div class="live-preview-body">
+                    <div id="live-preview-author" class="live-preview-author" hidden>
+                      <img id="live-preview-author-icon" alt="" hidden />
+                      <a id="live-preview-author-name"></a>
+                    </div>
+                    <a id="live-preview-title" class="live-preview-title" hidden></a>
+                    <p id="live-preview-description" class="live-preview-description" hidden></p>
+                    <div id="live-preview-fields" class="live-preview-fields"></div>
+                  </div>
+                  <img id="live-preview-thumbnail" class="live-preview-thumbnail" alt="" hidden />
+                  <img id="live-preview-image" class="live-preview-image" alt="" hidden />
+                  <footer id="live-preview-footer" class="live-preview-footer" hidden>
+                    <img id="live-preview-footer-icon" alt="" hidden />
+                    <span id="live-preview-footer-text"></span>
+                    <span id="live-preview-timestamp"></span>
+                  </footer>
+                </article>
+              </div>
+            </aside>
+          </section>
+        </section>
+
         <section class="tab-panel" data-panel="bot" hidden>
           <div class="bot-grid">
             <section class="dashboard-panel bot-identity-panel">
@@ -249,8 +447,9 @@
             </section>
 
             <section class="dashboard-panel bot-presence-panel">
-              <div>
+              <div class="toolbar-row">
                 <h2>Presence</h2>
+                <span id="presence-storage-status" class="status-pill">Checking storage</span>
               </div>
 
               <form id="bot-presence-form" class="bot-presence-form">

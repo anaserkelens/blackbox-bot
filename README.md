@@ -87,6 +87,7 @@ https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=412317
    DASHBOARD_MAX_UPLOAD_MB
    DASHBOARD_SAVED_MESSAGES_PATH
    DASHBOARD_PRESENCE_PATH
+   DASHBOARD_STREAM_EMBED_PATH
    ENABLE_SERVER_MEMBERS_INTENT
    ENABLE_MESSAGE_CONTENT_INTENT
    ENABLE_PRESENCE_INTENT
@@ -104,6 +105,8 @@ Optional systems are controlled by environment variables. For example, tickets n
 
 The stream monitor has two paths. `FEATURED_STREAMER_USER_ID` receives a Twitch announcement in `ANNOUNCEMENT_CHANNEL_ID` without receiving the live role. Other members receive `LIVE_ROLE_ID` while streaming on Twitch, with no announcement posted. Enable `STREAM_MONITOR_ENABLED` and the Discord Developer Portal Presence Intent to use it.
 
+The dashboard Live Embed tab controls the featured Twitch announcement template. Its settings are stored in `stream-embed.json`, automatically on `RAILWAY_VOLUME_MOUNT_PATH` when a volume is attached. Use `DASHBOARD_STREAM_EMBED_PATH` to override that location.
+
 ## Dashboard
 
 Set `DASHBOARD_PASSWORD` in Railway to enable the browser dashboard. Railway will expose it at your service URL:
@@ -115,6 +118,8 @@ https://your-service.up.railway.app/
 The dashboard sends messages through the running bot, so no restart or slash command is needed. The bot must already be online, and it must have permission to send messages and attach files in the target channel.
 
 The dashboard Bot tab can update the bot's avatar, banner, bio, and presence. The Presence panel can add or remove activity texts and set the rotation interval. Saving restarts the rotation immediately and stores the complete presence configuration in `data/presence.json` locally. On Railway, it automatically uses `RAILWAY_VOLUME_MOUNT_PATH/presence.json` when a volume is attached; you can override the file with `DASHBOARD_PRESENCE_PATH`. The `PRESENCE_TEXTS`, `PRESENCE_ROTATION_SECONDS`, and legacy `PRESENCE_TEXT` variables provide defaults until dashboard settings have been saved.
+
+The browser also keeps a presence backup after every successful save. If a Railway redeploy starts without a server-side `presence.json`, opening the dashboard from that browser automatically restores and reapplies the last rotation. An attached Railway volume is still required for unattended persistence before anyone opens the dashboard.
 
 Saved dashboard messages are shared server-side while the bot is running. On Railway, attach a persistent volume if you want them to survive redeploys. When a Railway volume is attached, the bot automatically stores saved messages at `RAILWAY_VOLUME_MOUNT_PATH/saved-messages.json`; you can override that with `DASHBOARD_SAVED_MESSAGES_PATH`.
 
