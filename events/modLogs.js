@@ -1,6 +1,7 @@
 const { AuditLogEvent, Events } = require('discord.js');
 
 const { config } = require('../utils/config');
+const { hasRecentBotModerationAction } = require('../utils/moderationActions');
 const {
   colors,
   fetchAuditEntry,
@@ -22,6 +23,10 @@ module.exports = {
 };
 
 async function logBanAdd(ban, client) {
+  if (hasRecentBotModerationAction('ban', ban.guild.id, ban.user.id)) {
+    return;
+  }
+
   const entry = await fetchAuditEntry(ban.guild, AuditLogEvent.MemberBanAdd, ban.user.id);
 
   await sendStructuredLog(client, config.channels.caseFiles, {
@@ -63,6 +68,10 @@ async function logTimeoutUpdate(oldMember, newMember, client) {
   const newUntil = newMember.communicationDisabledUntilTimestamp || null;
 
   if (oldUntil === newUntil) {
+    return;
+  }
+
+  if (hasRecentBotModerationAction('timeout', newMember.guild.id, newMember.id)) {
     return;
   }
 

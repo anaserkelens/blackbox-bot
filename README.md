@@ -9,7 +9,7 @@ A Discord.js bot for the UNDR CTRL community, ready to run locally and deploy to
 - Keeps secrets in environment variables instead of files.
 - Uses the same folder shape as the reference bot: `commands`, `events`, `images`, and `utils`.
 - Includes a protected browser dashboard for sending Components v2 messages instantly.
-- Includes `/ping`, `/about`, `/server`, `/help`, `/clear`, `/warn`, `/ticketsetup`, `/setupreactionrole`, `/teststream`, and `/testwelcome`.
+- Includes `/ping`, `/about`, `/server`, `/help`, `/clear`, `/warn`, `/kick`, `/ban`, `/timeout`, `/ticketsetup`, `/setupreactionrole`, `/teststream`, and `/testwelcome`.
 - Includes optional event systems for tickets, member logs, message logs, channel logs, scheduled event logs, moderation logs, user logs, invite moderation, reaction roles, and stream monitoring.
 
 ## Local Setup
@@ -60,7 +60,7 @@ Enable these privileged gateway intents in the Bot page only if you also enable 
 Automatic welcome messages require the Server Members Intent in the Discord Developer Portal and `ENABLE_SERVER_MEMBERS_INTENT=true`.
 Detailed message edit/delete logs require the Message Content Intent and `ENABLE_MESSAGE_CONTENT_INTENT=true`.
 
-Invite the bot with both `bot` and `applications.commands` scopes. Detailed logging also needs View Audit Log, Manage Server (for invite attribution), View Channels, Read Message History, and Send Messages in every log channel.
+Invite the bot with both `bot` and `applications.commands` scopes. Detailed logging also needs View Audit Log, View Channels, Read Message History, and Send Messages in every log channel.
 
 ```text
 https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=412317273088&scope=bot%20applications.commands
@@ -114,13 +114,15 @@ All audit messages use Discord Components V2 containers with timestamps, referen
 | Category | Default channel | Coverage |
 | --- | --- | --- |
 | Case files | `1520858981227172000` | Kicks, bans, unbans, timeouts, and `/warn` cases |
-| Entry log | `1520858940617785565` | Joins, leaves, invite creation/deletion/use, and blocked invite links |
+| Entry log | `1520858940617785565` | Joins, leaves, and optional blocked invite-link moderation |
 | Signal log | `1520859015905546380` | Message edits, deletes, bulk deletes, attachments, and transcript excerpts |
 | Line log | `1520915998092558527` | Voice joins, moves, leaves, session duration, mute/deafen, camera, and streaming changes |
 | Operation log | `1520916058272170185` | Bot startup, scheduled events, RSVPs, and ticket creation/closure |
 | System log | `1520859053012811876` | Channel creation/deletion/configuration, permission overwrites, role changes, member role assignments, nicknames, and user profiles |
 
 `/warn member:<user> reason:<text>` sends the member a formal warning by DM and records the complete case in `#case-files`. If DMs are closed, the failed delivery is recorded in the case.
+
+`/kick`, `/ban`, and `/timeout` provide bot-managed versions of Discord’s moderation actions. They enforce moderator permissions and role hierarchy, write identifiable audit-log reasons, DM the affected member through a Components V2 notice, and record DM delivery status in a single non-duplicated case log.
 
 Optional systems are controlled by environment variables. For example, tickets need `TICKET_CHANNEL_ID`, ticket logs need `TICKET_LOG_CHANNEL_ID`, and reaction roles need `REACTION_ROLE_MESSAGE_ID`, `REACTION_ROLE_EMOJI_ID`, and `VERIFIED_ROLE_ID`. See [.env.example](.env.example) for the full list.
 

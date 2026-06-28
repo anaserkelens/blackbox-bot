@@ -1,6 +1,7 @@
 const { AuditLogEvent, Events } = require('discord.js');
 
 const { config } = require('../utils/config');
+const { hasRecentBotModerationAction } = require('../utils/moderationActions');
 const {
   colors,
   fetchAuditEntry,
@@ -14,6 +15,13 @@ const {
 module.exports = {
   name: Events.GuildMemberRemove,
   async execute(member, client) {
+    if (
+      hasRecentBotModerationAction('kick', member.guild.id, member.id) ||
+      hasRecentBotModerationAction('ban', member.guild.id, member.id)
+    ) {
+      return;
+    }
+
     const banEntry = await fetchAuditEntry(member.guild, AuditLogEvent.MemberBanAdd, member.id, 10000);
 
     if (banEntry) {
