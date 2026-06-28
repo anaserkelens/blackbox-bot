@@ -109,6 +109,8 @@ The dashboard Live Embed tab controls the featured Twitch announcement template,
 
 Announcements with link buttons use a Discord Components V2 container so the buttons render inside the same bordered announcement block. Buttonless announcements continue to use standard Discord embeds.
 
+Member and role mentions in live announcement message content are enabled for both real announcements and `/teststream`.
+
 To keep live embed settings across Railway restarts and redeploys, attach a volume to the bot service (for example at `/data`). Railway provides `RAILWAY_VOLUME_MOUNT_PATH` automatically and the bot stores `stream-embed.json` there. The dashboard shows whether storage is persistent and keeps a browser backup that can restore a missing server-side file when the dashboard is reopened.
 
 `/teststream` posts the currently saved live embed in the channel where the command is used. It is restricted at runtime to `BOT_OWNER_USER_ID`, who must also have `FOUNDER_ROLE_ID`; both IDs have UNDR CTRL defaults in `.env.example`.

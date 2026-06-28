@@ -71,7 +71,6 @@ const saveLiveEmbedButton = document.querySelector('#save-live-embed');
 const liveEmbedStorageStatus = document.querySelector('#live-embed-storage-status');
 const liveChannelIdInput = document.querySelector('#live-channel-id');
 const liveContentInput = document.querySelector('#live-content');
-const liveMentionStreamerInput = document.querySelector('#live-mention-streamer');
 const liveTitleInput = document.querySelector('#live-title');
 const liveTitleUrlInput = document.querySelector('#live-title-url');
 const liveDescriptionInput = document.querySelector('#live-description');
@@ -1459,7 +1458,6 @@ function applyLiveEmbedSettings(settings) {
 
   liveChannelIdInput.value = settings.channelId || '';
   liveContentInput.value = settings.content || '';
-  liveMentionStreamerInput.checked = Boolean(settings.mentionStreamer);
   liveTitleInput.value = embed.title || '';
   liveTitleUrlInput.value = embed.titleUrl || '';
   liveDescriptionInput.value = embed.description || '';
@@ -1568,7 +1566,6 @@ function collectLiveEmbedSettings() {
   return {
     channelId: liveChannelIdInput.value.trim(),
     content: liveContentInput.value,
-    mentionStreamer: liveMentionStreamerInput.checked,
     buttons: [...liveButtonsContainer.querySelectorAll('.live-button-block')].map((button) => ({
       label: button.querySelector('.live-button-label').value,
       url: button.querySelector('.live-button-url').value,

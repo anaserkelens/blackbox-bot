@@ -7,7 +7,6 @@ function createDefaultStreamEmbedSettings(config) {
   return {
     channelId: config.channels.streamAnnouncements || '',
     content: '',
-    mentionStreamer: false,
     buttons: [],
     embed: {
       title: '',
@@ -63,7 +62,6 @@ function normalizeStreamEmbedSettings(input, defaults) {
   return {
     channelId,
     content,
-    mentionStreamer: Boolean(source.mentionStreamer ?? fallback.mentionStreamer),
     buttons,
     embed,
   };

@@ -134,7 +134,7 @@ function createStreamAnnouncementPayload(settings, context) {
   const payload = {
     ...(content ? { content } : {}),
     ...(hasEmbed ? { embeds: [embed] } : {}),
-    allowedMentions: settings.mentionStreamer ? { users: [context.member.id] } : { parse: [] },
+    allowedMentions: { parse: ['users', 'roles'] },
   };
 
   return payload;
@@ -252,7 +252,7 @@ function createComponentsV2AnnouncementPayload(options) {
   return {
     components,
     flags: MessageFlags.IsComponentsV2,
-    allowedMentions: settings.mentionStreamer ? { users: [context.member.id] } : { parse: [] },
+    allowedMentions: { parse: ['users', 'roles'] },
   };
 }
 
