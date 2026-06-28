@@ -8,6 +8,7 @@ function createDefaultStreamEmbedSettings(config) {
     channelId: config.channels.streamAnnouncements || '',
     content: '',
     mentionStreamer: false,
+    buttons: [],
     embed: {
       title: '',
       titleUrl: '',
@@ -33,7 +34,8 @@ function normalizeStreamEmbedSettings(input, defaults) {
   const fallbackEmbed = fallback.embed && typeof fallback.embed === 'object' ? fallback.embed : {};
   const channelId = normalizeText(source.channelId ?? fallback.channelId, 24);
   const content = normalizeText(source.content ?? fallback.content, 2000);
-  const fields = normalizeFields(sourceEmbed.fields ?? fallbackEmbed.fields);
+  const fields = normalizeEmbedBlocks(sourceEmbed.fields ?? fallbackEmbed.fields);
+  const buttons = normalizeButtons(source.buttons ?? fallback.buttons);
   const embed = {
     title: normalizeText(sourceEmbed.title ?? fallbackEmbed.title, 256),
     titleUrl: normalizeText(sourceEmbed.titleUrl ?? fallbackEmbed.titleUrl, 2048),
@@ -54,40 +56,72 @@ function normalizeStreamEmbedSettings(input, defaults) {
     throw new Error('Announcement channel ID must be a Discord snowflake.');
   }
 
-  if (!content && !hasEmbedContent(embed)) {
-    throw new Error('Add message content or at least one embed element.');
+  if (!content && !hasEmbedContent(embed) && buttons.length === 0) {
+    throw new Error('Add message content, an embed element, or a button.');
   }
 
   return {
     channelId,
     content,
     mentionStreamer: Boolean(source.mentionStreamer ?? fallback.mentionStreamer),
+    buttons,
     embed,
   };
 }
 
-function normalizeFields(fields) {
-  if (!Array.isArray(fields)) {
+function normalizeEmbedBlocks(blocks) {
+  if (!Array.isArray(blocks)) {
     return [];
   }
 
-  if (fields.length > 25) {
-    throw new Error('Live embeds can contain up to 25 fields.');
+  if (blocks.length > 25) {
+    throw new Error('Live embeds can contain up to 25 fields and layout blocks.');
   }
 
-  return fields.map((field, index) => {
-    const name = normalizeText(field?.name, 256);
-    const value = normalizeText(field?.value, 1024);
+  return blocks.map((block, index) => {
+    const type = String(block?.type || 'field').trim().toLowerCase();
+
+    if (type === 'divider' || type === 'spacer') {
+      return {
+        type,
+        spacing: String(block.spacing || '').toLowerCase() === 'large' ? 'large' : 'small',
+      };
+    }
+
+    const name = normalizeText(block?.name, 256);
+    const value = normalizeText(block?.value, 1024);
 
     if (!name || !value) {
       throw new Error(`Live embed field ${index + 1} needs both a name and value.`);
     }
 
     return {
+      type: 'field',
       name,
       value,
-      inline: Boolean(field?.inline),
+      inline: Boolean(block?.inline),
     };
+  });
+}
+
+function normalizeButtons(buttons) {
+  if (!Array.isArray(buttons)) {
+    return [];
+  }
+
+  if (buttons.length > 5) {
+    throw new Error('Live announcements can contain up to 5 link buttons.');
+  }
+
+  return buttons.map((button, index) => {
+    const label = normalizeText(button?.label, 80);
+    const url = normalizeText(button?.url, 512);
+
+    if (!label || !url) {
+      throw new Error(`Live announcement button ${index + 1} needs both a label and URL.`);
+    }
+
+    return { label, url };
   });
 }
 

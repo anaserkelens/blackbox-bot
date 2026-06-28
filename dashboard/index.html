@@ -332,12 +332,27 @@
               <section class="live-editor-section">
                 <div class="toolbar-row">
                   <div>
-                    <h2>Embed fields</h2>
-                    <span id="live-field-count" class="muted">0 / 25 fields</span>
+                    <h2>Fields and layout</h2>
+                    <span id="live-field-count" class="muted">0 / 25 blocks</span>
                   </div>
-                  <button id="add-live-field" class="secondary" type="button">Add Field</button>
+                  <div class="toolbar-actions">
+                    <button id="add-live-field" class="secondary" type="button">Add Field</button>
+                    <button id="add-live-divider" class="secondary" type="button">Add Divider</button>
+                    <button id="add-live-spacer" class="secondary" type="button">Add Spacer</button>
+                  </div>
                 </div>
                 <div id="live-fields" class="stack"></div>
+              </section>
+
+              <section class="live-editor-section">
+                <div class="toolbar-row">
+                  <div>
+                    <h2>Link buttons</h2>
+                    <span id="live-button-count" class="muted">0 / 5 buttons</span>
+                  </div>
+                  <button id="add-live-button" class="secondary" type="button">Add Button</button>
+                </div>
+                <div id="live-buttons" class="stack"></div>
               </section>
 
               <div class="action-row">
@@ -372,6 +387,7 @@
                     <span id="live-preview-timestamp"></span>
                   </footer>
                 </article>
+                <div id="live-preview-buttons" class="live-preview-buttons"></div>
               </div>
             </aside>
           </section>

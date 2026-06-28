@@ -1,4 +1,4 @@
-const { EmbedBuilder } = require('discord.js');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 
 function createStreamAnnouncementPayload(settings, context) {
   const values = createPlaceholderValues(context);
@@ -22,12 +22,13 @@ function createStreamAnnouncementPayload(settings, context) {
     ? resolveOptionalUrl(embedSettings.footerIconUrl, values, 'Footer icon URL')
     : '';
   const fields = embedSettings.fields
-    .map((field) => ({
-      name: replacePlaceholders(field.name, values),
-      value: replacePlaceholders(field.value, values),
-      inline: field.inline,
-    }))
-    .filter((field) => field.name && field.value);
+    .map((field) => resolveEmbedBlock(field, values))
+    .filter(Boolean);
+  const buttons = settings.buttons.map((button) => ({
+    label: replacePlaceholders(button.label, values),
+    url: resolveOptionalUrl(button.url, values, `Button "${button.label}" URL`),
+  }))
+    .filter((button) => button.label && button.url);
 
   if (title) {
     embed.setTitle(title);
@@ -95,15 +96,59 @@ function createStreamAnnouncementPayload(settings, context) {
     throw new Error('The resolved live embed exceeds Discord’s 6000-character total limit.');
   }
 
-  if (!content && !hasEmbed) {
+  if (!content && !hasEmbed && buttons.length === 0) {
     throw new Error('The live announcement template is empty.');
   }
 
-  return {
+  const payload = {
     ...(content ? { content } : {}),
     ...(hasEmbed ? { embeds: [embed] } : {}),
     allowedMentions: settings.mentionStreamer ? { users: [context.member.id] } : { parse: [] },
   };
+
+  if (buttons.length > 0) {
+    payload.components = [
+      new ActionRowBuilder().addComponents(
+        buttons.map((button) =>
+          new ButtonBuilder()
+            .setStyle(ButtonStyle.Link)
+            .setLabel(button.label)
+            .setURL(button.url),
+        ),
+      ),
+    ];
+  }
+
+  return payload;
+}
+
+function resolveEmbedBlock(block, values) {
+  if (block.type === 'divider') {
+    return {
+      name: '\u200B',
+      value: block.spacing === 'large' ? '━━━━━━━━━━━━━━━━━━━━\n\u200B' : '━━━━━━━━━━━━━━━━━━━━',
+      inline: false,
+    };
+  }
+
+  if (block.type === 'spacer') {
+    return {
+      name: '\u200B',
+      value: block.spacing === 'large' ? '\u200B\n\u200B' : '\u200B',
+      inline: false,
+    };
+  }
+
+  const name = replacePlaceholders(block.name, values);
+  const value = replacePlaceholders(block.value, values);
+
+  return name && value
+    ? {
+        name,
+        value,
+        inline: block.inline,
+      }
+    : null;
 }
 
 function createPlaceholderValues(context) {

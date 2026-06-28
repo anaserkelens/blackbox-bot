@@ -87,6 +87,11 @@ const liveTimestampInput = document.querySelector('#live-timestamp');
 const liveFieldsContainer = document.querySelector('#live-fields');
 const liveFieldCount = document.querySelector('#live-field-count');
 const addLiveFieldButton = document.querySelector('#add-live-field');
+const addLiveDividerButton = document.querySelector('#add-live-divider');
+const addLiveSpacerButton = document.querySelector('#add-live-spacer');
+const liveButtonsContainer = document.querySelector('#live-buttons');
+const liveButtonCount = document.querySelector('#live-button-count');
+const addLiveButton = document.querySelector('#add-live-button');
 const livePreviewContent = document.querySelector('#live-preview-content');
 const livePreviewCard = document.querySelector('#live-preview-card');
 const livePreviewAuthor = document.querySelector('#live-preview-author');
@@ -101,6 +106,7 @@ const livePreviewFooter = document.querySelector('#live-preview-footer');
 const livePreviewFooterIcon = document.querySelector('#live-preview-footer-icon');
 const livePreviewFooterText = document.querySelector('#live-preview-footer-text');
 const livePreviewTimestamp = document.querySelector('#live-preview-timestamp');
+const livePreviewButtons = document.querySelector('#live-preview-buttons');
 const sessionStorageKey = 'blackbox_dashboard_session';
 const savedMessagesStorageKey = 'blackbox_dashboard_saved_messages';
 const presenceStorageKey = 'blackbox_dashboard_presence';
@@ -202,7 +208,11 @@ function bindEvents() {
   liveColorPicker.addEventListener('input', handleLiveColorPickerInput);
   liveColorInput.addEventListener('input', handleLiveColorInput);
   addLiveFieldButton.addEventListener('click', () => addLiveEmbedField({}, true));
+  addLiveDividerButton.addEventListener('click', () => addLiveEmbedLayoutBlock('divider'));
+  addLiveSpacerButton.addEventListener('click', () => addLiveEmbedLayoutBlock('spacer'));
   liveFieldsContainer.addEventListener('click', handleLiveFieldsClick);
+  addLiveButton.addEventListener('click', () => addLiveEmbedButton({}, true));
+  liveButtonsContainer.addEventListener('click', handleLiveButtonsClick);
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && getActiveTab() === 'messages' && !dashboardView.hidden) {
       loadSavedMessages({ silent: true }).catch(() => null);
@@ -1426,9 +1436,18 @@ function applyLiveEmbedSettings(settings) {
   liveFooterIconUrlInput.value = embed.footerIconUrl || '';
   liveTimestampInput.checked = Boolean(embed.timestamp);
   liveFieldsContainer.replaceChildren();
+  liveButtonsContainer.replaceChildren();
 
-  for (const field of embed.fields || []) {
-    addLiveEmbedField(field);
+  for (const block of embed.fields || []) {
+    if (block.type === 'divider' || block.type === 'spacer') {
+      addLiveEmbedLayoutBlock(block.type, block.spacing);
+    } else {
+      addLiveEmbedField(block);
+    }
+  }
+
+  for (const button of settings.buttons || []) {
+    addLiveEmbedButton(button);
   }
 
   updateLiveEmbedPreview();
@@ -1459,6 +1478,10 @@ function collectLiveEmbedSettings() {
     channelId: liveChannelIdInput.value.trim(),
     content: liveContentInput.value,
     mentionStreamer: liveMentionStreamerInput.checked,
+    buttons: [...liveButtonsContainer.querySelectorAll('.live-button-block')].map((button) => ({
+      label: button.querySelector('.live-button-label').value,
+      url: button.querySelector('.live-button-url').value,
+    })),
     embed: {
       title: liveTitleInput.value,
       titleUrl: liveTitleUrlInput.value,
@@ -1472,23 +1495,36 @@ function collectLiveEmbedSettings() {
       footerText: liveFooterTextInput.value,
       footerIconUrl: liveFooterIconUrlInput.value,
       timestamp: liveTimestampInput.checked,
-      fields: [...liveFieldsContainer.querySelectorAll('.live-field-block')].map((field) => ({
-        name: field.querySelector('.live-field-name').value,
-        value: field.querySelector('.live-field-value').value,
-        inline: field.querySelector('.live-field-inline').checked,
-      })),
+      fields: [...liveFieldsContainer.querySelectorAll('.live-embed-block')].map((block) => {
+        const type = block.dataset.blockType;
+
+        if (type === 'divider' || type === 'spacer') {
+          return {
+            type,
+            spacing: block.querySelector('.live-layout-spacing').value,
+          };
+        }
+
+        return {
+          type: 'field',
+          name: block.querySelector('.live-field-name').value,
+          value: block.querySelector('.live-field-value').value,
+          inline: block.querySelector('.live-field-inline').checked,
+        };
+      }),
     },
   };
 }
 
 function addLiveEmbedField(field = {}, focus = false) {
-  if (liveFieldsContainer.querySelectorAll('.live-field-block').length >= 25) {
-    setSendStatus('Live embeds can contain up to 25 fields.', 'error');
+  if (liveFieldsContainer.querySelectorAll('.live-embed-block').length >= 25) {
+    setSendStatus('Live embeds can contain up to 25 fields and layout blocks.', 'error');
     return;
   }
 
   const block = document.createElement('section');
-  block.className = 'live-field-block';
+  block.className = 'live-field-block live-embed-block';
+  block.dataset.blockType = 'field';
   block.innerHTML = `
     <div class="block-header">
       <h2>Embed Field</h2>
@@ -1527,8 +1563,43 @@ function addLiveEmbedField(field = {}, focus = false) {
   updateLiveEmbedPreview();
 }
 
+function addLiveEmbedLayoutBlock(type, spacing = 'small') {
+  if (liveFieldsContainer.querySelectorAll('.live-embed-block').length >= 25) {
+    setSendStatus('Live embeds can contain up to 25 fields and layout blocks.', 'error');
+    return;
+  }
+
+  const isDivider = type === 'divider';
+  const block = document.createElement('section');
+
+  block.className = 'live-field-block live-layout-block live-embed-block';
+  block.dataset.blockType = isDivider ? 'divider' : 'spacer';
+  block.innerHTML = `
+    <div class="block-header">
+      <h2>${isDivider ? 'Divider' : 'Spacer'}</h2>
+      <div class="block-actions">
+        <button class="secondary move-live-field-up" type="button">Up</button>
+        <button class="secondary move-live-field-down" type="button">Down</button>
+        <button class="secondary remove-live-field" type="button">Remove</button>
+      </div>
+    </div>
+    <label class="field">
+      Spacing
+      <select class="live-layout-spacing">
+        <option value="small">Small</option>
+        <option value="large">Large</option>
+      </select>
+    </label>
+  `;
+
+  block.querySelector('.live-layout-spacing').value = spacing === 'large' ? 'large' : 'small';
+  liveFieldsContainer.append(block);
+  updateLiveFieldCount();
+  updateLiveEmbedPreview();
+}
+
 function handleLiveFieldsClick(event) {
-  const block = event.target.closest('.live-field-block');
+  const block = event.target.closest('.live-embed-block');
 
   if (!block) {
     return;
@@ -1549,9 +1620,80 @@ function handleLiveFieldsClick(event) {
 }
 
 function updateLiveFieldCount() {
-  const count = liveFieldsContainer.querySelectorAll('.live-field-block').length;
-  liveFieldCount.textContent = `${count} / 25 field${count === 1 ? '' : 's'}`;
+  const count = liveFieldsContainer.querySelectorAll('.live-embed-block').length;
+  liveFieldCount.textContent = `${count} / 25 block${count === 1 ? '' : 's'}`;
   addLiveFieldButton.disabled = count >= 25;
+  addLiveDividerButton.disabled = count >= 25;
+  addLiveSpacerButton.disabled = count >= 25;
+}
+
+function addLiveEmbedButton(button = {}, focus = false) {
+  if (liveButtonsContainer.querySelectorAll('.live-button-block').length >= 5) {
+    setSendStatus('Live announcements can contain up to 5 link buttons.', 'error');
+    return;
+  }
+
+  const block = document.createElement('section');
+
+  block.className = 'live-field-block live-button-block';
+  block.innerHTML = `
+    <div class="block-header">
+      <h2>Link Button</h2>
+      <div class="block-actions">
+        <button class="secondary move-live-button-up" type="button">Up</button>
+        <button class="secondary move-live-button-down" type="button">Down</button>
+        <button class="secondary remove-live-button" type="button">Remove</button>
+      </div>
+    </div>
+    <div class="form-grid">
+      <label class="field">
+        Label
+        <input class="live-button-label" maxlength="80" />
+      </label>
+      <label class="field">
+        URL
+        <input class="live-button-url" maxlength="512" placeholder="{streamUrl}" />
+      </label>
+    </div>
+  `;
+
+  block.querySelector('.live-button-label').value = button.label || '';
+  block.querySelector('.live-button-url').value = button.url || '';
+  liveButtonsContainer.append(block);
+  updateLiveButtonCount();
+
+  if (focus) {
+    block.querySelector('.live-button-label').focus();
+  }
+
+  updateLiveEmbedPreview();
+}
+
+function handleLiveButtonsClick(event) {
+  const block = event.target.closest('.live-button-block');
+
+  if (!block) {
+    return;
+  }
+
+  if (event.target.closest('.remove-live-button')) {
+    block.remove();
+  } else if (event.target.closest('.move-live-button-up') && block.previousElementSibling) {
+    liveButtonsContainer.insertBefore(block, block.previousElementSibling);
+  } else if (event.target.closest('.move-live-button-down') && block.nextElementSibling) {
+    liveButtonsContainer.insertBefore(block.nextElementSibling, block);
+  } else {
+    return;
+  }
+
+  updateLiveButtonCount();
+  updateLiveEmbedPreview();
+}
+
+function updateLiveButtonCount() {
+  const count = liveButtonsContainer.querySelectorAll('.live-button-block').length;
+  liveButtonCount.textContent = `${count} / 5 button${count === 1 ? '' : 's'}`;
+  addLiveButton.disabled = count >= 5;
 }
 
 function handleLiveColorPickerInput() {
@@ -1577,13 +1719,26 @@ function updateLiveEmbedPreview() {
   const title = replaceLivePreviewPlaceholders(embed.title);
   const description = replaceLivePreviewPlaceholders(embed.description);
   const footerText = replaceLivePreviewPlaceholders(embed.footerText);
-  const fields = embed.fields
-    .map((field) => ({
-      name: replaceLivePreviewPlaceholders(field.name),
-      value: replaceLivePreviewPlaceholders(field.value),
-      inline: field.inline,
+  const blocks = embed.fields
+    .map((block) => {
+      if (block.type === 'divider' || block.type === 'spacer') {
+        return block;
+      }
+
+      return {
+        type: 'field',
+        name: replaceLivePreviewPlaceholders(block.name),
+        value: replaceLivePreviewPlaceholders(block.value),
+        inline: block.inline,
+      };
+    })
+    .filter((block) => block.type !== 'field' || block.name || block.value);
+  const buttons = settings.buttons
+    .map((button) => ({
+      label: replaceLivePreviewPlaceholders(button.label),
+      url: resolveLivePreviewUrl(button.url),
     }))
-    .filter((field) => field.name || field.value);
+    .filter((button) => button.label && button.url);
 
   livePreviewContent.textContent = content;
   livePreviewContent.hidden = !content;
@@ -1607,16 +1762,38 @@ function updateLiveEmbedPreview() {
 
   livePreviewFields.replaceChildren();
 
-  for (const field of fields) {
+  for (const block of blocks) {
+    if (block.type === 'divider' || block.type === 'spacer') {
+      const layoutElement = document.createElement('div');
+      layoutElement.className =
+        `live-preview-layout live-preview-layout-${block.type} live-preview-layout-${block.spacing}`;
+      layoutElement.setAttribute('aria-hidden', 'true');
+      livePreviewFields.append(layoutElement);
+      continue;
+    }
+
     const fieldElement = document.createElement('section');
     const nameElement = document.createElement('strong');
     const valueElement = document.createElement('p');
 
-    fieldElement.className = `live-preview-field${field.inline ? ' inline' : ''}`;
-    nameElement.textContent = field.name || 'Untitled field';
-    valueElement.textContent = field.value || 'Empty field';
+    fieldElement.className = `live-preview-field${block.inline ? ' inline' : ''}`;
+    nameElement.textContent = block.name || 'Untitled field';
+    valueElement.textContent = block.value || 'Empty field';
     fieldElement.append(nameElement, valueElement);
     livePreviewFields.append(fieldElement);
+  }
+
+  livePreviewButtons.replaceChildren();
+
+  for (const button of buttons) {
+    const anchor = document.createElement('a');
+
+    anchor.className = 'live-preview-button';
+    anchor.href = button.url;
+    anchor.target = '_blank';
+    anchor.rel = 'noreferrer';
+    anchor.textContent = button.label;
+    livePreviewButtons.append(anchor);
   }
 
   const timestampText = embed.timestamp
@@ -1631,13 +1808,14 @@ function updateLiveEmbedPreview() {
     authorName ||
     title ||
     description ||
-    fields.length > 0 ||
+    blocks.length > 0 ||
     !livePreviewThumbnail.hidden ||
     !livePreviewImage.hidden ||
     footerText ||
     timestampText;
   livePreviewCard.hidden = !hasEmbed;
   updateLiveFieldCount();
+  updateLiveButtonCount();
 }
 
 function replaceLivePreviewPlaceholders(template) {
