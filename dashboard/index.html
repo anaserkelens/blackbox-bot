@@ -236,22 +236,29 @@
                   </select>
                 </label>
 
-                <label class="field span-2">
-                  Activity text
-                  <input
-                    id="presence-activity-name"
-                    maxlength="128"
-                    placeholder="Keeping every layer in place."
-                  />
+                <label class="field">
+                  Rotation interval (seconds)
+                  <input id="presence-rotation-seconds" type="number" min="15" max="86400" step="1" />
                 </label>
 
-                <label id="presence-url-field" class="field span-2" hidden>
+                <label id="presence-url-field" class="field" hidden>
                   Streaming URL
                   <input id="presence-activity-url" type="url" placeholder="https://twitch.tv/..." />
                 </label>
 
+                <div class="presence-activities span-2">
+                  <div class="presence-activities-header">
+                    <div>
+                      <h3>Activity texts</h3>
+                      <p class="muted">Shown in order, one at a time.</p>
+                    </div>
+                    <button id="add-presence-activity" type="button">Add Activity</button>
+                  </div>
+                  <div id="presence-activity-list" class="presence-activity-list"></div>
+                </div>
+
                 <div class="action-row span-2">
-                  <button id="save-bot-presence" type="submit">Update Presence</button>
+                  <button id="save-bot-presence" type="submit">Save Rotation</button>
                 </div>
               </form>
             </section>

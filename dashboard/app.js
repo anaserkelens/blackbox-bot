@@ -29,9 +29,11 @@ const saveBotBannerButton = document.querySelector('#save-bot-banner');
 const botPresenceForm = document.querySelector('#bot-presence-form');
 const presenceStatusInput = document.querySelector('#presence-status');
 const presenceActivityTypeInput = document.querySelector('#presence-activity-type');
-const presenceActivityNameInput = document.querySelector('#presence-activity-name');
+const presenceRotationSecondsInput = document.querySelector('#presence-rotation-seconds');
 const presenceUrlField = document.querySelector('#presence-url-field');
 const presenceActivityUrlInput = document.querySelector('#presence-activity-url');
+const presenceActivityList = document.querySelector('#presence-activity-list');
+const addPresenceActivityButton = document.querySelector('#add-presence-activity');
 const saveBotPresenceButton = document.querySelector('#save-bot-presence');
 const composer = document.querySelector('#composer');
 const messageNameInput = document.querySelector('#message-name');
@@ -116,6 +118,8 @@ function bindEvents() {
   saveBotBannerButton.addEventListener('click', () => handleUpdateBotImage('banner'));
   botPresenceForm.addEventListener('submit', handleUpdateBotPresence);
   presenceActivityTypeInput.addEventListener('change', updatePresenceUrlVisibility);
+  addPresenceActivityButton.addEventListener('click', () => addPresenceActivity(''));
+  presenceActivityList.addEventListener('click', handlePresenceActivityListClick);
   composer.addEventListener('submit', handleSend);
   savedMessagesContainer.addEventListener('click', handleSavedMessageClick);
   imageInput.addEventListener('change', handleImageChange);
@@ -268,8 +272,9 @@ function renderBotSettings(bot) {
   const presence = bot.presence || {};
   presenceStatusInput.value = normalizePresenceStatus(presence.status);
   presenceActivityTypeInput.value = normalizeActivityType(presence.activityType);
-  presenceActivityNameInput.value = presence.activityName || '';
+  presenceRotationSecondsInput.value = normalizePresenceInterval(presence.intervalSeconds);
   presenceActivityUrlInput.value = presence.activityUrl || '';
+  renderPresenceActivities(presence.activityNames);
   updatePresenceUrlVisibility();
 }
 
@@ -355,8 +360,9 @@ async function handleUpdateBotPresence(event) {
       body: {
         status: presenceStatusInput.value,
         activityType: presenceActivityTypeInput.value,
-        activityName: presenceActivityNameInput.value,
+        activityNames: getPresenceActivityNames(),
         activityUrl: presenceActivityUrlInput.value,
+        intervalSeconds: presenceRotationSecondsInput.value,
       },
     });
 
@@ -367,6 +373,74 @@ async function handleUpdateBotPresence(event) {
   } finally {
     saveBotPresenceButton.disabled = false;
   }
+}
+
+function renderPresenceActivities(activityNames) {
+  const names = Array.isArray(activityNames) ? activityNames : [];
+  presenceActivityList.replaceChildren();
+
+  if (names.length === 0) {
+    const emptyState = document.createElement('p');
+    emptyState.className = 'presence-activity-empty';
+    emptyState.textContent = 'No activity text. The bot will only show its status.';
+    presenceActivityList.append(emptyState);
+    return;
+  }
+
+  names.forEach((name) => addPresenceActivity(name));
+}
+
+function addPresenceActivity(value) {
+  if (presenceActivityList.querySelectorAll('.presence-activity-row').length >= 25) {
+    setSendStatus('You can rotate up to 25 activity texts.', 'error');
+    return;
+  }
+
+  const row = document.createElement('div');
+  row.className = 'presence-activity-row';
+
+  const input = document.createElement('input');
+  input.className = 'presence-activity-name';
+  input.maxLength = 128;
+  input.placeholder = 'Keeping every layer in place.';
+  input.value = String(value || '');
+  input.setAttribute('aria-label', 'Activity text');
+
+  const removeButton = document.createElement('button');
+  removeButton.className = 'remove';
+  removeButton.type = 'button';
+  removeButton.dataset.action = 'remove-presence-activity';
+  removeButton.textContent = 'Remove';
+
+  row.append(input, removeButton);
+
+  const emptyState = presenceActivityList.querySelector('.presence-activity-empty');
+  emptyState?.remove();
+  presenceActivityList.append(row);
+
+  if (!value) {
+    input.focus();
+  }
+}
+
+function handlePresenceActivityListClick(event) {
+  const button = event.target.closest('[data-action="remove-presence-activity"]');
+
+  if (!button) {
+    return;
+  }
+
+  button.closest('.presence-activity-row')?.remove();
+
+  if (!presenceActivityList.querySelector('.presence-activity-row')) {
+    renderPresenceActivities([]);
+  }
+}
+
+function getPresenceActivityNames() {
+  return [...presenceActivityList.querySelectorAll('.presence-activity-name')]
+    .map((input) => input.value.trim())
+    .filter(Boolean);
 }
 
 function showLogin() {
@@ -1191,6 +1265,12 @@ function normalizeActivityType(value) {
   );
 
   return match || 'Watching';
+}
+
+function normalizePresenceInterval(value) {
+  const interval = Number.parseInt(value, 10);
+
+  return Number.isInteger(interval) && interval >= 15 && interval <= 86400 ? interval : 30;
 }
 
 function updatePresenceUrlVisibility() {

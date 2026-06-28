@@ -3,28 +3,15 @@ const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
 
-const { ActivityType } = require('discord.js');
-
 const { config } = require('./config');
 const { createDashboardMessagePayload } = require('./dashboardMessage');
+const { getPresenceState, updatePresenceRotation } = require('./presenceManager');
 const { getSavedMessagesStorageInfo, loadSavedMessages, saveSavedMessages } = require('./savedMessages');
 
 const dashboardDirectory = path.join(__dirname, '..', 'dashboard');
 const sessionCookieName = 'blackbox_dashboard';
 const allowedPresenceStatuses = new Set(['online', 'idle', 'dnd', 'invisible']);
-const activityTypes = {
-  Playing: ActivityType.Playing,
-  Streaming: ActivityType.Streaming,
-  Listening: ActivityType.Listening,
-  Watching: ActivityType.Watching,
-  Competing: ActivityType.Competing,
-};
-let activePresence = {
-  status: 'online',
-  activityType: 'Watching',
-  activityName: config.presenceText,
-  activityUrl: '',
-};
+const allowedActivityTypes = ['Playing', 'Streaming', 'Listening', 'Watching', 'Competing'];
 
 function startDashboard(client) {
   if (!config.dashboard.enabled) {
@@ -570,14 +557,7 @@ async function handleUpdatePresence(client, request, response) {
     return;
   }
 
-  const activity = createDiscordActivity(presence);
-
-  client.user.setPresence({
-    activities: activity ? [activity] : [],
-    status: presence.status,
-  });
-
-  activePresence = presence;
+  updatePresenceRotation(client, presence);
 
   sendJson(response, 200, await createBotState(client));
 }
@@ -627,27 +607,37 @@ async function createBotState(client) {
     username: user?.username || null,
     avatarUrl: getAvatarUrl(user),
     bannerUrl: getBannerUrl(user),
-    presence: activePresence,
+    presence: getPresenceState(),
   };
 }
 
 function normalizePresenceBody(body) {
   const status = String(body.status || 'online').trim().toLowerCase();
   const activityType = normalizeActivityType(body.activityType);
-  const activityName = String(body.activityName || '').trim();
+  const rawActivityNames = Array.isArray(body.activityNames) ? body.activityNames : [body.activityName];
+  const activityNames = rawActivityNames.map((name) => String(name || '').trim()).filter(Boolean);
   const activityUrl = String(body.activityUrl || '').trim();
+  const intervalSeconds = Number.parseInt(body.intervalSeconds ?? getPresenceState().intervalSeconds, 10);
 
   if (!allowedPresenceStatuses.has(status)) {
     throw new Error('Status must be online, idle, dnd, or invisible.');
   }
 
-  if (activityName.length > 128) {
-    throw new Error('Activity text must be 128 characters or fewer.');
+  if (activityNames.length > 25) {
+    throw new Error('You can rotate up to 25 activity texts.');
+  }
+
+  if (activityNames.some((name) => name.length > 128)) {
+    throw new Error('Each activity text must be 128 characters or fewer.');
+  }
+
+  if (!Number.isInteger(intervalSeconds) || intervalSeconds < 15 || intervalSeconds > 86400) {
+    throw new Error('Rotation interval must be between 15 and 86400 seconds.');
   }
 
   if (activityType === 'Streaming') {
-    if (!activityName) {
-      throw new Error('Streaming presence needs activity text.');
+    if (activityNames.length === 0) {
+      throw new Error('Streaming presence needs at least one activity text.');
     }
 
     assertHttpUrl(activityUrl, 'Streaming URL');
@@ -656,37 +646,21 @@ function normalizePresenceBody(body) {
   return {
     status,
     activityType,
-    activityName,
+    activityNames,
     activityUrl: activityType === 'Streaming' ? activityUrl : '',
+    intervalSeconds,
   };
 }
 
 function normalizeActivityType(value) {
   const normalized = String(value || 'Watching').trim().toLowerCase();
-  const match = Object.keys(activityTypes).find((type) => type.toLowerCase() === normalized);
+  const match = allowedActivityTypes.find((type) => type.toLowerCase() === normalized);
 
   if (!match) {
     throw new Error('Activity type must be Playing, Watching, Listening, Competing, or Streaming.');
   }
 
   return match;
-}
-
-function createDiscordActivity(presence) {
-  if (!presence.activityName) {
-    return null;
-  }
-
-  const activity = {
-    name: presence.activityName,
-    type: activityTypes[presence.activityType],
-  };
-
-  if (presence.activityType === 'Streaming') {
-    activity.url = presence.activityUrl;
-  }
-
-  return activity;
 }
 
 function normalizeBotImage(image, kind) {

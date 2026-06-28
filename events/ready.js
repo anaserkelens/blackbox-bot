@@ -1,6 +1,7 @@
-const { ActivityType, Events } = require('discord.js');
+const { Events } = require('discord.js');
 
 const { config } = require('../utils/config');
+const { startPresenceRotation } = require('../utils/presenceManager');
 const { syncCommandsForClient } = require('../utils/syncCommands');
 
 const name = Events.ClientReady;
@@ -9,10 +10,7 @@ const once = true;
 async function execute(client) {
   console.log(`Logged in as ${client.user.tag}`);
 
-  client.user.setPresence({
-    activities: [{ name: config.presenceText, type: ActivityType.Watching }],
-    status: 'online',
-  });
+  startPresenceRotation(client);
 
   if (!config.autoRegisterCommands) {
     console.log('Automatic slash command registration is disabled.');

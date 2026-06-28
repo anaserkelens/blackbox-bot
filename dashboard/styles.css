@@ -439,6 +439,61 @@ h2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.presence-activities {
+  display: grid;
+  gap: 10px;
+}
+
+.presence-activities-header,
+.presence-activity-row {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.presence-activities-header > div {
+  display: grid;
+  gap: 3px;
+}
+
+.presence-activities-header h3 {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 720;
+  margin: 0;
+}
+
+.presence-activities-header p {
+  margin: 0;
+}
+
+.presence-activity-list {
+  display: grid;
+  gap: 10px;
+}
+
+.presence-activity-row {
+  border: 1px solid rgba(20, 30, 48, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.36);
+  padding: 10px;
+}
+
+.presence-activity-name {
+  min-width: 0;
+}
+
+.presence-activity-empty {
+  border: 1px dashed rgba(20, 30, 48, 0.12);
+  border-radius: 16px;
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0;
+  padding: 16px;
+  text-align: center;
+}
+
 .metric-panel,
 .dashboard-panel {
   display: grid;

@@ -44,12 +44,16 @@ function readCsv(name, fallback = []) {
     .filter(Boolean);
 }
 
+const presenceText = readEnv('PRESENCE_TEXT') || 'Keeping UNDR CTRL connected.';
+
 const config = {
   discordToken: requireEnv('DISCORD_TOKEN'),
   clientId: readEnv('DISCORD_CLIENT_ID') || readEnv('CLIENT_ID'),
   guildId: readEnv('DISCORD_GUILD_ID'),
   autoRegisterCommands: readBoolean('AUTO_REGISTER_COMMANDS', true),
-  presenceText: readEnv('PRESENCE_TEXT') || 'Keeping UNDR CTRL connected.',
+  presenceText,
+  presenceTexts: readCsv('PRESENCE_TEXTS', [presenceText]),
+  presenceRotationSeconds: Math.min(86400, Math.max(15, readInteger('PRESENCE_ROTATION_SECONDS', 30))),
   communityName: readEnv('COMMUNITY_NAME') || 'UNDR CTRL',
   communityDescription:
     readEnv('COMMUNITY_DESCRIPTION') ||
