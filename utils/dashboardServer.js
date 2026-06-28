@@ -132,6 +132,11 @@ async function handleRequest(client, request, response) {
       return;
     }
 
+    if (request.method === 'POST' && url.pathname === '/api/bot/bio') {
+      await handleUpdateBotBio(client, request, response);
+      return;
+    }
+
     if (request.method === 'POST' && url.pathname === '/api/bot/avatar') {
       await handleUpdateBotImage(client, request, response, 'avatar');
       return;
@@ -562,6 +567,30 @@ async function handleUpdatePresence(client, request, response) {
   sendJson(response, 200, await createBotState(client));
 }
 
+async function handleUpdateBotBio(client, request, response) {
+  if (!client.isReady() || !client.application || typeof client.application.edit !== 'function') {
+    sendJson(response, 503, { error: 'Bot application is not ready yet.' });
+    return;
+  }
+
+  const body = await readJsonBody(request, 64 * 1024);
+  const bio = String(body.bio || '').trim();
+
+  if (bio.length > 400) {
+    sendJson(response, 400, { error: 'Bot bio must be 400 characters or fewer.' });
+    return;
+  }
+
+  try {
+    await client.application.edit({ description: bio });
+  } catch (error) {
+    sendJson(response, 400, { error: createBotProfileError(error, 'bio') });
+    return;
+  }
+
+  sendJson(response, 200, await createBotState(client));
+}
+
 async function handleUpdateBotImage(client, request, response, kind) {
   if (!client.isReady()) {
     sendJson(response, 503, { error: 'Bot is not ready yet.' });
@@ -594,9 +623,14 @@ async function handleUpdateBotImage(client, request, response, kind) {
 
 async function createBotState(client) {
   const user = client.user || null;
+  const application = client.application || null;
 
   if (client.isReady() && user && typeof user.fetch === 'function') {
     await user.fetch(true).catch(() => null);
+  }
+
+  if (client.isReady() && application && typeof application.fetch === 'function') {
+    await application.fetch().catch(() => null);
   }
 
   return {
@@ -607,6 +641,7 @@ async function createBotState(client) {
     username: user?.username || null,
     avatarUrl: getAvatarUrl(user),
     bannerUrl: getBannerUrl(user),
+    bio: application?.description || '',
     presence: getPresenceState(),
   };
 }

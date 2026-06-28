@@ -26,6 +26,10 @@ const botAvatarInput = document.querySelector('#bot-avatar-file');
 const botBannerInput = document.querySelector('#bot-banner-file');
 const saveBotAvatarButton = document.querySelector('#save-bot-avatar');
 const saveBotBannerButton = document.querySelector('#save-bot-banner');
+const botBioForm = document.querySelector('#bot-bio-form');
+const botBioInput = document.querySelector('#bot-bio');
+const botBioCount = document.querySelector('#bot-bio-count');
+const saveBotBioButton = document.querySelector('#save-bot-bio');
 const botPresenceForm = document.querySelector('#bot-presence-form');
 const presenceStatusInput = document.querySelector('#presence-status');
 const presenceActivityTypeInput = document.querySelector('#presence-activity-type');
@@ -116,6 +120,8 @@ function bindEvents() {
   botBannerInput.addEventListener('change', () => handleBotImageChange('banner'));
   saveBotAvatarButton.addEventListener('click', () => handleUpdateBotImage('avatar'));
   saveBotBannerButton.addEventListener('click', () => handleUpdateBotImage('banner'));
+  botBioForm.addEventListener('submit', handleUpdateBotBio);
+  botBioInput.addEventListener('input', updateBotBioCount);
   botPresenceForm.addEventListener('submit', handleUpdateBotPresence);
   presenceActivityTypeInput.addEventListener('change', updatePresenceUrlVisibility);
   addPresenceActivityButton.addEventListener('click', () => addPresenceActivity(''));
@@ -269,6 +275,9 @@ function renderBotSettings(bot) {
     botBannerPlaceholder.hidden = false;
   }
 
+  botBioInput.value = bot.bio || '';
+  updateBotBioCount();
+
   const presence = bot.presence || {};
   presenceStatusInput.value = normalizePresenceStatus(presence.status);
   presenceActivityTypeInput.value = normalizeActivityType(presence.activityType);
@@ -348,6 +357,29 @@ async function handleUpdateBotImage(kind) {
   } finally {
     button.disabled = false;
   }
+}
+
+async function handleUpdateBotBio(event) {
+  event.preventDefault();
+  saveBotBioButton.disabled = true;
+
+  try {
+    const bot = await api('/api/bot/bio', {
+      method: 'POST',
+      body: { bio: botBioInput.value },
+    });
+
+    renderBotSettings(bot);
+    setSendStatus(bot.bio ? 'Bot bio updated.' : 'Bot bio cleared.', 'success');
+  } catch (error) {
+    setSendStatus(error.message, 'error');
+  } finally {
+    saveBotBioButton.disabled = false;
+  }
+}
+
+function updateBotBioCount() {
+  botBioCount.textContent = `${botBioInput.value.length} / 400`;
 }
 
 async function handleUpdateBotPresence(event) {

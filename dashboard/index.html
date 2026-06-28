@@ -209,6 +209,30 @@
               </div>
             </section>
 
+            <section class="dashboard-panel">
+              <div>
+                <h2>Bio</h2>
+                <span class="muted">Shown on the bot's Discord profile.</span>
+              </div>
+
+              <form id="bot-bio-form" class="bot-bio-form">
+                <label class="field">
+                  About the bot
+                  <textarea
+                    id="bot-bio"
+                    class="bot-bio-input"
+                    maxlength="400"
+                    placeholder="Tell the community what this bot does."
+                  ></textarea>
+                </label>
+
+                <div class="action-row">
+                  <span id="bot-bio-count" class="muted">0 / 400</span>
+                  <button id="save-bot-bio" type="submit">Update Bio</button>
+                </div>
+              </form>
+            </section>
+
             <section class="dashboard-panel bot-presence-panel">
               <div>
                 <h2>Presence</h2>

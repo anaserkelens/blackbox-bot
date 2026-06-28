@@ -433,6 +433,15 @@ h2 {
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
+.bot-bio-form {
+  display: grid;
+  gap: 14px;
+}
+
+.bot-bio-input {
+  min-height: 120px;
+}
+
 .bot-presence-form {
   display: grid;
   gap: 14px;

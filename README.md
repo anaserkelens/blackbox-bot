@@ -111,7 +111,7 @@ https://your-service.up.railway.app/
 
 The dashboard sends messages through the running bot, so no restart or slash command is needed. The bot must already be online, and it must have permission to send messages and attach files in the target channel.
 
-The dashboard Presence panel can add or remove activity texts and set the rotation interval. Saving restarts the rotation immediately. These live changes last until the bot restarts; set the comma-separated `PRESENCE_TEXTS` and `PRESENCE_ROTATION_SECONDS` environment variables for deployment defaults. `PRESENCE_TEXT` remains supported as a single-text fallback.
+The dashboard Bot tab can update the bot's avatar, banner, bio, and presence. The Presence panel can add or remove activity texts and set the rotation interval. Saving restarts the rotation immediately. These live presence changes last until the bot restarts; set the comma-separated `PRESENCE_TEXTS` and `PRESENCE_ROTATION_SECONDS` environment variables for deployment defaults. `PRESENCE_TEXT` remains supported as a single-text fallback.
 
 Saved dashboard messages are shared server-side while the bot is running. On Railway, attach a persistent volume if you want them to survive redeploys. When a Railway volume is attached, the bot automatically stores saved messages at `RAILWAY_VOLUME_MOUNT_PATH/saved-messages.json`; you can override that with `DASHBOARD_SAVED_MESSAGES_PATH`.
 
