@@ -1,0 +1,23 @@
+{
+  "name": "undr-ctrl-blackbox-bot",
+  "version": "0.1.0",
+  "description": "Blackbox Discord bot for the UNDR CTRL community.",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "dev": "node bot.js",
+    "deploy:commands": "node deploy-commands.js",
+    "check": "node scripts/check-syntax.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.26.4",
+    "dotenv": "^17.4.2"
+  },
+  "overrides": {
+    "undici": "6.27.0"
+  }
+}

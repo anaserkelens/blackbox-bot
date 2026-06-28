@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Blackbox Dashboard</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section id="login-view" class="login-panel" hidden>
+        <form id="login-form" class="login-form" method="post" action="/login">
+          <div>
+            <p class="eyebrow">UNDR CTRL</p>
+            <h1>Blackbox Dashboard</h1>
+          </div>
+          <label>
+            Dashboard password
+            <input id="password" name="password" type="password" autocomplete="current-password" required />
+          </label>
+          <div class="login-actions">
+            <button id="login-button" type="submit">Log in</button>
+            <button id="basic-login-button" class="secondary" type="submit" formaction="/login" formmethod="post">
+              Basic login
+            </button>
+          </div>
+          <p id="api-status" class="api-status" role="status">Checking dashboard API...</p>
+          <p id="login-error" class="error" role="status"></p>
+        </form>
+      </section>
+
+      <section id="dashboard-view" class="dashboard" hidden>
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">UNDR CTRL</p>
+            <h1>Blackbox Dashboard</h1>
+          </div>
+          <div class="status-cluster">
+            <span id="bot-status" class="status-pill">Checking</span>
+            <button id="logout" class="secondary" type="button">Log out</button>
+          </div>
+        </header>
+
+        <nav class="dashboard-tabs" aria-label="Dashboard tabs">
+          <button class="tab-button" type="button" data-tab="overview" aria-selected="true">Overview</button>
+          <button class="tab-button" type="button" data-tab="messages" aria-selected="false">Messages</button>
+          <button class="tab-button" type="button" data-tab="bot" aria-selected="false">Bot</button>
+          <button class="tab-button" type="button" data-tab="settings" aria-selected="false">Settings</button>
+        </nav>
+
+        <section class="tab-panel" data-panel="overview">
+          <div class="metric-grid">
+            <section class="metric-panel">
+              <p class="metric-label">Bot</p>
+              <strong id="overview-bot-status">Checking</strong>
+            </section>
+            <section class="metric-panel">
+              <p class="metric-label">Guild</p>
+              <strong>UNDR CTRL</strong>
+            </section>
+            <section class="metric-panel">
+              <p class="metric-label">Default Channel</p>
+              <strong>Not configured</strong>
+            </section>
+          </div>
+
+          <section class="dashboard-panel">
+            <div class="toolbar-row">
+              <h2>Messages</h2>
+              <button class="secondary" type="button" data-tab-link="messages">Open Composer</button>
+            </div>
+          </section>
+        </section>
+
+        <section class="tab-panel" data-panel="messages" hidden>
+          <section class="saved-messages-panel" aria-label="Saved messages">
+            <div class="saved-messages-header">
+              <div class="saved-messages-title">
+                <h2>Saved Messages</h2>
+                <span id="saved-message-count" class="muted">0 saved</span>
+              </div>
+              <div class="toolbar-actions">
+                <button
+                  id="refresh-messages"
+                  class="secondary icon-button"
+                  type="button"
+                  aria-label="Refresh saved messages"
+                  title="Refresh saved messages"
+                >
+                  <span aria-hidden="true">&#8635;</span>
+                </button>
+                <button id="import-message" class="secondary" type="button">Import</button>
+                <button id="new-message" class="secondary" type="button">New</button>
+              </div>
+            </div>
+            <div id="saved-messages" class="saved-messages-list"></div>
+          </section>
+
+          <section class="workspace">
+            <form id="composer" class="composer">
+              <div class="form-grid">
+                <label class="field span-2">
+                  Message name
+                  <input id="message-name" name="messageName" placeholder="Untitled message" />
+                </label>
+
+                <label class="field span-2">
+                  Channel ID
+                  <input
+                    id="channel-id"
+                    name="channelId"
+                    inputmode="numeric"
+                    placeholder="Enter a Discord channel ID"
+                    required
+                  />
+                </label>
+
+                <label class="field">
+                  Header image
+                  <input id="image-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" />
+                </label>
+
+                <label class="toggle-row">
+                  <input id="allow-mentions" type="checkbox" />
+                  <span>Allow mentions</span>
+                </label>
+              </div>
+
+              <div class="toolbar-row">
+                <h2>Content Blocks</h2>
+                <div class="toolbar-actions">
+                  <button id="add-section" class="secondary" type="button">Add Text</button>
+                  <button id="add-divider" class="secondary" type="button">Add Divider</button>
+                  <button id="add-spacer" class="secondary" type="button">Add Spacer</button>
+                </div>
+              </div>
+              <div id="sections" class="stack"></div>
+
+              <div class="toolbar-row">
+                <h2>Buttons</h2>
+                <button id="add-button" class="secondary" type="button">Add Button</button>
+              </div>
+              <div id="buttons" class="stack"></div>
+
+              <div class="action-row">
+                <div class="composer-actions">
+                  <button id="save-message" class="secondary" type="button">Save Message</button>
+                  <button id="send" type="submit">Send Message</button>
+                </div>
+              </div>
+            </form>
+
+            <aside class="preview-panel">
+              <div class="toolbar-row">
+                <h2>Preview</h2>
+                <span id="section-count" class="muted">0 blocks</span>
+              </div>
+              <div class="discord-preview">
+                <img id="preview-image" alt="" hidden />
+                <div id="preview-sections"></div>
+                <div id="preview-buttons" class="preview-buttons"></div>
+              </div>
+            </aside>
+          </section>
+        </section>
+
+        <section class="tab-panel" data-panel="bot" hidden>
+          <div class="bot-grid">
+            <section class="dashboard-panel bot-identity-panel">
+              <div class="toolbar-row">
+                <div>
+                  <h2>Bot Profile</h2>
+                  <span id="bot-profile-tag" class="muted">Loading profile</span>
+                </div>
+                <button id="refresh-bot" class="secondary" type="button">Refresh</button>
+              </div>
+
+              <div class="bot-banner-frame">
+                <img id="bot-banner-preview" alt="Bot banner preview" hidden />
+                <span id="bot-banner-placeholder">No banner set</span>
+              </div>
+
+              <div class="bot-avatar-row">
+                <img id="bot-avatar-preview" class="bot-avatar-preview" alt="Bot avatar preview" hidden />
+                <div>
+                  <strong id="bot-profile-name">Blackbox</strong>
+                  <span id="bot-profile-id" class="muted">Waiting for Discord</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="dashboard-panel">
+              <div>
+                <h2>Profile Images</h2>
+              </div>
+
+              <div class="bot-upload-grid">
+                <label class="field">
+                  Avatar
+                  <input id="bot-avatar-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" />
+                </label>
+                <button id="save-bot-avatar" type="button">Update Avatar</button>
+
+                <label class="field">
+                  Banner
+                  <input id="bot-banner-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" />
+                </label>
+                <button id="save-bot-banner" type="button">Update Banner</button>
+              </div>
+            </section>
+
+            <section class="dashboard-panel bot-presence-panel">
+              <div>
+                <h2>Presence</h2>
+              </div>
+
+              <form id="bot-presence-form" class="bot-presence-form">
+                <label class="field">
+                  Status
+                  <select id="presence-status">
+                    <option value="online">Online</option>
+                    <option value="idle">Idle</option>
+                    <option value="dnd">Do Not Disturb</option>
+                    <option value="invisible">Invisible</option>
+                  </select>
+                </label>
+
+                <label class="field">
+                  Activity
+                  <select id="presence-activity-type">
+                    <option value="Watching">Watching</option>
+                    <option value="Playing">Playing</option>
+                    <option value="Listening">Listening</option>
+                    <option value="Competing">Competing</option>
+                    <option value="Streaming">Streaming</option>
+                  </select>
+                </label>
+
+                <label class="field span-2">
+                  Activity text
+                  <input
+                    id="presence-activity-name"
+                    maxlength="128"
+                    placeholder="Keeping every layer in place."
+                  />
+                </label>
+
+                <label id="presence-url-field" class="field span-2" hidden>
+                  Streaming URL
+                  <input id="presence-activity-url" type="url" placeholder="https://twitch.tv/..." />
+                </label>
+
+                <div class="action-row span-2">
+                  <button id="save-bot-presence" type="submit">Update Presence</button>
+                </div>
+              </form>
+            </section>
+          </div>
+        </section>
+
+        <section class="tab-panel" data-panel="settings" hidden>
+          <section class="dashboard-panel">
+            <div class="toolbar-row">
+              <h2>Session</h2>
+              <button class="secondary" type="button" data-tab-link="messages">Composer</button>
+            </div>
+            <div class="settings-grid">
+              <section class="metric-panel">
+                <p class="metric-label">API</p>
+                <strong id="dashboard-api-status">Connected</strong>
+              </section>
+              <section class="metric-panel">
+                <p class="metric-label">Access</p>
+                <strong>Private</strong>
+              </section>
+            </div>
+          </section>
+        </section>
+      </section>
+    </main>
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
