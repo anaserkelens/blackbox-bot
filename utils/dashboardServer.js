@@ -19,6 +19,7 @@ const {
 } = require('./savedMessages');
 const {
   getStreamEmbedStorageInfo,
+  getStreamEmbedStorageStatus,
   loadStreamEmbedSettings,
   saveStreamEmbedSettings,
 } = require('./streamEmbedSettings');
@@ -325,11 +326,15 @@ async function handleDeleteSavedMessage(pathname, response) {
 }
 
 async function handleGetStreamEmbed(response) {
-  const settings = await loadStreamEmbedSettings(config);
+  const [settings, storage] = await Promise.all([
+    loadStreamEmbedSettings(config),
+    getStreamEmbedStorageStatus(config),
+  ]);
 
   sendJson(response, 200, {
     ok: true,
     settings,
+    storage,
   });
 }
 
@@ -347,6 +352,7 @@ async function handleSaveStreamEmbed(request, response) {
   sendJson(response, 200, {
     ok: true,
     settings,
+    storage: await getStreamEmbedStorageStatus(config),
   });
 }
 

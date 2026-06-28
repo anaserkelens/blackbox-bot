@@ -188,7 +188,10 @@
                   <h2>Live Announcement Builder</h2>
                   <span class="muted">Used when the featured Twitch account goes live.</span>
                 </div>
-                <button id="refresh-live-embed" class="secondary" type="button">Refresh</button>
+                <div class="toolbar-actions">
+                  <span id="live-embed-storage-status" class="status-pill">Checking storage</span>
+                  <button id="refresh-live-embed" class="secondary" type="button">Refresh</button>
+                </div>
               </div>
 
               <section class="live-editor-section live-placeholder-guide">
@@ -232,10 +235,6 @@
                     <input id="live-mention-streamer" type="checkbox" />
                     <span>Allow the message content to mention the streamer</span>
                   </label>
-
-                  <p class="muted span-2">
-                    Role mentions used inside the embed are automatically added above it so Discord can notify the role.
-                  </p>
                 </div>
               </section>
 
@@ -357,6 +356,7 @@
                   <button id="add-live-button" class="secondary" type="button">Add Button</button>
                 </div>
                 <div id="live-buttons" class="stack"></div>
+                <p class="muted">Buttons are displayed inside the announcement container.</p>
               </section>
 
               <div class="action-row">
@@ -390,8 +390,8 @@
                     <span id="live-preview-footer-text"></span>
                     <span id="live-preview-timestamp"></span>
                   </footer>
+                  <div id="live-preview-buttons" class="live-preview-buttons"></div>
                 </article>
-                <div id="live-preview-buttons" class="live-preview-buttons"></div>
               </div>
             </aside>
           </section>

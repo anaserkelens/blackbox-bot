@@ -68,6 +68,7 @@ const sectionCount = document.querySelector('#section-count');
 const liveEmbedForm = document.querySelector('#live-embed-form');
 const refreshLiveEmbedButton = document.querySelector('#refresh-live-embed');
 const saveLiveEmbedButton = document.querySelector('#save-live-embed');
+const liveEmbedStorageStatus = document.querySelector('#live-embed-storage-status');
 const liveChannelIdInput = document.querySelector('#live-channel-id');
 const liveContentInput = document.querySelector('#live-content');
 const liveMentionStreamerInput = document.querySelector('#live-mention-streamer');
@@ -110,6 +111,7 @@ const livePreviewButtons = document.querySelector('#live-preview-buttons');
 const sessionStorageKey = 'blackbox_dashboard_session';
 const savedMessagesStorageKey = 'blackbox_dashboard_saved_messages';
 const presenceStorageKey = 'blackbox_dashboard_presence';
+const liveEmbedStorageKey = 'blackbox_dashboard_live_embed';
 const welcomeMessageId = 'welcome-message';
 
 const state = {
@@ -120,6 +122,7 @@ const state = {
   savedMessages: [],
   composerInitialized: false,
   liveEmbedLoaded: false,
+  liveEmbedRestoreAttempted: false,
   presenceRestoreAttempted: false,
   savedMessagesRefreshTimer: null,
   savedMessagesRequest: null,
@@ -1406,13 +1409,48 @@ function normalizeMessageColor(value) {
 }
 
 async function loadLiveEmbedSettings(showNotification = false) {
-  const result = await api('/api/stream-embed');
+  let result = await api('/api/stream-embed');
+
+  result = await restoreLiveEmbedBackupIfNeeded(result);
 
   applyLiveEmbedSettings(result.settings || {});
+  renderLiveEmbedStorageStatus(result.storage);
   state.liveEmbedLoaded = true;
+
+  if (result.storage?.hasSavedSettings) {
+    writeLiveEmbedBackup(result.settings);
+  }
 
   if (showNotification) {
     setSendStatus('Live embed settings refreshed.', 'success');
+  }
+}
+
+async function restoreLiveEmbedBackupIfNeeded(result) {
+  if (state.liveEmbedRestoreAttempted || result.storage?.hasSavedSettings) {
+    return result;
+  }
+
+  const backup = readLiveEmbedBackup();
+
+  if (!backup) {
+    return result;
+  }
+
+  state.liveEmbedRestoreAttempted = true;
+
+  try {
+    const restored = await api('/api/stream-embed', {
+      method: 'PUT',
+      body: { settings: backup },
+    });
+
+    setSendStatus('Live embed restored from this browser after the bot restart.', 'success');
+    return restored;
+  } catch (error) {
+    state.liveEmbedRestoreAttempted = false;
+    setSendStatus(`Could not restore the live embed browser backup: ${error.message}`, 'error');
+    return result;
   }
 }
 
@@ -1464,6 +1502,8 @@ async function handleSaveLiveEmbed(event) {
     });
 
     applyLiveEmbedSettings(result.settings || {});
+    writeLiveEmbedBackup(result.settings);
+    renderLiveEmbedStorageStatus(result.storage);
     state.liveEmbedLoaded = true;
     setSendStatus('Live embed saved.', 'success');
   } catch (error) {
@@ -1471,6 +1511,57 @@ async function handleSaveLiveEmbed(event) {
   } finally {
     saveLiveEmbedButton.disabled = false;
   }
+}
+
+function writeLiveEmbedBackup(settings) {
+  if (!settings?.embed || !Array.isArray(settings.buttons) || !Array.isArray(settings.embed.fields)) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(liveEmbedStorageKey, JSON.stringify(settings));
+  } catch {
+    // Server-side storage remains authoritative when browser storage is unavailable.
+  }
+}
+
+function readLiveEmbedBackup() {
+  try {
+    const settings = JSON.parse(window.localStorage.getItem(liveEmbedStorageKey) || 'null');
+
+    if (!settings?.embed || !Array.isArray(settings.buttons) || !Array.isArray(settings.embed.fields)) {
+      return null;
+    }
+
+    return settings;
+  } catch {
+    return null;
+  }
+}
+
+function renderLiveEmbedStorageStatus(storage) {
+  liveEmbedStorageStatus.classList.remove('ready', 'offline');
+
+  if (!storage) {
+    liveEmbedStorageStatus.textContent = 'Storage unavailable';
+    liveEmbedStorageStatus.classList.add('offline');
+    return;
+  }
+
+  if (storage.persistent) {
+    liveEmbedStorageStatus.textContent = storage.hasSavedSettings
+      ? 'Saved persistently'
+      : 'Persistent storage ready';
+    liveEmbedStorageStatus.classList.add('ready');
+    liveEmbedStorageStatus.title = `Storage: ${storage.source}`;
+    return;
+  }
+
+  liveEmbedStorageStatus.textContent = storage.hasSavedSettings
+    ? 'Saved for this deployment'
+    : 'Storage is temporary';
+  liveEmbedStorageStatus.classList.add('offline');
+  liveEmbedStorageStatus.title = 'Attach a Railway volume so settings survive bot restarts and redeploys.';
 }
 
 function collectLiveEmbedSettings() {
@@ -1813,7 +1904,7 @@ function updateLiveEmbedPreview() {
     !livePreviewImage.hidden ||
     footerText ||
     timestampText;
-  livePreviewCard.hidden = !hasEmbed;
+  livePreviewCard.hidden = !hasEmbed && buttons.length === 0;
   updateLiveFieldCount();
   updateLiveButtonCount();
 }

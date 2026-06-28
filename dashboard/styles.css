@@ -608,6 +608,7 @@ h2 {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  grid-column: 1 / -1;
   margin-top: 8px;
 }
 

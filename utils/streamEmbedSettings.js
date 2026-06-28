@@ -191,6 +191,26 @@ async function saveStreamEmbedSettings(config, input) {
   return settings;
 }
 
+async function getStreamEmbedStorageStatus(config) {
+  const storage = getStreamEmbedStorageInfo(config);
+  let hasSavedSettings = true;
+
+  try {
+    await fs.access(storage.filePath);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      hasSavedSettings = false;
+    } else {
+      throw error;
+    }
+  }
+
+  return {
+    ...storage,
+    hasSavedSettings,
+  };
+}
+
 function getStreamEmbedStorageInfo(config) {
   if (config.dashboard.streamEmbedPath) {
     return {
@@ -226,6 +246,7 @@ function getStreamEmbedStorageInfo(config) {
 module.exports = {
   createDefaultStreamEmbedSettings,
   getStreamEmbedStorageInfo,
+  getStreamEmbedStorageStatus,
   loadStreamEmbedSettings,
   normalizeStreamEmbedSettings,
   saveStreamEmbedSettings,
