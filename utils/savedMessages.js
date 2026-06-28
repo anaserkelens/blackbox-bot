@@ -12,6 +12,7 @@ const seededWelcomeMessage = {
   id: welcomeMessageId,
   name: 'Welcome Message',
   channelId: '',
+  color: null,
   image: null,
   blocks: [{ type: 'text', content: welcomeStarter, accessory: null }],
   buttons: [],
@@ -151,6 +152,7 @@ function sanitizeSavedMessage(message) {
     id: sanitizeText(message.id || createId(), 120),
     name: sanitizeText(message.name || 'Untitled message', 120),
     channelId: sanitizeText(message.channelId || '', 24),
+    color: sanitizeColor(message.color),
     image: sanitizeImage(message.image),
     blocks: sanitizeBlocks(message),
     buttons: sanitizeButtons(message.buttons),
@@ -222,6 +224,20 @@ function sanitizeImage(image) {
     name: sanitizeText(image.name || 'image', 120),
     dataUrl: image.dataUrl,
   };
+}
+
+function sanitizeColor(value) {
+  if (value === null || value === undefined || String(value).trim() === '') {
+    return null;
+  }
+
+  if (Number.isInteger(value) && value >= 0 && value <= 0xffffff) {
+    return `#${value.toString(16).padStart(6, '0').toUpperCase()}`;
+  }
+
+  const normalized = String(value).trim().replace(/^#/, '');
+
+  return /^[0-9a-fA-F]{6}$/.test(normalized) ? `#${normalized.toUpperCase()}` : null;
 }
 
 function normalizeBlockSpacing(spacing) {

@@ -638,6 +638,17 @@ input[type="checkbox"] {
   min-height: 18px;
 }
 
+.color-control {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 50px minmax(0, 1fr);
+}
+
+input[type="color"] {
+  min-height: 42px;
+  padding: 4px;
+}
+
 textarea {
   min-height: 180px;
   padding: 13px;
@@ -808,6 +819,10 @@ textarea:focus {
   display: grid;
   gap: 12px;
   padding: 14px;
+}
+
+.discord-preview.has-accent-color {
+  border-left: 4px solid var(--preview-accent);
 }
 
 #preview-image {

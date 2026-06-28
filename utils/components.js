@@ -182,6 +182,12 @@ class ActionRowBuilder {
 class ContainerBuilder {
   constructor() {
     this.components = [];
+    this.accentColor = null;
+  }
+
+  setAccentColor(color) {
+    this.accentColor = color;
+    return this;
   }
 
   addMediaGalleryComponents(callback) {
@@ -220,14 +226,18 @@ class ContainerBuilder {
   }
 
   build() {
+    const container = {
+      type: 17,
+      components: this.components,
+    };
+
+    if (this.accentColor !== null) {
+      container.accent_color = this.accentColor;
+    }
+
     return {
       flags: 32768,
-      components: [
-        {
-          type: 17,
-          components: this.components,
-        },
-      ],
+      components: [container],
     };
   }
 

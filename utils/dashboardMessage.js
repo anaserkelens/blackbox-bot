@@ -13,6 +13,11 @@ function createDashboardMessagePayload(input, config) {
   const blocks = normalizeBlocks(input.blocks, input.sections);
   const buttons = normalizeButtons(input.buttons);
   const image = normalizeImage(input.image, config);
+  const accentColor = normalizeColor(input.color);
+
+  if (accentColor !== null) {
+    component.setAccentColor(accentColor);
+  }
 
   if (!image && blocks.length === 0 && buttons.length === 0) {
     throw new Error('Add at least one text block, divider, spacer, image, or button.');
@@ -240,6 +245,24 @@ function normalizeImage(image, config) {
     buffer,
     fileName: sanitizeFileName(image.name, extension),
   };
+}
+
+function normalizeColor(value) {
+  if (value === null || value === undefined || String(value).trim() === '') {
+    return null;
+  }
+
+  if (Number.isInteger(value) && value >= 0 && value <= 0xffffff) {
+    return value;
+  }
+
+  const normalized = String(value).trim().replace(/^#/, '');
+
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) {
+    throw new Error('Embed color must be a 6-digit hex color, such as #F6C75F.');
+  }
+
+  return Number.parseInt(normalized, 16);
 }
 
 function sanitizeFileName(name, extension) {

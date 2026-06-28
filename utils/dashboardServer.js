@@ -342,6 +342,7 @@ async function createSavedMessageFromDiscordMessage(message, requestedName) {
   const buttons = [];
   let image = null;
   const components = normalizeComponentArray(message.components);
+  const color = findContainerColor(components);
 
   for (const component of components) {
     const componentImage = await collectSavedMessageComponents(component, message, blocks, buttons);
@@ -365,12 +366,25 @@ async function createSavedMessageFromDiscordMessage(message, requestedName) {
     id: `discord-message-${message.id}`,
     name,
     channelId: message.channelId || '',
+    color,
     image,
     blocks,
     buttons,
     allowMentions: false,
     updatedAt: new Date().toISOString(),
   };
+}
+
+function findContainerColor(components) {
+  for (const component of components) {
+    const data = toComponentData(component);
+
+    if (data?.type === 17 && Number.isInteger(data.accent_color)) {
+      return `#${data.accent_color.toString(16).padStart(6, '0').toUpperCase()}`;
+    }
+  }
+
+  return null;
 }
 
 async function collectSavedMessageComponents(component, message, blocks, buttons) {

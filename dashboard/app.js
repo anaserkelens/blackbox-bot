@@ -43,6 +43,8 @@ const composer = document.querySelector('#composer');
 const messageNameInput = document.querySelector('#message-name');
 const channelInput = document.querySelector('#channel-id');
 const imageInput = document.querySelector('#image-file');
+const messageColorPicker = document.querySelector('#message-color-picker');
+const messageColorInput = document.querySelector('#message-color');
 const allowMentionsInput = document.querySelector('#allow-mentions');
 const sectionsContainer = document.querySelector('#sections');
 const buttonsContainer = document.querySelector('#buttons');
@@ -56,6 +58,7 @@ const importMessageButton = document.querySelector('#import-message');
 const saveMessageButton = document.querySelector('#save-message');
 const sendButton = document.querySelector('#send');
 const toastRegion = document.querySelector('#toast-region');
+const discordPreview = document.querySelector('#discord-preview');
 const previewImage = document.querySelector('#preview-image');
 const previewSections = document.querySelector('#preview-sections');
 const previewButtons = document.querySelector('#preview-buttons');
@@ -83,6 +86,7 @@ const seededWelcomeMessage = {
   id: welcomeMessageId,
   name: 'Welcome Message',
   channelId: '',
+  color: null,
   image: null,
   blocks: [{ type: 'text', content: welcomeStarter, accessory: null }],
   buttons: [],
@@ -127,6 +131,8 @@ function bindEvents() {
   addPresenceActivityButton.addEventListener('click', () => addPresenceActivity(''));
   presenceActivityList.addEventListener('click', handlePresenceActivityListClick);
   composer.addEventListener('submit', handleSend);
+  messageColorPicker.addEventListener('input', handleMessageColorPickerInput);
+  messageColorInput.addEventListener('input', handleMessageColorInput);
   savedMessagesContainer.addEventListener('click', handleSavedMessageClick);
   imageInput.addEventListener('change', handleImageChange);
   addSectionButton.addEventListener('click', () => addSection(''));
@@ -581,6 +587,7 @@ async function handleSaveMessage() {
     id: state.currentMessageId || createId(),
     name: payload.name || createUntitledMessageName(),
     channelId: payload.channelId,
+    color: payload.color,
     image: payload.image,
     blocks: payload.blocks,
     buttons: payload.buttons,
@@ -663,6 +670,7 @@ function resetComposer() {
   applyMessage({
     name: '',
     channelId: '',
+    color: null,
     image: null,
     blocks: [],
     buttons: [],
@@ -675,6 +683,8 @@ function resetComposer() {
 function applyMessage(message) {
   messageNameInput.value = message.name || '';
   channelInput.value = message.channelId || '';
+  messageColorInput.value = normalizeMessageColor(message.color);
+  messageColorPicker.value = messageColorInput.value || '#f6c75f';
   allowMentionsInput.checked = Boolean(message.allowMentions);
   state.image = message.image || null;
   imageInput.value = '';
@@ -839,6 +849,7 @@ function sanitizeSavedMessage(message) {
     id: String(message.id || createId()),
     name: String(message.name || 'Untitled message'),
     channelId: String(message.channelId || ''),
+    color: normalizeMessageColor(message.color) || null,
     image: message.image && typeof message.image === 'object' ? message.image : null,
     blocks: sanitizeBlocks(message),
     buttons: Array.isArray(message.buttons)
@@ -1076,6 +1087,7 @@ function collectPayload() {
   return {
     name: messageNameInput.value.trim(),
     channelId: channelInput.value.trim(),
+    color: messageColorInput.value.trim(),
     image: state.image,
     blocks: collectBlocks(),
     buttons: [...document.querySelectorAll('.button-block')].map((block) => ({
@@ -1113,6 +1125,7 @@ function collectBlocks() {
 
 function updatePreview() {
   const payload = collectPayload();
+  const color = normalizeMessageColor(payload.color);
   const blocks = payload.blocks.filter((block) => {
     if (block.type !== 'text') {
       return true;
@@ -1121,6 +1134,9 @@ function updatePreview() {
     return block.content.trim();
   });
   const buttons = payload.buttons.filter((button) => button.label.trim() && button.url.trim());
+
+  discordPreview.classList.toggle('has-accent-color', Boolean(color));
+  discordPreview.style.setProperty('--preview-accent', color || 'transparent');
 
   previewImage.hidden = !state.image;
 
@@ -1155,6 +1171,27 @@ function updatePreview() {
   }
 
   sectionCount.textContent = `${blocks.length} block${blocks.length === 1 ? '' : 's'}`;
+}
+
+function handleMessageColorPickerInput() {
+  messageColorInput.value = messageColorPicker.value.toUpperCase();
+  updatePreview();
+}
+
+function handleMessageColorInput() {
+  const color = normalizeMessageColor(messageColorInput.value);
+
+  if (color) {
+    messageColorPicker.value = color;
+  }
+
+  updatePreview();
+}
+
+function normalizeMessageColor(value) {
+  const normalized = String(value || '').trim().replace(/^#/, '');
+
+  return /^[0-9a-fA-F]{6}$/.test(normalized) ? `#${normalized.toUpperCase()}` : '';
 }
 
 function setSendStatus(message, type) {
