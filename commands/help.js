@@ -8,6 +8,7 @@ const data = new SlashCommandBuilder()
 
 async function execute(interaction) {
   const commandList = [...interaction.client.commands.values()]
+    .filter((command) => !command.ownerOnly || interaction.user.id === config.ownerUserId)
     .map((command) => `/${command.data.name} - ${command.data.description}`)
     .sort()
     .join('\n');

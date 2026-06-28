@@ -58,6 +58,7 @@ const config = {
   communityDescription:
     readEnv('COMMUNITY_DESCRIPTION') ||
     'A community for UNDR CTRL members to connect, create, and build together.',
+  ownerUserId: readEnv('BOT_OWNER_USER_ID') || '185282790969835520',
   channels: {
     welcome: readEnv('WELCOME_CHANNEL_ID'),
     guidelines: readEnv('GUIDELINES_CHANNEL_ID'),
@@ -76,6 +77,7 @@ const config = {
     streamAnnouncements: readEnv('ANNOUNCEMENT_CHANNEL_ID') || '1520519675543293972',
   },
   roles: {
+    founder: readEnv('FOUNDER_ROLE_ID') || '1520451840058064999',
     staff: readEnv('STAFF_ROLE_ID'),
     moderator: readEnv('MODERATOR_ROLE_ID'),
     verified: readEnv('VERIFIED_ROLE_ID'),
