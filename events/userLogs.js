@@ -1,33 +1,48 @@
-const { AuditLogEvent, EmbedBuilder } = require('discord.js');
+const { AuditLogEvent, Events } = require('discord.js');
 
 const { config } = require('../utils/config');
-const { sendLog } = require('../utils/channels');
+const {
+  colors,
+  escapeMarkdown,
+  fetchAuditEntry,
+  formatActor,
+  formatRole,
+  formatUser,
+  sendStructuredLog,
+} = require('../utils/structuredLog');
 
 module.exports = {
   setup(client) {
-    client.on('guildMemberUpdate', (oldMember, newMember) => logGuildMemberUpdate(oldMember, newMember, client));
-    client.on('userUpdate', (oldUser, newUser) => logUserUpdate(oldUser, newUser, client));
+    client.on(Events.GuildMemberUpdate, (oldMember, newMember) =>
+      logGuildMemberUpdate(oldMember, newMember, client),
+    );
+    client.on(Events.UserUpdate, (oldUser, newUser) => logUserUpdate(oldUser, newUser, client));
   },
 };
 
 async function logGuildMemberUpdate(oldMember, newMember, client) {
-  if (!config.channels.userLogs) {
-    return;
-  }
-
   if (oldMember.nickname !== newMember.nickname) {
-    const embed = new EmbedBuilder()
-      .setColor(0xffa500)
-      .setTitle('Member Nickname Updated')
-      .setDescription(`Member: ${newMember.user} (${newMember.user.id})`)
-      .addFields(
-        { name: 'Old Nickname', value: oldMember.displayName || 'None', inline: true },
-        { name: 'New Nickname', value: newMember.displayName || 'None', inline: true },
-      )
-      .setThumbnail(newMember.user.displayAvatarURL())
-      .setTimestamp();
+    const entry = await fetchAuditEntry(
+      newMember.guild,
+      AuditLogEvent.MemberUpdate,
+      newMember.id,
+    );
 
-    await sendLog(client, config.channels.userLogs, { embeds: [embed] });
+    await sendStructuredLog(client, config.channels.systemLog, {
+      title: 'Member Nickname Updated',
+      emoji: '🪪',
+      color: colors.warning,
+      summary: `${newMember.user}'s server nickname changed.`,
+      thumbnailUrl: newMember.user.displayAvatarURL({ size: 256 }),
+      referenceId: `NICKNAME-${newMember.id}-${Date.now()}`,
+      fields: [
+        { name: 'Member', value: formatUser(newMember.user) },
+        { name: 'Changed By', value: formatActor(entry) },
+        { name: 'Before', value: escapeMarkdown(oldMember.nickname || oldMember.user.username) },
+        { name: 'After', value: escapeMarkdown(newMember.nickname || newMember.user.username) },
+        { name: 'Audit Reason', value: entry?.reason || 'No reason provided.' },
+      ],
+    });
   }
 
   const addedRoles = newMember.roles.cache.filter((role) => !oldMember.roles.cache.has(role.id));
@@ -37,50 +52,76 @@ async function logGuildMemberUpdate(oldMember, newMember, client) {
     return;
   }
 
-  const auditLogs = await newMember.guild.fetchAuditLogs({
-    type: AuditLogEvent.MemberRoleUpdate,
-    limit: 1,
-  }).catch(() => null);
-  const log = auditLogs?.entries.first();
-  const executor =
-    log && log.target?.id === newMember.id && Date.now() - log.createdTimestamp < 5000
-      ? `${log.executor} (${log.executor.username})`
-      : 'Unknown';
+  const entry = await fetchAuditEntry(
+    newMember.guild,
+    AuditLogEvent.MemberRoleUpdate,
+    newMember.id,
+  );
 
-  const embed = new EmbedBuilder()
-    .setColor(addedRoles.size > 0 ? 0x00ff00 : 0xff0000)
-    .setTitle('Member Roles Updated')
-    .setDescription(`Member: ${newMember.user} (${newMember.user.id})`)
-    .addFields({ name: 'Changed By', value: executor, inline: false })
-    .setThumbnail(newMember.user.displayAvatarURL())
-    .setTimestamp();
-
-  if (addedRoles.size > 0) {
-    embed.addFields({ name: 'Role(s) Added', value: addedRoles.map((role) => role.toString()).join(', '), inline: false });
-  }
-
-  if (removedRoles.size > 0) {
-    embed.addFields({ name: 'Role(s) Removed', value: removedRoles.map((role) => role.toString()).join(', '), inline: false });
-  }
-
-  await sendLog(client, config.channels.userLogs, { embeds: [embed] });
+  await sendStructuredLog(client, config.channels.systemLog, {
+    title: 'Member Roles Updated',
+    emoji: '🎭',
+    color: addedRoles.size > 0 && removedRoles.size === 0 ? colors.success : colors.warning,
+    summary: `${newMember.user}'s role assignment changed.`,
+    thumbnailUrl: newMember.user.displayAvatarURL({ size: 256 }),
+    referenceId: `MEMBER-ROLES-${newMember.id}-${Date.now()}`,
+    fields: [
+      { name: 'Member', value: formatUser(newMember.user) },
+      { name: 'Changed By', value: formatActor(entry) },
+      { name: 'Audit Reason', value: entry?.reason || 'No reason provided.' },
+      {
+        name: 'Roles Added',
+        value: addedRoles.size > 0
+          ? addedRoles.map((role) => formatRole(role)).join('\n\n')
+          : 'None',
+      },
+      {
+        name: 'Roles Removed',
+        value: removedRoles.size > 0
+          ? removedRoles.map((role) => formatRole(role)).join('\n\n')
+          : 'None',
+      },
+      {
+        name: 'Current Role Count',
+        value: String(newMember.roles.cache.filter((role) => role.id !== newMember.guild.id).size),
+      },
+    ],
+  });
 }
 
 async function logUserUpdate(oldUser, newUser, client) {
-  if (!config.channels.userLogs || oldUser.username === newUser.username) {
-    return;
+  const changes = [];
+
+  if (oldUser.username !== newUser.username) {
+    changes.push({
+      name: 'Username',
+      value: `**Before:** ${escapeMarkdown(oldUser.username)}\n**After:** ${escapeMarkdown(newUser.username)}`,
+    });
   }
 
-  const embed = new EmbedBuilder()
-    .setColor(0xffa500)
-    .setTitle('Username Updated')
-    .setDescription(`User: ${newUser} (${newUser.id})`)
-    .addFields(
-      { name: 'Old Username', value: oldUser.username, inline: true },
-      { name: 'New Username', value: newUser.username, inline: true },
-    )
-    .setThumbnail(newUser.displayAvatarURL())
-    .setTimestamp();
+  if (oldUser.globalName !== newUser.globalName) {
+    changes.push({
+      name: 'Global Display Name',
+      value: `**Before:** ${escapeMarkdown(oldUser.globalName || 'None')}\n**After:** ${escapeMarkdown(newUser.globalName || 'None')}`,
+    });
+  }
 
-  await sendLog(client, config.channels.userLogs, { embeds: [embed] });
+  if (oldUser.avatar !== newUser.avatar) {
+    changes.push({ name: 'Avatar', value: 'The user changed their avatar.' });
+  }
+
+  if (changes.length === 0) return;
+
+  await sendStructuredLog(client, config.channels.systemLog, {
+    title: 'User Profile Updated',
+    emoji: '👤',
+    color: colors.info,
+    summary: `${newUser} changed their Discord profile.`,
+    thumbnailUrl: newUser.displayAvatarURL({ size: 256 }),
+    referenceId: `USER-UPDATE-${newUser.id}-${Date.now()}`,
+    fields: [
+      { name: 'User', value: formatUser(newUser) },
+      ...changes,
+    ],
+  });
 }

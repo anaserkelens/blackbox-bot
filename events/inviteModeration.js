@@ -1,7 +1,14 @@
-const { EmbedBuilder, Events } = require('discord.js');
+const { Events } = require('discord.js');
 
 const { config } = require('../utils/config');
-const { sendLog } = require('../utils/channels');
+const {
+  colors,
+  formatChannel,
+  formatCodeBlock,
+  formatDuration,
+  formatUser,
+  sendStructuredLog,
+} = require('../utils/structuredLog');
 
 const inviteRegex = /(https?:\/\/)?(www\.)?(discord\.(gg|io|me|li)|discordapp\.com\/invite)\/[a-zA-Z0-9]+/gi;
 
@@ -29,24 +36,24 @@ module.exports = {
     await message.delete().catch(() => null);
     await message.member?.timeout(config.invites.timeoutMs, 'Posted unauthorized Discord invite link').catch(() => null);
 
-    if (!config.channels.inviteLogs) {
-      return;
-    }
-
-    const embed = new EmbedBuilder()
-      .setColor(0xffa500)
-      .setTitle('Invite Posted')
-      .addFields(
-        { name: 'Posted By', value: `${message.author} (${message.author.username})`, inline: false },
-        { name: 'Channel', value: `${message.channel}`, inline: true },
-        { name: 'Invite Link(s)', value: invites.join('\n').slice(0, 1024), inline: false },
-        { name: 'Action Taken', value: 'Message deleted and user timed out.', inline: false },
-      )
-      .setTimestamp();
-
-    await sendLog(client, config.channels.inviteLogs, {
-      content: config.roles.staff ? `<@&${config.roles.staff}>` : undefined,
-      embeds: [embed],
+    await sendStructuredLog(client, config.channels.entryLog, {
+      title: 'Unauthorized Invite Blocked',
+      emoji: '🚫',
+      color: colors.warning,
+      summary: `${message.author} posted an unauthorized Discord invite.`,
+      thumbnailUrl: message.author.displayAvatarURL({ size: 256 }),
+      referenceId: `INVITE-BLOCK-${message.id}`,
+      fields: [
+        { name: 'Posted By', value: formatUser(message.author) },
+        { name: 'Channel', value: formatChannel(message.channel) },
+        { name: 'Detected Links', value: invites.map((invite) => `• ${invite}`).join('\n') },
+        { name: 'Original Message', value: formatCodeBlock(message.content) },
+        {
+          name: 'Automated Action',
+          value: `Message deleted\nMember timed out for **${formatDuration(config.invites.timeoutMs)}**`,
+        },
+        { name: 'Message ID', value: `\`${message.id}\`` },
+      ],
     });
   },
 };

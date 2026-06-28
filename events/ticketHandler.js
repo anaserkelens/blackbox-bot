@@ -1,6 +1,5 @@
 const {
   ActionRowBuilder,
-  AttachmentBuilder,
   ButtonBuilder,
   ButtonStyle,
   ChannelType,
@@ -12,7 +11,13 @@ const {
 } = require('discord.js');
 
 const { config } = require('../utils/config');
-const { fetchSendableChannel } = require('../utils/channels');
+const {
+  colors,
+  formatChannel,
+  formatCodeBlock,
+  formatUser,
+  sendStructuredLog,
+} = require('../utils/structuredLog');
 
 const activeTickets = new Map();
 
@@ -94,6 +99,22 @@ async function handleTicketCreation(interaction) {
     components: [new ActionRowBuilder().addComponents(closeButton)],
   });
 
+  await sendStructuredLog(interaction.client, config.channels.operationLog, {
+    title: 'Support Ticket Created',
+    emoji: '🎫',
+    color: colors.success,
+    summary: `${interaction.user} opened a new support ticket.`,
+    thumbnailUrl: interaction.user.displayAvatarURL({ size: 256 }),
+    referenceId: `TICKET-${ticketNumber}`,
+    fields: [
+      { name: 'Created By', value: formatUser(interaction.user) },
+      { name: 'Ticket Thread', value: formatChannel(thread) },
+      { name: 'Parent Channel', value: formatChannel(ticketChannel) },
+      { name: 'Ticket Number', value: `\`${ticketNumber}\`` },
+      { name: 'Staff Members Added', value: staffRole ? staffRole.members.size.toLocaleString() : 'Staff role unavailable' },
+    ],
+  });
+
   await interaction.editReply(`Ticket created: <#${thread.id}>`);
 }
 
@@ -132,24 +153,24 @@ async function handleTicketClose(interaction) {
     .map((message) => `[${message.createdAt.toLocaleString()}] ${message.author.tag}: ${message.content}`)
     .join('\n');
 
-  const logChannel = await fetchSendableChannel(interaction.client, config.channels.ticketLogs);
-
-  if (logChannel) {
-    const logEmbed = new EmbedBuilder()
-      .setTitle('Ticket Closed')
-      .setDescription(`Ticket: ${ticketThread.name}\nClosed by: ${interaction.user}\nReason: ${closeReason}`)
-      .setColor(0xff0000)
-      .setTimestamp();
-
-    if (transcript.length > 0) {
-      await logChannel.send({
-        embeds: [logEmbed],
-        files: [new AttachmentBuilder(Buffer.from(transcript, 'utf8'), { name: `${ticketThread.name}-transcript.txt` })],
-      });
-    } else {
-      await logChannel.send({ embeds: [logEmbed] });
-    }
-  }
+  await sendStructuredLog(interaction.client, config.channels.operationLog, {
+    title: 'Support Ticket Closed',
+    emoji: '🔒',
+    color: colors.danger,
+    summary: `**${ticketThread.name}** was closed.`,
+    referenceId: `TICKET-CLOSE-${ticketThread.id}`,
+    fields: [
+      { name: 'Ticket Thread', value: formatChannel(ticketThread) },
+      { name: 'Closed By', value: formatUser(interaction.user) },
+      { name: 'Ticket Creator ID', value: ticketCreatorId ? `\`${ticketCreatorId}\`` : 'Unknown' },
+      { name: 'Reason', value: closeReason },
+      { name: 'Transcript Messages', value: messages.size.toLocaleString() },
+      { name: 'Transcript Preview', value: formatCodeBlock(transcript || 'No messages', 'text') },
+    ],
+    files: transcript
+      ? [{ attachment: Buffer.from(transcript, 'utf8'), name: `${ticketThread.name}-transcript.txt` }]
+      : [],
+  });
 
   if (ticketCreatorId) {
     const ticketCreator = await interaction.client.users.fetch(ticketCreatorId).catch(() => null);

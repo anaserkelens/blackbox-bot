@@ -1,44 +1,57 @@
-const { AuditLogEvent, EmbedBuilder, Events } = require('discord.js');
+const { AuditLogEvent, Events } = require('discord.js');
 
 const { config } = require('../utils/config');
-const { sendLog } = require('../utils/channels');
+const {
+  colors,
+  fetchAuditEntry,
+  formatActor,
+  formatChannel,
+  formatCodeBlock,
+  formatTimestamp,
+  formatUser,
+  sendStructuredLog,
+  truncate,
+} = require('../utils/structuredLog');
 
 module.exports = {
   name: Events.MessageDelete,
   async execute(message, client) {
-    if (!message.guild || !config.channels.messageLogs || message.author?.bot) {
+    if (!message.guild || message.author?.bot) {
       return;
     }
 
-    const auditLogs = await message.guild.fetchAuditLogs({
-      type: AuditLogEvent.MessageDelete,
-      limit: 1,
-    }).catch(() => null);
+    const entry = await fetchAuditEntry(
+      message.guild,
+      AuditLogEvent.MessageDelete,
+      message.author?.id,
+      10000,
+    );
+    const attachments = message.attachments?.map((attachment) =>
+      `[${attachment.name || 'attachment'}](${attachment.url})`
+    ).join('\n');
+    const stickers = message.stickers?.map((sticker) => `${sticker.name} (\`${sticker.id}\`)`).join(', ');
 
-    const deleteLog = auditLogs?.entries.first();
-    const executor =
-      deleteLog && message.author && deleteLog.target?.id === message.author.id && Date.now() - deleteLog.createdTimestamp < 5000
-        ? deleteLog.executor
-        : null;
-
-    const embed = new EmbedBuilder()
-      .setColor(0xff0000)
-      .setTitle('Message Deleted')
-      .addFields(
-        { name: 'Author', value: message.author ? `${message.author} (${message.author.tag})` : 'Unknown', inline: true },
-        { name: 'Channel', value: `${message.channel}`, inline: true },
-        { name: 'Message ID', value: message.id, inline: true },
-      )
-      .setTimestamp();
-
-    if (executor) {
-      embed.addFields({ name: 'Deleted By', value: `${executor} (${executor.tag})`, inline: false });
-    }
-
-    if (message.content) {
-      embed.addFields({ name: 'Content', value: message.content.slice(0, 1024), inline: false });
-    }
-
-    await sendLog(client, config.channels.messageLogs, { embeds: [embed] });
+    await sendStructuredLog(client, config.channels.signalLog, {
+      title: 'Message Deleted',
+      emoji: '🗑️',
+      color: colors.danger,
+      summary: `A message was deleted in ${message.channel}.`,
+      thumbnailUrl: message.author?.displayAvatarURL({ size: 256 }),
+      referenceId: `DELETE-${message.id}`,
+      fields: [
+        { name: 'Author', value: message.author ? formatUser(message.author) : 'Unknown / uncached' },
+        { name: 'Channel', value: formatChannel(message.channel) },
+        { name: 'Deleted By', value: entry ? formatActor(entry) : 'Likely the author, a bot, or an uncached moderator action.' },
+        { name: 'Audit Reason', value: entry?.reason || 'No audit-log reason provided.' },
+        { name: 'Message Content', value: formatCodeBlock(message.content || 'No cached text content') },
+        { name: 'Attachments', value: attachments || 'None' },
+        { name: 'Stickers', value: stickers || 'None' },
+        { name: 'Embed Count', value: String(message.embeds?.length || 0) },
+        { name: 'Message Created', value: message.createdTimestamp ? formatTimestamp(message.createdTimestamp) : 'Unknown' },
+        { name: 'Message ID', value: `\`${message.id}\`` },
+        { name: 'Webhook ID', value: message.webhookId ? `\`${message.webhookId}\`` : 'Not a webhook message' },
+        { name: 'System Message', value: message.system ? 'Yes' : 'No' },
+      ],
+    });
   },
 };

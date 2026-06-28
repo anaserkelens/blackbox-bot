@@ -45,6 +45,14 @@ function readCsv(name, fallback = []) {
 }
 
 const presenceText = readEnv('PRESENCE_TEXT') || 'Keeping UNDR CTRL connected.';
+const loggingChannels = {
+  caseFiles: readEnv('CASE_FILES_CHANNEL_ID') || '1520858981227172000',
+  entryLog: readEnv('ENTRY_LOG_CHANNEL_ID') || '1520858940617785565',
+  signalLog: readEnv('SIGNAL_LOG_CHANNEL_ID') || '1520859015905546380',
+  lineLog: readEnv('LINE_LOG_CHANNEL_ID') || '1520915998092558527',
+  operationLog: readEnv('OPERATION_LOG_CHANNEL_ID') || '1520916058272170185',
+  systemLog: readEnv('SYSTEM_LOG_CHANNEL_ID') || '1520859053012811876',
+};
 
 const config = {
   discordToken: requireEnv('DISCORD_TOKEN'),
@@ -66,14 +74,16 @@ const config = {
     rules: readEnv('RULES_CHANNEL_ID') || readEnv('GUIDELINES_CHANNEL_ID'),
     socials: readEnv('SOCIALS_CHANNEL_ID'),
     tickets: readEnv('TICKET_CHANNEL_ID'),
-    ticketLogs: readEnv('TICKET_LOG_CHANNEL_ID'),
-    memberLogs: readEnv('MEMBER_LOG_CHANNEL_ID'),
-    messageLogs: readEnv('MESSAGE_LOG_CHANNEL_ID'),
-    channelLogs: readEnv('CHANNEL_LOG_CHANNEL_ID'),
-    eventLogs: readEnv('EVENT_LOG_CHANNEL_ID'),
-    inviteLogs: readEnv('INVITE_LOG_CHANNEL_ID'),
-    modLogs: readEnv('MOD_LOG_CHANNEL_ID'),
-    userLogs: readEnv('USER_LOG_CHANNEL_ID'),
+    ...loggingChannels,
+    ticketLogs: loggingChannels.operationLog,
+    memberLogs: loggingChannels.entryLog,
+    messageLogs: loggingChannels.signalLog,
+    channelLogs: loggingChannels.systemLog,
+    eventLogs: loggingChannels.operationLog,
+    inviteLogs: loggingChannels.entryLog,
+    modLogs: loggingChannels.caseFiles,
+    userLogs: loggingChannels.systemLog,
+    voiceLogs: loggingChannels.lineLog,
     streamAnnouncements: readEnv('ANNOUNCEMENT_CHANNEL_ID') || '1520519675543293972',
   },
   roles: {

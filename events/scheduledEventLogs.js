@@ -1,115 +1,153 @@
-const { AuditLogEvent, EmbedBuilder, Events } = require('discord.js');
+const { AuditLogEvent, Events } = require('discord.js');
 
 const { config } = require('../utils/config');
-const { sendLog } = require('../utils/channels');
+const {
+  colors,
+  escapeMarkdown,
+  fetchAuditEntry,
+  formatActor,
+  formatChannel,
+  formatTimestamp,
+  formatUser,
+  sendStructuredLog,
+} = require('../utils/structuredLog');
 
 module.exports = {
   setup(client) {
     client.on(Events.GuildScheduledEventCreate, (event) => logEventCreate(event, client));
     client.on(Events.GuildScheduledEventDelete, (event) => logEventDelete(event, client));
-    client.on(Events.GuildScheduledEventUpdate, (oldEvent, newEvent) => logEventUpdate(oldEvent, newEvent, client));
-    client.on(Events.GuildScheduledEventUserAdd, (event, user) => logEventUser(event, user, client, true));
-    client.on(Events.GuildScheduledEventUserRemove, (event, user) => logEventUser(event, user, client, false));
+    client.on(Events.GuildScheduledEventUpdate, (oldEvent, newEvent) =>
+      logEventUpdate(oldEvent, newEvent, client),
+    );
+    client.on(Events.GuildScheduledEventUserAdd, (event, user) =>
+      logEventUser(event, user, client, true),
+    );
+    client.on(Events.GuildScheduledEventUserRemove, (event, user) =>
+      logEventUser(event, user, client, false),
+    );
   },
 };
 
-async function getExecutor(guild, type) {
-  const auditLogs = await guild.fetchAuditLogs({ type, limit: 1 }).catch(() => null);
-  const log = auditLogs?.entries.first();
-  return log?.executor ? `${log.executor} (${log.executor.username})` : 'Unknown';
-}
-
 async function logEventCreate(event, client) {
-  if (!config.channels.eventLogs) {
-    return;
-  }
+  const entry = await fetchAuditEntry(
+    event.guild,
+    AuditLogEvent.GuildScheduledEventCreate,
+    event.id,
+  );
 
-  const executor = await getExecutor(event.guild, AuditLogEvent.GuildScheduledEventCreate);
-  const embed = new EmbedBuilder()
-    .setTitle('Event Created')
-    .setColor(0x00ff00)
-    .addFields(
-      { name: 'Event', value: `${event.name} (${event.id})`, inline: false },
-      { name: 'Start Time', value: event.scheduledStartTimestamp ? `<t:${Math.floor(event.scheduledStartTimestamp / 1000)}:F>` : 'Unknown', inline: false },
-      { name: 'Created By', value: executor, inline: false },
-    )
-    .setTimestamp();
-
-  await sendLog(client, config.channels.eventLogs, { embeds: [embed] });
+  await sendStructuredLog(client, config.channels.operationLog, {
+    title: 'Scheduled Event Created',
+    emoji: '📅',
+    color: colors.success,
+    summary: `**${escapeMarkdown(event.name)}** was scheduled.`,
+    thumbnailUrl: event.coverImageURL({ size: 512 }) || undefined,
+    referenceId: `EVENT-CREATE-${event.id}`,
+    fields: [
+      ...eventFields(event),
+      { name: 'Created By', value: formatActor(entry) },
+      { name: 'Audit Reason', value: entry?.reason || 'No reason provided.' },
+    ],
+    links: event.url ? [{ label: 'Open Event', url: event.url }] : [],
+  });
 }
 
 async function logEventDelete(event, client) {
-  if (!config.channels.eventLogs) {
-    return;
-  }
+  const entry = await fetchAuditEntry(
+    event.guild,
+    AuditLogEvent.GuildScheduledEventDelete,
+    event.id,
+  );
 
-  const executor = await getExecutor(event.guild, AuditLogEvent.GuildScheduledEventDelete);
-  const embed = new EmbedBuilder()
-    .setTitle('Event Deleted')
-    .setColor(0xff0000)
-    .addFields(
-      { name: 'Event', value: `${event.name} (${event.id})`, inline: false },
-      { name: 'Deleted By', value: executor, inline: false },
-    )
-    .setTimestamp();
-
-  await sendLog(client, config.channels.eventLogs, { embeds: [embed] });
+  await sendStructuredLog(client, config.channels.operationLog, {
+    title: 'Scheduled Event Deleted',
+    emoji: '🗑️',
+    color: colors.danger,
+    summary: `**${escapeMarkdown(event.name)}** was deleted.`,
+    thumbnailUrl: event.coverImageURL({ size: 512 }) || undefined,
+    referenceId: `EVENT-DELETE-${event.id}`,
+    fields: [
+      ...eventFields(event),
+      { name: 'Deleted By', value: formatActor(entry) },
+      { name: 'Audit Reason', value: entry?.reason || 'No reason provided.' },
+    ],
+  });
 }
 
 async function logEventUpdate(oldEvent, newEvent, client) {
-  if (!config.channels.eventLogs) {
-    return;
-  }
+  const changes = collectEventChanges(oldEvent, newEvent);
 
-  const changes = [];
+  if (changes.length === 0) return;
 
-  if (oldEvent.name !== newEvent.name) {
-    changes.push(`Name: ${oldEvent.name} -> ${newEvent.name}`);
-  }
+  const entry = await fetchAuditEntry(
+    newEvent.guild,
+    AuditLogEvent.GuildScheduledEventUpdate,
+    newEvent.id,
+  );
 
-  if (oldEvent.description !== newEvent.description) {
-    changes.push('Description changed');
-  }
-
-  if (oldEvent.scheduledStartTimestamp !== newEvent.scheduledStartTimestamp) {
-    changes.push('Start time changed');
-  }
-
-  if (oldEvent.scheduledEndTimestamp !== newEvent.scheduledEndTimestamp) {
-    changes.push('End time changed');
-  }
-
-  if (changes.length === 0) {
-    return;
-  }
-
-  const executor = await getExecutor(newEvent.guild, AuditLogEvent.GuildScheduledEventUpdate);
-  const embed = new EmbedBuilder()
-    .setTitle('Event Updated')
-    .setColor(0xffa500)
-    .addFields(
-      { name: 'Event', value: `${newEvent.name} (${newEvent.id})`, inline: false },
-      { name: 'Modified By', value: executor, inline: false },
-      { name: 'Changes', value: changes.join('\n'), inline: false },
-    )
-    .setTimestamp();
-
-  await sendLog(client, config.channels.eventLogs, { embeds: [embed] });
+  await sendStructuredLog(client, config.channels.operationLog, {
+    title: 'Scheduled Event Updated',
+    emoji: '🗓️',
+    color: colors.warning,
+    summary: `**${escapeMarkdown(newEvent.name)}** had **${changes.length}** change${changes.length === 1 ? '' : 's'}.`,
+    thumbnailUrl: newEvent.coverImageURL({ size: 512 }) || undefined,
+    referenceId: `EVENT-UPDATE-${newEvent.id}-${Date.now()}`,
+    fields: [
+      { name: 'Event ID', value: `\`${newEvent.id}\`` },
+      { name: 'Modified By', value: formatActor(entry) },
+      { name: 'Audit Reason', value: entry?.reason || 'No reason provided.' },
+      ...changes,
+    ],
+    links: newEvent.url ? [{ label: 'Open Event', url: newEvent.url }] : [],
+  });
 }
 
 async function logEventUser(event, user, client, subscribed) {
-  if (!config.channels.eventLogs) {
-    return;
-  }
+  await sendStructuredLog(client, config.channels.operationLog, {
+    title: subscribed ? 'Event Subscription Added' : 'Event Subscription Removed',
+    emoji: subscribed ? '🙋' : '👋',
+    color: subscribed ? colors.success : colors.neutral,
+    summary: `${user} ${subscribed ? 'subscribed to' : 'unsubscribed from'} **${escapeMarkdown(event.name)}**.`,
+    thumbnailUrl: user.displayAvatarURL({ size: 256 }),
+    referenceId: `EVENT-RSVP-${event.id}-${user.id}-${Date.now()}`,
+    fields: [
+      { name: 'User', value: formatUser(user) },
+      { name: 'Event', value: `**${escapeMarkdown(event.name)}**\n-# ID: \`${event.id}\`` },
+      { name: 'Scheduled Start', value: event.scheduledStartTimestamp ? formatTimestamp(event.scheduledStartTimestamp) : 'Unknown' },
+      { name: 'Current Subscriber Count', value: String(event.userCount ?? 'Unknown') },
+    ],
+    links: event.url ? [{ label: 'Open Event', url: event.url }] : [],
+  });
+}
 
-  const embed = new EmbedBuilder()
-    .setTitle(subscribed ? 'Event User Subscribed' : 'Event User Unsubscribed')
-    .setColor(subscribed ? 0x00ff00 : 0xff0000)
-    .addFields(
-      { name: 'Event', value: `${event.name} (${event.id})`, inline: false },
-      { name: 'User', value: `${user} (${user.username})`, inline: false },
-    )
-    .setTimestamp();
+function eventFields(event) {
+  return [
+    { name: 'Event', value: `**${escapeMarkdown(event.name)}**\n-# ID: \`${event.id}\`` },
+    { name: 'Description', value: event.description || 'No description' },
+    { name: 'Status', value: String(event.status) },
+    { name: 'Entity Type', value: String(event.entityType) },
+    { name: 'Channel', value: event.channel ? formatChannel(event.channel) : 'External / no channel' },
+    { name: 'Location', value: event.entityMetadata?.location || 'Not specified' },
+    { name: 'Starts', value: event.scheduledStartTimestamp ? `${formatTimestamp(event.scheduledStartTimestamp)}\n-# ${formatTimestamp(event.scheduledStartTimestamp, 'R')}` : 'Unknown' },
+    { name: 'Ends', value: event.scheduledEndTimestamp ? formatTimestamp(event.scheduledEndTimestamp) : 'Not specified' },
+    { name: 'Subscribers', value: String(event.userCount ?? 'Unknown') },
+  ];
+}
 
-  await sendLog(client, config.channels.eventLogs, { embeds: [embed] });
+function collectEventChanges(oldEvent, newEvent) {
+  const pairs = [
+    ['Name', oldEvent.name, newEvent.name],
+    ['Description', oldEvent.description || 'None', newEvent.description || 'None'],
+    ['Status', oldEvent.status, newEvent.status],
+    ['Channel', oldEvent.channel?.toString() || 'None', newEvent.channel?.toString() || 'None'],
+    ['Location', oldEvent.entityMetadata?.location || 'None', newEvent.entityMetadata?.location || 'None'],
+    ['Start Time', oldEvent.scheduledStartTimestamp ? formatTimestamp(oldEvent.scheduledStartTimestamp) : 'Unknown', newEvent.scheduledStartTimestamp ? formatTimestamp(newEvent.scheduledStartTimestamp) : 'Unknown'],
+    ['End Time', oldEvent.scheduledEndTimestamp ? formatTimestamp(oldEvent.scheduledEndTimestamp) : 'None', newEvent.scheduledEndTimestamp ? formatTimestamp(newEvent.scheduledEndTimestamp) : 'None'],
+  ];
+
+  return pairs
+    .filter(([, before, after]) => String(before) !== String(after))
+    .map(([name, before, after]) => ({
+      name,
+      value: `**Before**\n${before}\n\n**After**\n${after}`,
+    }));
 }

@@ -9,7 +9,7 @@ A Discord.js bot for the UNDR CTRL community, ready to run locally and deploy to
 - Keeps secrets in environment variables instead of files.
 - Uses the same folder shape as the reference bot: `commands`, `events`, `images`, and `utils`.
 - Includes a protected browser dashboard for sending Components v2 messages instantly.
-- Includes `/ping`, `/about`, `/server`, `/help`, `/clear`, `/ticketsetup`, `/setupreactionrole`, `/teststream`, and `/testwelcome`.
+- Includes `/ping`, `/about`, `/server`, `/help`, `/clear`, `/warn`, `/ticketsetup`, `/setupreactionrole`, `/teststream`, and `/testwelcome`.
 - Includes optional event systems for tickets, member logs, message logs, channel logs, scheduled event logs, moderation logs, user logs, invite moderation, reaction roles, and stream monitoring.
 
 ## Local Setup
@@ -58,8 +58,9 @@ Enable these privileged gateway intents in the Bot page only if you also enable 
 - Message Content Intent -> `ENABLE_MESSAGE_CONTENT_INTENT=true`
 
 Automatic welcome messages require the Server Members Intent in the Discord Developer Portal and `ENABLE_SERVER_MEMBERS_INTENT=true`.
+Detailed message edit/delete logs require the Message Content Intent and `ENABLE_MESSAGE_CONTENT_INTENT=true`.
 
-Invite the bot with both `bot` and `applications.commands` scopes. The imported systems need message, moderation, member, invite, reaction, and thread permissions.
+Invite the bot with both `bot` and `applications.commands` scopes. Detailed logging also needs View Audit Log, Manage Server (for invite attribution), View Channels, Read Message History, and Send Messages in every log channel.
 
 ```text
 https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=412317273088&scope=bot%20applications.commands
@@ -76,6 +77,12 @@ https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=412317
    DISCORD_CLIENT_ID
    DISCORD_GUILD_ID
    WELCOME_CHANNEL_ID
+   CASE_FILES_CHANNEL_ID
+   ENTRY_LOG_CHANNEL_ID
+   SIGNAL_LOG_CHANNEL_ID
+   LINE_LOG_CHANNEL_ID
+   OPERATION_LOG_CHANNEL_ID
+   SYSTEM_LOG_CHANNEL_ID
    AUTO_REGISTER_COMMANDS
    PRESENCE_TEXTS
    PRESENCE_TEXT
@@ -99,6 +106,21 @@ https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=412317
 Slash commands are synced on startup. If `DISCORD_GUILD_ID` is set, commands update instantly in that server. Without it, commands are global and can take a while to appear.
 
 `/testwelcome` posts the currently saved Welcome Message template in the current channel. Like `/teststream`, it is restricted to `BOT_OWNER_USER_ID`, who must also have `FOUNDER_ROLE_ID`.
+
+## Logging
+
+All audit messages use Discord Components V2 containers with timestamps, reference IDs, actors, targets, reasons, before/after values, IDs, and relevant context:
+
+| Category | Default channel | Coverage |
+| --- | --- | --- |
+| Case files | `1520858981227172000` | Kicks, bans, unbans, timeouts, and `/warn` cases |
+| Entry log | `1520858940617785565` | Joins, leaves, invite creation/deletion/use, and blocked invite links |
+| Signal log | `1520859015905546380` | Message edits, deletes, bulk deletes, attachments, and transcript excerpts |
+| Line log | `1520915998092558527` | Voice joins, moves, leaves, session duration, mute/deafen, camera, and streaming changes |
+| Operation log | `1520916058272170185` | Bot startup, scheduled events, RSVPs, and ticket creation/closure |
+| System log | `1520859053012811876` | Channel creation/deletion/configuration, permission overwrites, role changes, member role assignments, nicknames, and user profiles |
+
+`/warn member:<user> reason:<text>` sends the member a formal warning by DM and records the complete case in `#case-files`. If DMs are closed, the failed delivery is recorded in the case.
 
 Optional systems are controlled by environment variables. For example, tickets need `TICKET_CHANNEL_ID`, ticket logs need `TICKET_LOG_CHANNEL_ID`, and reaction roles need `REACTION_ROLE_MESSAGE_ID`, `REACTION_ROLE_EMOJI_ID`, and `VERIFIED_ROLE_ID`. See [.env.example](.env.example) for the full list.
 

@@ -1,7 +1,13 @@
-const { EmbedBuilder, Events } = require('discord.js');
+const { Events } = require('discord.js');
 
 const { config } = require('../utils/config');
-const { sendLog } = require('../utils/channels');
+const {
+  colors,
+  formatDuration,
+  formatTimestamp,
+  formatUser,
+  sendStructuredLog,
+} = require('../utils/structuredLog');
 const { createWelcomeAnnouncementPayload } = require('../utils/welcomeAnnouncement');
 const { loadWelcomeEmbedSettings } = require('../utils/welcomeEmbedSettings');
 
@@ -16,18 +22,34 @@ module.exports = {
       }
     }
 
-    if (!config.channels.memberLogs) {
+    if (!config.channels.entryLog) {
       return;
     }
 
-    const embed = new EmbedBuilder()
-      .setTitle('User Joined')
-      .setDescription(`User: ${member.user}\nID: ${member.user.id}\nCreated: <t:${Math.floor(member.user.createdTimestamp / 1000)}:R>\nMembers: ${member.guild.memberCount}`)
-      .setColor(0x2dd4bf)
-      .setThumbnail(member.user.displayAvatarURL({ size: 256 }))
-      .setTimestamp();
+    const roles = member.roles.cache
+      .filter((role) => role.id !== member.guild.id)
+      .map((role) => role.toString())
+      .join(', ');
 
-    await sendLog(client, config.channels.memberLogs, { embeds: [embed] });
+    await sendStructuredLog(client, config.channels.entryLog, {
+      title: 'Member Joined',
+      emoji: '📥',
+      color: colors.success,
+      summary: `${member} joined **${member.guild.name}**.`,
+      thumbnailUrl: member.user.displayAvatarURL({ size: 256 }),
+      referenceId: `JOIN-${member.id}-${Date.now()}`,
+      fields: [
+        { name: 'Member', value: formatUser(member.user) },
+        {
+          name: 'Account Created',
+          value: `${formatTimestamp(member.user.createdTimestamp)}\n-# ${formatTimestamp(member.user.createdTimestamp, 'R')}`,
+        },
+        { name: 'Account Age', value: formatDuration(Date.now() - member.user.createdTimestamp) },
+        { name: 'Server Member Count', value: member.guild.memberCount.toLocaleString() },
+        { name: 'Initial Roles', value: roles || 'No assigned roles.' },
+        { name: 'Membership Screening', value: member.pending ? 'Pending' : 'Completed / not enabled' },
+      ],
+    });
   },
 };
 

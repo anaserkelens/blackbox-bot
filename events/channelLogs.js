@@ -1,118 +1,206 @@
-const { AuditLogEvent, ChannelType, EmbedBuilder, Events } = require('discord.js');
+const { AuditLogEvent, ChannelType, Events, OverwriteType } = require('discord.js');
 
 const { config } = require('../utils/config');
-const { sendLog } = require('../utils/channels');
+const {
+  colors,
+  escapeMarkdown,
+  fetchAuditEntry,
+  formatActor,
+  formatChannel,
+  formatCodeBlock,
+  sendStructuredLog,
+  truncate,
+} = require('../utils/structuredLog');
 
 module.exports = {
   setup(client) {
     client.on(Events.ChannelCreate, (channel) => logChannelCreate(channel, client));
     client.on(Events.ChannelDelete, (channel) => logChannelDelete(channel, client));
-    client.on(Events.ChannelUpdate, (oldChannel, newChannel) => logChannelUpdate(oldChannel, newChannel, client));
-    client.on(Events.ChannelPinsUpdate, (channel) => logChannelPinsUpdate(channel, client));
+    client.on(Events.ChannelUpdate, (oldChannel, newChannel) =>
+      logChannelUpdate(oldChannel, newChannel, client),
+    );
+    client.on(Events.ChannelPinsUpdate, (channel, time) =>
+      logChannelPinsUpdate(channel, time, client),
+    );
   },
 };
 
-async function getExecutor(guild, type, targetId) {
-  const auditLogs = await guild.fetchAuditLogs({ type, limit: 5 }).catch(() => null);
-  const log = targetId ? auditLogs?.entries.find((entry) => entry.target?.id === targetId) : auditLogs?.entries.first();
-  return log?.executor ? `${log.executor} (${log.executor.username})` : 'Unknown';
-}
-
 async function logChannelCreate(channel, client) {
-  if (!channel.guild || !config.channels.channelLogs) {
-    return;
-  }
+  if (!channel.guild) return;
+  const entry = await fetchAuditEntry(channel.guild, AuditLogEvent.ChannelCreate, channel.id);
 
-  const executor = await getExecutor(channel.guild, AuditLogEvent.ChannelCreate, channel.id);
-  const embed = new EmbedBuilder()
-    .setTitle('Channel Created')
-    .setColor(0x00ff00)
-    .addFields(
-      { name: 'Channel', value: `${channel}`, inline: true },
-      { name: 'Type', value: getChannelTypeName(channel.type), inline: true },
-      { name: 'Created By', value: executor, inline: false },
-    )
-    .setTimestamp();
-
-  await sendLog(client, config.channels.channelLogs, { embeds: [embed] });
+  await sendStructuredLog(client, config.channels.systemLog, {
+    title: 'Channel Created',
+    emoji: '➕',
+    color: colors.success,
+    summary: `${channel} was added to the server.`,
+    referenceId: `CHANNEL-CREATE-${channel.id}`,
+    fields: [
+      { name: 'Channel', value: formatChannel(channel) },
+      { name: 'Created By', value: formatActor(entry) },
+      { name: 'Audit Reason', value: entry?.reason || 'No reason provided.' },
+      { name: 'Type', value: getChannelTypeName(channel.type) },
+      { name: 'Category', value: channel.parent ? formatChannel(channel.parent) : 'No category' },
+      { name: 'Position', value: String(channel.rawPosition ?? channel.position ?? 'Unknown') },
+      { name: 'Topic', value: channel.topic || 'No topic' },
+      { name: 'Settings', value: formatChannelSettings(channel) },
+      { name: 'Permission Overwrites', value: formatPermissionOverwrites(channel) },
+    ],
+  });
 }
 
 async function logChannelDelete(channel, client) {
-  if (!channel.guild || !config.channels.channelLogs) {
-    return;
-  }
+  if (!channel.guild) return;
+  const entry = await fetchAuditEntry(channel.guild, AuditLogEvent.ChannelDelete, channel.id);
 
-  const executor = await getExecutor(channel.guild, AuditLogEvent.ChannelDelete, channel.id);
-  const embed = new EmbedBuilder()
-    .setTitle('Channel Deleted')
-    .setColor(0xff0000)
-    .addFields(
-      { name: 'Channel Name', value: channel.name || 'Unknown', inline: true },
-      { name: 'Type', value: getChannelTypeName(channel.type), inline: true },
-      { name: 'Deleted By', value: executor, inline: false },
-    )
-    .setTimestamp();
-
-  await sendLog(client, config.channels.channelLogs, { embeds: [embed] });
+  await sendStructuredLog(client, config.channels.systemLog, {
+    title: 'Channel Deleted',
+    emoji: '🗑️',
+    color: colors.danger,
+    summary: `**#${escapeMarkdown(channel.name || 'unknown')}** was deleted.`,
+    referenceId: `CHANNEL-DELETE-${channel.id}`,
+    fields: [
+      { name: 'Deleted Channel', value: `**#${escapeMarkdown(channel.name || 'unknown')}**\n-# ID: \`${channel.id}\`` },
+      { name: 'Deleted By', value: formatActor(entry) },
+      { name: 'Audit Reason', value: entry?.reason || 'No reason provided.' },
+      { name: 'Type', value: getChannelTypeName(channel.type) },
+      { name: 'Former Category', value: channel.parent?.name || 'No category' },
+      { name: 'Former Position', value: String(channel.rawPosition ?? channel.position ?? 'Unknown') },
+      { name: 'Topic', value: channel.topic || 'No topic' },
+      { name: 'Settings', value: formatChannelSettings(channel) },
+      { name: 'Permission Overwrites', value: formatPermissionOverwrites(channel) },
+    ],
+  });
 }
 
 async function logChannelUpdate(oldChannel, newChannel, client) {
-  if (!newChannel.guild || !config.channels.channelLogs) {
-    return;
-  }
+  if (!newChannel.guild) return;
+  const changes = collectChannelChanges(oldChannel, newChannel);
 
-  const changes = [];
+  if (changes.length === 0) return;
 
-  if (oldChannel.name !== newChannel.name) {
-    changes.push(`Name: ${oldChannel.name} -> ${newChannel.name}`);
-  }
+  const permissionsChanged = changes.some((change) => change.name === 'Permission Overwrites');
+  const entry = permissionsChanged
+    ? await fetchPermissionAuditEntry(newChannel.guild, newChannel.id)
+    : await fetchAuditEntry(newChannel.guild, AuditLogEvent.ChannelUpdate, newChannel.id);
 
-  if (oldChannel.topic !== newChannel.topic) {
-    changes.push(`Topic: ${oldChannel.topic || 'None'} -> ${newChannel.topic || 'None'}`);
-  }
-
-  if (oldChannel.parentId !== newChannel.parentId) {
-    changes.push(`Category: ${oldChannel.parent?.name || 'None'} -> ${newChannel.parent?.name || 'None'}`);
-  }
-
-  if (oldChannel.rateLimitPerUser !== newChannel.rateLimitPerUser && newChannel.rateLimitPerUser !== undefined) {
-    changes.push(`Slow mode: ${oldChannel.rateLimitPerUser || 0}s -> ${newChannel.rateLimitPerUser || 0}s`);
-  }
-
-  if (changes.length === 0) {
-    return;
-  }
-
-  const executor = await getExecutor(newChannel.guild, AuditLogEvent.ChannelUpdate, newChannel.id);
-  const embed = new EmbedBuilder()
-    .setTitle('Channel Updated')
-    .setColor(0xffa500)
-    .addFields(
-      { name: 'Channel', value: `${newChannel}`, inline: true },
-      { name: 'Modified By', value: executor, inline: false },
-      { name: 'Changes', value: changes.join('\n').slice(0, 1024), inline: false },
-    )
-    .setTimestamp();
-
-  await sendLog(client, config.channels.channelLogs, { embeds: [embed] });
+  await sendStructuredLog(client, config.channels.systemLog, {
+    title: 'Channel Updated',
+    emoji: '🛠️',
+    color: colors.warning,
+    summary: `${newChannel} had **${changes.length}** configuration change${changes.length === 1 ? '' : 's'}.`,
+    referenceId: `CHANNEL-UPDATE-${newChannel.id}-${Date.now()}`,
+    fields: [
+      { name: 'Channel', value: formatChannel(newChannel) },
+      { name: 'Modified By', value: formatActor(entry) },
+      { name: 'Audit Reason', value: entry?.reason || 'No reason provided.' },
+      ...changes.map((change) => ({
+        name: change.name,
+        value: `**Before**\n${change.before}\n\n**After**\n${change.after}`,
+      })),
+    ],
+  });
 }
 
-async function logChannelPinsUpdate(channel, client) {
-  if (!channel.guild || !config.channels.channelLogs) {
-    return;
+async function fetchPermissionAuditEntry(guild, channelId) {
+  for (const type of [
+    AuditLogEvent.ChannelOverwriteCreate,
+    AuditLogEvent.ChannelOverwriteUpdate,
+    AuditLogEvent.ChannelOverwriteDelete,
+    AuditLogEvent.ChannelUpdate,
+  ]) {
+    const entry = await fetchAuditEntry(guild, type, channelId);
+
+    if (entry) {
+      return entry;
+    }
   }
 
-  const executor = await getExecutor(channel.guild, AuditLogEvent.MessagePin);
-  const embed = new EmbedBuilder()
-    .setTitle('Channel Pins Updated')
-    .setColor(0xffa500)
-    .addFields(
-      { name: 'Channel', value: `${channel}`, inline: true },
-      { name: 'Modified By', value: executor, inline: false },
-    )
-    .setTimestamp();
+  return null;
+}
 
-  await sendLog(client, config.channels.channelLogs, { embeds: [embed] });
+async function logChannelPinsUpdate(channel, time, client) {
+  if (!channel.guild) return;
+  const entry = await fetchAuditEntry(channel.guild, AuditLogEvent.MessagePin);
+
+  await sendStructuredLog(client, config.channels.systemLog, {
+    title: 'Channel Pins Updated',
+    emoji: '📌',
+    color: colors.info,
+    summary: `The pinned messages in ${channel} changed.`,
+    referenceId: `PINS-${channel.id}-${Date.now()}`,
+    fields: [
+      { name: 'Channel', value: formatChannel(channel) },
+      { name: 'Changed By', value: formatActor(entry) },
+      { name: 'Last Pin Timestamp', value: time ? `<t:${Math.floor(time.getTime() / 1000)}:F>` : 'No pinned messages remain' },
+    ],
+  });
+}
+
+function collectChannelChanges(oldChannel, newChannel) {
+  const pairs = [
+    ['Name', oldChannel.name, newChannel.name],
+    ['Topic', oldChannel.topic || 'None', newChannel.topic || 'None'],
+    ['Category', oldChannel.parent?.name || 'None', newChannel.parent?.name || 'None'],
+    ['Position', oldChannel.rawPosition ?? oldChannel.position, newChannel.rawPosition ?? newChannel.position],
+    ['NSFW', Boolean(oldChannel.nsfw), Boolean(newChannel.nsfw)],
+    ['Slowmode', `${oldChannel.rateLimitPerUser || 0}s`, `${newChannel.rateLimitPerUser || 0}s`],
+    ['Bitrate', oldChannel.bitrate ? `${oldChannel.bitrate} bps` : 'N/A', newChannel.bitrate ? `${newChannel.bitrate} bps` : 'N/A'],
+    ['User Limit', oldChannel.userLimit ?? 'N/A', newChannel.userLimit ?? 'N/A'],
+    ['RTC Region', oldChannel.rtcRegion || 'Automatic', newChannel.rtcRegion || 'Automatic'],
+    ['Default Auto Archive', oldChannel.defaultAutoArchiveDuration || 'N/A', newChannel.defaultAutoArchiveDuration || 'N/A'],
+  ];
+  const changes = pairs
+    .filter(([, before, after]) => String(before) !== String(after))
+    .map(([name, before, after]) => ({ name, before: String(before), after: String(after) }));
+  const oldPermissions = serializePermissionOverwrites(oldChannel);
+  const newPermissions = serializePermissionOverwrites(newChannel);
+
+  if (oldPermissions !== newPermissions) {
+    changes.push({
+      name: 'Permission Overwrites',
+      before: formatPermissionOverwrites(oldChannel),
+      after: formatPermissionOverwrites(newChannel),
+    });
+  }
+
+  return changes;
+}
+
+function serializePermissionOverwrites(channel) {
+  return channel.permissionOverwrites?.cache
+    ? [...channel.permissionOverwrites.cache.values()]
+      .map((overwrite) => `${overwrite.id}:${overwrite.type}:${overwrite.allow.bitfield}:${overwrite.deny.bitfield}`)
+      .sort()
+      .join('|')
+    : '';
+}
+
+function formatPermissionOverwrites(channel) {
+  if (!channel.permissionOverwrites?.cache?.size) {
+    return 'No custom permission overwrites.';
+  }
+
+  const lines = [...channel.permissionOverwrites.cache.values()].map((overwrite) => {
+    const target = overwrite.type === OverwriteType.Role
+      ? channel.guild.roles.cache.get(overwrite.id)
+      : channel.guild.members.cache.get(overwrite.id);
+    const label = target ? `${target}` : `\`${overwrite.id}\``;
+    const allowed = overwrite.allow.toArray().join(', ') || 'None';
+    const denied = overwrite.deny.toArray().join(', ') || 'None';
+    return `**${label}**\n+ ${allowed}\n− ${denied}`;
+  });
+
+  return truncate(lines.join('\n\n'), 3800);
+}
+
+function formatChannelSettings(channel) {
+  return [
+    `NSFW: **${channel.nsfw ? 'Yes' : 'No'}**`,
+    `Slowmode: **${channel.rateLimitPerUser || 0}s**`,
+    `Bitrate: **${channel.bitrate ? `${channel.bitrate} bps` : 'N/A'}**`,
+    `User limit: **${channel.userLimit ?? 'N/A'}**`,
+  ].join('\n');
 }
 
 function getChannelTypeName(type) {
@@ -129,5 +217,5 @@ function getChannelTypeName(type) {
     [ChannelType.GuildMedia]: 'Media Channel',
   };
 
-  return types[type] || 'Unknown';
+  return types[type] || `Unknown (${type})`;
 }

@@ -1,92 +1,96 @@
-const { AuditLogEvent, EmbedBuilder } = require('discord.js');
+const { AuditLogEvent, Events } = require('discord.js');
 
 const { config } = require('../utils/config');
-const { sendLog } = require('../utils/channels');
+const {
+  colors,
+  fetchAuditEntry,
+  formatActor,
+  formatDuration,
+  formatTimestamp,
+  formatUser,
+  sendStructuredLog,
+} = require('../utils/structuredLog');
 
 module.exports = {
   setup(client) {
-    client.on('guildBanAdd', (ban) => logBanAdd(ban, client));
-    client.on('guildBanRemove', (ban) => logBanRemove(ban, client));
-    client.on('guildMemberUpdate', (oldMember, newMember) => logTimeoutUpdate(oldMember, newMember, client));
+    client.on(Events.GuildBanAdd, (ban) => logBanAdd(ban, client));
+    client.on(Events.GuildBanRemove, (ban) => logBanRemove(ban, client));
+    client.on(Events.GuildMemberUpdate, (oldMember, newMember) =>
+      logTimeoutUpdate(oldMember, newMember, client),
+    );
   },
 };
 
 async function logBanAdd(ban, client) {
-  if (!config.channels.modLogs) {
-    return;
-  }
+  const entry = await fetchAuditEntry(ban.guild, AuditLogEvent.MemberBanAdd, ban.user.id);
 
-  const auditLogs = await ban.guild.fetchAuditLogs({ type: AuditLogEvent.MemberBanAdd, limit: 1 }).catch(() => null);
-  const banLog = auditLogs?.entries.first();
-  const executor = banLog?.executor || 'Unknown';
-  const reason = banLog?.reason || 'No reason provided';
-
-  const embed = new EmbedBuilder()
-    .setColor(0xff0000)
-    .setTitle('Member Banned')
-    .addFields(
-      { name: 'User', value: `${ban.user} (${ban.user.id})`, inline: true },
-      { name: 'Moderator', value: executor.tag || `${executor}`, inline: true },
-      { name: 'Reason', value: reason, inline: false },
-    )
-    .setThumbnail(ban.user.displayAvatarURL())
-    .setTimestamp();
-
-  await sendLog(client, config.channels.modLogs, { embeds: [embed] });
+  await sendStructuredLog(client, config.channels.caseFiles, {
+    title: 'Member Banned',
+    emoji: '🔨',
+    color: colors.danger,
+    summary: `${ban.user} was banned from **${ban.guild.name}**.`,
+    thumbnailUrl: ban.user.displayAvatarURL({ size: 256 }),
+    referenceId: `BAN-${ban.user.id}-${Date.now()}`,
+    fields: [
+      { name: 'Member', value: formatUser(ban.user) },
+      { name: 'Moderator', value: formatActor(entry) },
+      { name: 'Reason', value: entry?.reason || ban.reason || 'No reason provided.' },
+      { name: 'Account Created', value: `${formatTimestamp(ban.user.createdTimestamp)}\n-# ${formatTimestamp(ban.user.createdTimestamp, 'R')}` },
+    ],
+  });
 }
 
 async function logBanRemove(ban, client) {
-  if (!config.channels.modLogs) {
-    return;
-  }
+  const entry = await fetchAuditEntry(ban.guild, AuditLogEvent.MemberBanRemove, ban.user.id);
 
-  const auditLogs = await ban.guild.fetchAuditLogs({ type: AuditLogEvent.MemberBanRemove, limit: 1 }).catch(() => null);
-  const unbanLog = auditLogs?.entries.first();
-  const executor = unbanLog?.executor || 'Unknown';
-
-  const embed = new EmbedBuilder()
-    .setColor(0x00ff00)
-    .setTitle('Ban Removed')
-    .addFields(
-      { name: 'User', value: `${ban.user} (${ban.user.id})`, inline: true },
-      { name: 'Moderator', value: executor.tag || `${executor}`, inline: true },
-    )
-    .setThumbnail(ban.user.displayAvatarURL())
-    .setTimestamp();
-
-  await sendLog(client, config.channels.modLogs, { embeds: [embed] });
+  await sendStructuredLog(client, config.channels.caseFiles, {
+    title: 'Member Unbanned',
+    emoji: '🔓',
+    color: colors.success,
+    summary: `${ban.user} may join **${ban.guild.name}** again.`,
+    thumbnailUrl: ban.user.displayAvatarURL({ size: 256 }),
+    referenceId: `UNBAN-${ban.user.id}-${Date.now()}`,
+    fields: [
+      { name: 'Member', value: formatUser(ban.user) },
+      { name: 'Moderator', value: formatActor(entry) },
+      { name: 'Audit Reason', value: entry?.reason || 'No reason provided.' },
+    ],
+  });
 }
 
 async function logTimeoutUpdate(oldMember, newMember, client) {
-  if (!config.channels.modLogs) {
+  const oldUntil = oldMember.communicationDisabledUntilTimestamp || null;
+  const newUntil = newMember.communicationDisabledUntilTimestamp || null;
+
+  if (oldUntil === newUntil) {
     return;
   }
 
-  const oldTimeout = oldMember.communicationDisabledUntil;
-  const newTimeout = newMember.communicationDisabledUntil;
+  const entry = await fetchAuditEntry(
+    newMember.guild,
+    AuditLogEvent.MemberUpdate,
+    newMember.id,
+  );
+  const isRemoved = !newUntil || newUntil <= Date.now();
+  const isUpdated = oldUntil && newUntil && oldUntil !== newUntil;
+  const title = isRemoved ? 'Timeout Removed' : (isUpdated ? 'Timeout Updated' : 'Member Timed Out');
 
-  if (!oldTimeout && newTimeout) {
-    const embed = new EmbedBuilder()
-      .setColor(0xffa500)
-      .setTitle('Member Timed Out')
-      .addFields(
-        { name: 'User', value: `${newMember.user} (${newMember.user.id})`, inline: true },
-        { name: 'Until', value: `<t:${Math.floor(newTimeout.getTime() / 1000)}:F>`, inline: false },
-      )
-      .setThumbnail(newMember.user.displayAvatarURL())
-      .setTimestamp();
-
-    await sendLog(client, config.channels.modLogs, { embeds: [embed] });
-  }
-
-  if (oldTimeout && !newTimeout) {
-    const embed = new EmbedBuilder()
-      .setColor(0x00ff00)
-      .setTitle('Timeout Removed')
-      .addFields({ name: 'User', value: `${newMember.user} (${newMember.user.id})`, inline: true })
-      .setThumbnail(newMember.user.displayAvatarURL())
-      .setTimestamp();
-
-    await sendLog(client, config.channels.modLogs, { embeds: [embed] });
-  }
+  await sendStructuredLog(client, config.channels.caseFiles, {
+    title,
+    emoji: isRemoved ? '🔊' : '⏳',
+    color: isRemoved ? colors.success : colors.warning,
+    summary: isRemoved
+      ? `${newMember.user} can communicate again.`
+      : `${newMember.user} has been restricted from communicating.`,
+    thumbnailUrl: newMember.user.displayAvatarURL({ size: 256 }),
+    referenceId: `TIMEOUT-${newMember.id}-${Date.now()}`,
+    fields: [
+      { name: 'Member', value: formatUser(newMember.user) },
+      { name: 'Moderator', value: formatActor(entry) },
+      { name: 'Reason', value: entry?.reason || 'No reason provided.' },
+      { name: 'Previous Expiry', value: oldUntil ? formatTimestamp(oldUntil) : 'Not previously timed out' },
+      { name: 'New Expiry', value: isRemoved ? 'Removed' : `${formatTimestamp(newUntil)}\n-# ${formatTimestamp(newUntil, 'R')}` },
+      { name: 'Duration Remaining', value: isRemoved ? 'None' : formatDuration(newUntil - Date.now()) },
+    ],
+  });
 }

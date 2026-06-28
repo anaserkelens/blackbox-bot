@@ -3,6 +3,7 @@ const { Events } = require('discord.js');
 const { config } = require('../utils/config');
 const { startPresenceRotation } = require('../utils/presenceManager');
 const { getPresenceSettingsStorageInfo, loadPresenceSettings } = require('../utils/presenceSettings');
+const { colors, sendStructuredLog } = require('../utils/structuredLog');
 const { syncCommandsForClient } = require('../utils/syncCommands');
 
 const name = Events.ClientReady;
@@ -28,6 +29,23 @@ async function execute(client) {
   }
 
   startPresenceRotation(client, presence);
+
+  await sendStructuredLog(client, config.channels.operationLog, {
+    title: 'Bot Online',
+    emoji: '🟢',
+    color: colors.success,
+    summary: `**${client.user.tag}** connected and is ready.`,
+    thumbnailUrl: client.user.displayAvatarURL({ size: 256 }),
+    referenceId: `STARTUP-${Date.now()}`,
+    fields: [
+      { name: 'Bot User', value: `${client.user}\n-# ID: \`${client.user.id}\`` },
+      { name: 'Guilds', value: client.guilds.cache.size.toLocaleString() },
+      { name: 'Loaded Commands', value: client.commands.size.toLocaleString() },
+      { name: 'Node.js', value: process.version },
+      { name: 'Automatic Command Sync', value: config.autoRegisterCommands ? 'Enabled' : 'Disabled' },
+      { name: 'Presence Storage', value: `${presenceStorage.persistent ? 'Persistent' : 'Ephemeral'} via ${presenceStorage.source}` },
+    ],
+  }).catch((error) => console.error('Failed to send startup operation log:', error));
 
   if (!config.autoRegisterCommands) {
     console.log('Automatic slash command registration is disabled.');

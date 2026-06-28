@@ -13,6 +13,7 @@ function buildIntents() {
     GatewayIntentBits.GuildModeration,
     GatewayIntentBits.GuildInvites,
     GatewayIntentBits.GuildScheduledEvents,
+    GatewayIntentBits.GuildVoiceStates,
   ];
 
   if (config.intents.members) {
@@ -63,6 +64,12 @@ console.log(`Starting ${config.communityName} Blackbox bot...`);
 if (!config.intents.members) {
   console.warn(
     'Automatic welcome messages are disabled. Enable the Server Members Intent in Discord and set ENABLE_SERVER_MEMBERS_INTENT=true.',
+  );
+}
+
+if (!config.intents.messageContent) {
+  console.warn(
+    'Detailed message logs are limited. Enable the Message Content Intent in Discord and set ENABLE_MESSAGE_CONTENT_INTENT=true.',
   );
 }
 

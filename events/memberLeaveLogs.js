@@ -1,23 +1,67 @@
-const { EmbedBuilder, Events } = require('discord.js');
+const { AuditLogEvent, Events } = require('discord.js');
 
 const { config } = require('../utils/config');
-const { sendLog } = require('../utils/channels');
+const {
+  colors,
+  fetchAuditEntry,
+  formatActor,
+  formatDuration,
+  formatTimestamp,
+  formatUser,
+  sendStructuredLog,
+} = require('../utils/structuredLog');
 
 module.exports = {
   name: Events.GuildMemberRemove,
   async execute(member, client) {
-    if (!config.channels.memberLogs) {
+    const banEntry = await fetchAuditEntry(member.guild, AuditLogEvent.MemberBanAdd, member.id, 10000);
+
+    if (banEntry) {
       return;
     }
 
-    const joinedTimestamp = member.joinedTimestamp ? `<t:${Math.floor(member.joinedTimestamp / 1000)}:R>` : 'Unknown';
-    const embed = new EmbedBuilder()
-      .setTitle('User Left')
-      .setDescription(`User: ${member.user}\nID: ${member.user.id}\nJoined: ${joinedTimestamp}\nMembers: ${member.guild.memberCount}`)
-      .setColor(0xff0000)
-      .setThumbnail(member.user.displayAvatarURL({ size: 256 }))
-      .setTimestamp();
+    const kickEntry = await fetchAuditEntry(member.guild, AuditLogEvent.MemberKick, member.id, 10000);
+    const wasKicked = Boolean(kickEntry);
+    const roles = member.roles.cache
+      .filter((role) => role.id !== member.guild.id)
+      .map((role) => role.toString())
+      .join(', ');
 
-    await sendLog(client, config.channels.memberLogs, { embeds: [embed] });
+    await sendStructuredLog(
+      client,
+      wasKicked ? config.channels.caseFiles : config.channels.entryLog,
+      {
+        title: wasKicked ? 'Member Kicked' : 'Member Left',
+        emoji: wasKicked ? '🥾' : '📤',
+        color: wasKicked ? colors.danger : colors.neutral,
+        summary: wasKicked
+          ? `${member.user} was removed from **${member.guild.name}**.`
+          : `${member.user} left **${member.guild.name}**.`,
+        thumbnailUrl: member.user.displayAvatarURL({ size: 256 }),
+        referenceId: `${wasKicked ? 'KICK' : 'LEAVE'}-${member.id}-${Date.now()}`,
+        fields: [
+          { name: 'Member', value: formatUser(member.user) },
+          ...(wasKicked
+            ? [
+                { name: 'Moderator', value: formatActor(kickEntry) },
+                { name: 'Reason', value: kickEntry.reason || 'No reason provided.' },
+              ]
+            : []),
+          {
+            name: 'Joined Server',
+            value: member.joinedTimestamp
+              ? `${formatTimestamp(member.joinedTimestamp)}\n-# ${formatTimestamp(member.joinedTimestamp, 'R')}`
+              : 'Unknown',
+          },
+          {
+            name: 'Time in Server',
+            value: member.joinedTimestamp ? formatDuration(Date.now() - member.joinedTimestamp) : 'Unknown',
+          },
+          { name: 'Roles at Departure', value: roles || 'No assigned roles.' },
+          { name: 'Boosting Since', value: member.premiumSinceTimestamp ? formatTimestamp(member.premiumSinceTimestamp) : 'Not boosting' },
+          { name: 'Remaining Member Count', value: member.guild.memberCount.toLocaleString() },
+        ],
+      },
+    );
   },
 };
