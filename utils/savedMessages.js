@@ -51,6 +51,31 @@ async function saveSavedMessages(config, messages) {
   return sanitizedMessages;
 }
 
+async function deleteSavedMessage(config, messageId) {
+  const id = sanitizeText(messageId || '', 120);
+
+  if (!id) {
+    throw new Error('Saved message ID is required.');
+  }
+
+  if (id === welcomeMessageId) {
+    throw new Error('The built-in Welcome Message cannot be deleted.');
+  }
+
+  const messages = await loadSavedMessages(config);
+  const nextMessages = messages.filter((message) => message.id !== id);
+
+  if (nextMessages.length === messages.length) {
+    const error = new Error('Saved message was not found.');
+    error.code = 'SAVED_MESSAGE_NOT_FOUND';
+    throw error;
+  }
+
+  await writeSavedMessagesFile(getSavedMessagesPath(config), nextMessages);
+
+  return nextMessages;
+}
+
 async function readSavedMessagesFile(filePath) {
   let raw;
 
@@ -253,6 +278,7 @@ function createId() {
 }
 
 module.exports = {
+  deleteSavedMessage,
   getSavedMessagesStorageInfo,
   loadSavedMessages,
   saveSavedMessages,

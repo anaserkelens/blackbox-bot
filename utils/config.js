@@ -73,14 +73,13 @@ const config = {
     inviteLogs: readEnv('INVITE_LOG_CHANNEL_ID'),
     modLogs: readEnv('MOD_LOG_CHANNEL_ID'),
     userLogs: readEnv('USER_LOG_CHANNEL_ID'),
-    streamAnnouncements: readEnv('ANNOUNCEMENT_CHANNEL_ID'),
+    streamAnnouncements: readEnv('ANNOUNCEMENT_CHANNEL_ID') || '1520519675543293972',
   },
   roles: {
     staff: readEnv('STAFF_ROLE_ID'),
     moderator: readEnv('MODERATOR_ROLE_ID'),
     verified: readEnv('VERIFIED_ROLE_ID'),
-    streamWhitelist: readEnv('STREAM_WHITELIST_ROLE_ID'),
-    live: readEnv('LIVE_ROLE_ID'),
+    live: readEnv('LIVE_ROLE_ID') || '1520781346740506874',
   },
   reactionRole: {
     messageId: readEnv('REACTION_ROLE_MESSAGE_ID'),
@@ -94,8 +93,7 @@ const config = {
   },
   streamMonitor: {
     enabled: readBoolean('STREAM_MONITOR_ENABLED', false),
-    titleKeyword: readEnv('STREAM_TITLE_KEYWORD') || 'UNDR CTRL',
-    gameNameIncludes: readEnv('STREAM_GAME_NAME_INCLUDES'),
+    featuredUserId: readEnv('FEATURED_STREAMER_USER_ID') || '185282790969835520',
   },
   dashboard: {
     enabled: readBoolean('DASHBOARD_ENABLED', true),

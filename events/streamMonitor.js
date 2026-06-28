@@ -2,80 +2,93 @@ const { ActivityType, EmbedBuilder, Events } = require('discord.js');
 
 const { config } = require('../utils/config');
 
-const announcedStreams = new Set();
+const announcedFeaturedStreams = new Set();
 
 module.exports = {
   name: Events.PresenceUpdate,
   async execute(oldPresence, newPresence, client) {
-    if (!config.streamMonitor.enabled || !newPresence?.member) {
+    const member = newPresence?.member;
+
+    if (!config.streamMonitor.enabled || !member || member.user?.bot) {
       return;
     }
 
-    const streamingActivity = newPresence.activities.find((activity) => activity.type === ActivityType.Streaming);
+    const streamingActivity = findTwitchStream(newPresence);
+    const isFeaturedStreamer = member.id === config.streamMonitor.featuredUserId;
 
-    if (!streamingActivity) {
-      const oldStreamingActivity = oldPresence?.activities.find((activity) => activity.type === ActivityType.Streaming);
-
-      if (oldStreamingActivity?.url) {
-        announcedStreams.delete(oldStreamingActivity.url);
-      }
-
-      if (config.roles.live && newPresence.member.roles.cache.has(config.roles.live)) {
-        await newPresence.member.roles.remove(config.roles.live).catch(() => null);
-      }
-
+    if (isFeaturedStreamer) {
+      await handleFeaturedStreamer(oldPresence, member, streamingActivity, client);
       return;
     }
 
-    const streamUrl = streamingActivity.url;
-    const streamTitle = streamingActivity.details || '';
-    const gameName = streamingActivity.state || '';
-
-    if (!streamUrl || !streamUrl.includes('twitch.tv')) {
-      return;
-    }
-
-    if (config.streamMonitor.gameNameIncludes && !gameName.toLowerCase().includes(config.streamMonitor.gameNameIncludes.toLowerCase())) {
-      return;
-    }
-
-    if (config.streamMonitor.titleKeyword && !streamTitle.toLowerCase().includes(config.streamMonitor.titleKeyword.toLowerCase())) {
-      return;
-    }
-
-    if (config.roles.streamWhitelist && !newPresence.member.roles.cache.has(config.roles.streamWhitelist)) {
-      return;
-    }
-
-    if (announcedStreams.has(streamUrl) || !config.channels.streamAnnouncements) {
-      return;
-    }
-
-    announcedStreams.add(streamUrl);
-
-    try {
-      const channel = await client.channels.fetch(config.channels.streamAnnouncements);
-
-      if (!channel?.isSendable()) {
-        return;
-      }
-
-      const twitchUsername = streamUrl.split('/').pop();
-      const streamPreviewUrl = `https://static-cdn.jtvnw.net/previews-ttv/live_user_${twitchUsername}-1920x1080.jpg`;
-
-      const embed = new EmbedBuilder()
-        .setDescription(`# **${newPresence.member} is now live!**\n\n-# ${streamTitle}\n\n-# [Watch Stream](${streamUrl})`)
-        .setColor(0x2dd4bf)
-        .setImage(streamPreviewUrl);
-
-      await channel.send({ embeds: [embed] });
-
-      if (config.roles.live && !newPresence.member.roles.cache.has(config.roles.live)) {
-        await newPresence.member.roles.add(config.roles.live).catch(() => null);
-      }
-    } catch (error) {
-      console.error('Error announcing stream:', error);
-      announcedStreams.delete(streamUrl);
-    }
+    await updateBroadcastingRole(member, Boolean(streamingActivity));
   },
 };
+
+function findTwitchStream(presence) {
+  return presence?.activities?.find(
+    (activity) =>
+      activity.type === ActivityType.Streaming &&
+      typeof activity.url === 'string' &&
+      activity.url.toLowerCase().includes('twitch.tv/'),
+  );
+}
+
+async function handleFeaturedStreamer(oldPresence, member, streamingActivity, client) {
+  if (!streamingActivity) {
+    const oldStreamingActivity = findTwitchStream(oldPresence || { activities: [] });
+
+    if (oldStreamingActivity?.url) {
+      announcedFeaturedStreams.delete(oldStreamingActivity.url);
+    }
+
+    return;
+  }
+
+  const streamUrl = streamingActivity.url;
+
+  if (announcedFeaturedStreams.has(streamUrl) || !config.channels.streamAnnouncements) {
+    return;
+  }
+
+  announcedFeaturedStreams.add(streamUrl);
+
+  try {
+    const channel = await client.channels.fetch(config.channels.streamAnnouncements);
+
+    if (!channel?.isSendable()) {
+      throw new Error('Featured stream announcement channel is not sendable.');
+    }
+
+    const twitchUsername = new URL(streamUrl).pathname.split('/').filter(Boolean).pop();
+    const streamTitle = streamingActivity.details || 'Live on Twitch';
+    const streamPreviewUrl = `https://static-cdn.jtvnw.net/previews-ttv/live_user_${twitchUsername}-1920x1080.jpg`;
+    const embed = new EmbedBuilder()
+      .setDescription(`# **${member} is now live!**\n\n-# ${streamTitle}\n\n-# [Watch Stream](${streamUrl})`)
+      .setColor(0x2dd4bf)
+      .setImage(streamPreviewUrl);
+
+    await channel.send({ embeds: [embed] });
+  } catch (error) {
+    console.error('Error announcing featured stream:', error);
+    announcedFeaturedStreams.delete(streamUrl);
+  }
+}
+
+async function updateBroadcastingRole(member, isStreaming) {
+  const roleId = config.roles.live;
+
+  if (!roleId || member.roles.cache.has(roleId) === isStreaming) {
+    return;
+  }
+
+  try {
+    if (isStreaming) {
+      await member.roles.add(roleId);
+    } else {
+      await member.roles.remove(roleId);
+    }
+  } catch (error) {
+    console.error(`Failed to ${isStreaming ? 'add' : 'remove'} Broadcasting role for ${member.id}:`, error);
+  }
+}

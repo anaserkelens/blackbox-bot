@@ -109,6 +109,17 @@ button.secondary:hover {
   color: var(--text);
 }
 
+button.danger {
+  background: var(--red);
+  box-shadow:
+    0 14px 34px rgba(214, 66, 85, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24);
+}
+
+button.danger:hover {
+  background: #c73549;
+}
+
 button.icon-button {
   width: 42px;
   min-width: 42px;

@@ -55,6 +55,7 @@ const addButtonButton = document.querySelector('#add-button');
 const newMessageButton = document.querySelector('#new-message');
 const refreshMessagesButton = document.querySelector('#refresh-messages');
 const importMessageButton = document.querySelector('#import-message');
+const deleteMessageButton = document.querySelector('#delete-message');
 const saveMessageButton = document.querySelector('#save-message');
 const sendButton = document.querySelector('#send');
 const toastRegion = document.querySelector('#toast-region');
@@ -147,6 +148,7 @@ function bindEvents() {
     loadSavedMessages({ showNotification: true }).catch((error) => setSendStatus(error.message, 'error'));
   });
   importMessageButton.addEventListener('click', handleImportMessage);
+  deleteMessageButton.addEventListener('click', handleDeleteMessage);
   saveMessageButton.addEventListener('click', handleSaveMessage);
   sectionsContainer.addEventListener('input', updatePreview);
   sectionsContainer.addEventListener('change', updatePreview);
@@ -612,6 +614,37 @@ async function handleSaveMessage() {
   setSendStatus(`Saved "${savedMessage.name}".`, 'success');
 }
 
+async function handleDeleteMessage() {
+  const message = state.savedMessages.find((savedMessage) => savedMessage.id === state.currentMessageId);
+
+  if (!message || message.id === welcomeMessageId) {
+    return;
+  }
+
+  if (!window.confirm(`Delete "${message.name}"? This cannot be undone.`)) {
+    return;
+  }
+
+  deleteMessageButton.disabled = true;
+
+  try {
+    const result = await api(`/api/saved-messages/${encodeURIComponent(message.id)}`, {
+      method: 'DELETE',
+    });
+
+    state.savedMessages = Array.isArray(result.messages)
+      ? result.messages.map(sanitizeSavedMessage).filter(Boolean)
+      : state.savedMessages.filter((savedMessage) => savedMessage.id !== message.id);
+    writeLocalSavedMessages(state.savedMessages);
+    resetComposer();
+    setSendStatus(`Deleted "${message.name}".`, 'success');
+  } catch (error) {
+    setSendStatus(error.message, 'error');
+  } finally {
+    updateDeleteMessageButton();
+  }
+}
+
 async function handleImportMessage() {
   const messageUrl = window.prompt('Paste the Discord message link to import.');
 
@@ -910,6 +943,19 @@ function renderSavedMessages() {
     button.append(title, meta);
     savedMessagesContainer.append(button);
   }
+
+  updateDeleteMessageButton();
+}
+
+function updateDeleteMessageButton() {
+  const hasDeletableMessage =
+    Boolean(state.currentMessageId) &&
+    state.currentMessageId !== welcomeMessageId &&
+    state.savedMessages.some((message) => message.id === state.currentMessageId);
+
+  deleteMessageButton.disabled = !hasDeletableMessage;
+  deleteMessageButton.title =
+    state.currentMessageId === welcomeMessageId ? 'The built-in Welcome Message cannot be deleted.' : '';
 }
 
 function createSavedMessageMeta(message) {

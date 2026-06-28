@@ -102,6 +102,8 @@ Slash commands are synced on startup. If `DISCORD_GUILD_ID` is set, commands upd
 
 Optional systems are controlled by environment variables. For example, tickets need `TICKET_CHANNEL_ID`, ticket logs need `TICKET_LOG_CHANNEL_ID`, and reaction roles need `REACTION_ROLE_MESSAGE_ID`, `REACTION_ROLE_EMOJI_ID`, and `VERIFIED_ROLE_ID`. See [.env.example](.env.example) for the full list.
 
+The stream monitor has two paths. `FEATURED_STREAMER_USER_ID` receives a Twitch announcement in `ANNOUNCEMENT_CHANNEL_ID` without receiving the live role. Other members receive `LIVE_ROLE_ID` while streaming on Twitch, with no announcement posted. Enable `STREAM_MONITOR_ENABLED` and the Discord Developer Portal Presence Intent to use it.
+
 ## Dashboard
 
 Set `DASHBOARD_PASSWORD` in Railway to enable the browser dashboard. Railway will expose it at your service URL:

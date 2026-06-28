@@ -7,7 +7,12 @@ const { config } = require('./config');
 const { createDashboardMessagePayload } = require('./dashboardMessage');
 const { getPresenceState, updatePresenceRotation } = require('./presenceManager');
 const { normalizePresenceSettings, savePresenceSettings } = require('./presenceSettings');
-const { getSavedMessagesStorageInfo, loadSavedMessages, saveSavedMessages } = require('./savedMessages');
+const {
+  deleteSavedMessage,
+  getSavedMessagesStorageInfo,
+  loadSavedMessages,
+  saveSavedMessages,
+} = require('./savedMessages');
 
 const dashboardDirectory = path.join(__dirname, '..', 'dashboard');
 const sessionCookieName = 'blackbox_dashboard';
@@ -113,6 +118,11 @@ async function handleRequest(client, request, response) {
 
     if (request.method === 'PUT' && url.pathname === '/api/saved-messages') {
       await handleSaveSavedMessages(request, response);
+      return;
+    }
+
+    if (request.method === 'DELETE' && url.pathname.startsWith('/api/saved-messages/')) {
+      await handleDeleteSavedMessage(url.pathname, response);
       return;
     }
 
@@ -260,6 +270,26 @@ async function handleSaveSavedMessages(request, response) {
     ok: true,
     messages,
   });
+}
+
+async function handleDeleteSavedMessage(pathname, response) {
+  const encodedId = pathname.slice('/api/saved-messages/'.length);
+  let messageId;
+
+  try {
+    messageId = decodeURIComponent(encodedId).trim();
+  } catch {
+    sendJson(response, 400, { error: 'Saved message ID is invalid.' });
+    return;
+  }
+
+  try {
+    const messages = await deleteSavedMessage(config, messageId);
+    sendJson(response, 200, { ok: true, messages });
+  } catch (error) {
+    const status = error.code === 'SAVED_MESSAGE_NOT_FOUND' ? 404 : 400;
+    sendJson(response, status, { error: error.message });
+  }
 }
 
 async function handleImportMessage(client, request, response) {
