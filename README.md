@@ -107,7 +107,7 @@ The stream monitor has two paths. `FEATURED_STREAMER_USER_ID` receives a Twitch 
 
 The dashboard Live Embed tab controls the featured Twitch announcement template, including advanced embed fields, link buttons, and embed-safe divider/spacer layout blocks. Its settings are stored in `stream-embed.json`, automatically on `RAILWAY_VOLUME_MOUNT_PATH` when a volume is attached. Use `DASHBOARD_STREAM_EMBED_PATH` to override that location.
 
-Announcements with link buttons use a Discord Components V2 container so the buttons render inside the same bordered announcement block. Buttonless announcements continue to use standard Discord embeds.
+Announcements with link buttons use a Discord Components V2 container so the buttons render inside the same bordered announcement block. Each button can optionally show a Unicode emoji or a custom Discord emoji such as `<:name:id>`. Buttonless announcements continue to use standard Discord embeds.
 
 Member and role mentions in live announcement message content are enabled for both real announcements and `/teststream`.
 

@@ -1569,6 +1569,7 @@ function collectLiveEmbedSettings() {
     buttons: [...liveButtonsContainer.querySelectorAll('.live-button-block')].map((button) => ({
       label: button.querySelector('.live-button-label').value,
       url: button.querySelector('.live-button-url').value,
+      emoji: button.querySelector('.live-button-emoji').value,
     })),
     embed: {
       title: liveTitleInput.value,
@@ -1739,6 +1740,10 @@ function addLiveEmbedButton(button = {}, focus = false) {
         <input class="live-button-label" maxlength="80" />
       </label>
       <label class="field">
+        Emoji
+        <input class="live-button-emoji" maxlength="100" placeholder="🔥 or <:name:id>" />
+      </label>
+      <label class="field span-2">
         URL
         <input class="live-button-url" maxlength="512" placeholder="{streamUrl}" />
       </label>
@@ -1746,6 +1751,7 @@ function addLiveEmbedButton(button = {}, focus = false) {
   `;
 
   block.querySelector('.live-button-label').value = button.label || '';
+  block.querySelector('.live-button-emoji').value = button.emoji || '';
   block.querySelector('.live-button-url').value = button.url || '';
   liveButtonsContainer.append(block);
   updateLiveButtonCount();
@@ -1825,6 +1831,7 @@ function updateLiveEmbedPreview() {
     .map((button) => ({
       label: replaceLivePreviewPlaceholders(button.label),
       url: resolveLivePreviewUrl(button.url),
+      emoji: button.emoji || '',
     }))
     .filter((button) => button.label && button.url);
 
@@ -1880,7 +1887,7 @@ function updateLiveEmbedPreview() {
     anchor.href = button.url;
     anchor.target = '_blank';
     anchor.rel = 'noreferrer';
-    anchor.textContent = button.label;
+    appendLivePreviewButtonContent(anchor, button);
     livePreviewButtons.append(anchor);
   }
 
@@ -1904,6 +1911,23 @@ function updateLiveEmbedPreview() {
   livePreviewCard.hidden = !hasEmbed && buttons.length === 0;
   updateLiveFieldCount();
   updateLiveButtonCount();
+}
+
+function appendLivePreviewButtonContent(anchor, button) {
+  const customEmoji = button.emoji.match(/^<(a?):[^:>]+:(\d{17,20})>$/);
+
+  if (customEmoji) {
+    const image = document.createElement('img');
+    const extension = customEmoji[1] ? 'gif' : 'webp';
+
+    image.className = 'live-preview-button-emoji';
+    image.src = `https://cdn.discordapp.com/emojis/${customEmoji[2]}.${extension}?size=32&quality=lossless`;
+    image.alt = '';
+    anchor.append(image, document.createTextNode(button.label));
+    return;
+  }
+
+  anchor.textContent = button.emoji ? `${button.emoji} ${button.label}` : button.label;
 }
 
 function replaceLivePreviewPlaceholders(template) {

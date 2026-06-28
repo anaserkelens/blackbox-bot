@@ -114,12 +114,13 @@ function normalizeButtons(buttons) {
   return buttons.map((button, index) => {
     const label = normalizeText(button?.label, 80);
     const url = normalizeText(button?.url, 512);
+    const emoji = normalizeText(button?.emoji, 100);
 
     if (!label || !url) {
       throw new Error(`Live announcement button ${index + 1} needs both a label and URL.`);
     }
 
-    return { label, url };
+    return { label, url, emoji };
   });
 }
 

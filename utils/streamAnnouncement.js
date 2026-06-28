@@ -41,6 +41,7 @@ function createStreamAnnouncementPayload(settings, context) {
   const buttons = settings.buttons.map((button) => ({
     label: replacePlaceholders(button.label, values),
     url: resolveOptionalUrl(button.url, values, `Button "${button.label}" URL`),
+    emoji: button.emoji || '',
   }))
     .filter((button) => button.label && button.url);
   if (title) {
@@ -258,12 +259,18 @@ function createComponentsV2AnnouncementPayload(options) {
 
 function createButtonRow(buttons) {
   return new ActionRowBuilder().addComponents(
-    buttons.map((button) =>
-      new ButtonBuilder()
+    buttons.map((button) => {
+      const builder = new ButtonBuilder()
         .setStyle(ButtonStyle.Link)
         .setLabel(button.label)
-        .setURL(button.url),
-    ),
+        .setURL(button.url);
+
+      if (button.emoji) {
+        builder.setEmoji(button.emoji);
+      }
+
+      return builder;
+    }),
   );
 }
 
