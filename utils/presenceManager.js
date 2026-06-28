@@ -21,21 +21,24 @@ let activePresence = {
   intervalSeconds: config.presenceRotationSeconds,
 };
 
-function startPresenceRotation(client) {
+function startPresenceRotation(client, presence = activePresence) {
   activeClient = client;
+  activePresence = copyPresence(presence);
   restartPresenceRotation();
 }
 
 function updatePresenceRotation(client, presence) {
-  activeClient = client;
-  activePresence = {
+  startPresenceRotation(client, presence);
+}
+
+function copyPresence(presence) {
+  return {
     status: presence.status,
     activityType: presence.activityType,
     activityNames: [...presence.activityNames],
     activityUrl: presence.activityUrl,
     intervalSeconds: presence.intervalSeconds,
   };
-  restartPresenceRotation();
 }
 
 function restartPresenceRotation() {

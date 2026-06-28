@@ -6,12 +6,11 @@ const path = require('node:path');
 const { config } = require('./config');
 const { createDashboardMessagePayload } = require('./dashboardMessage');
 const { getPresenceState, updatePresenceRotation } = require('./presenceManager');
+const { normalizePresenceSettings, savePresenceSettings } = require('./presenceSettings');
 const { getSavedMessagesStorageInfo, loadSavedMessages, saveSavedMessages } = require('./savedMessages');
 
 const dashboardDirectory = path.join(__dirname, '..', 'dashboard');
 const sessionCookieName = 'blackbox_dashboard';
-const allowedPresenceStatuses = new Set(['online', 'idle', 'dnd', 'invisible']);
-const allowedActivityTypes = ['Playing', 'Streaming', 'Listening', 'Watching', 'Competing'];
 
 function startDashboard(client) {
   if (!config.dashboard.enabled) {
@@ -570,9 +569,17 @@ async function handleUpdatePresence(client, request, response) {
   let presence;
 
   try {
-    presence = normalizePresenceBody(body);
+    presence = normalizePresenceSettings(body, getPresenceState());
   } catch (error) {
     sendJson(response, 400, { error: error.message });
+    return;
+  }
+
+  try {
+    presence = await savePresenceSettings(config, presence);
+  } catch (error) {
+    console.error('Failed to save presence settings:', error);
+    sendJson(response, 500, { error: 'Could not save presence settings. Check the bot storage configuration.' });
     return;
   }
 
@@ -660,58 +667,6 @@ async function createBotState(client) {
   };
 }
 
-function normalizePresenceBody(body) {
-  const status = String(body.status || 'online').trim().toLowerCase();
-  const activityType = normalizeActivityType(body.activityType);
-  const rawActivityNames = Array.isArray(body.activityNames) ? body.activityNames : [body.activityName];
-  const activityNames = rawActivityNames.map((name) => String(name || '').trim()).filter(Boolean);
-  const activityUrl = String(body.activityUrl || '').trim();
-  const intervalSeconds = Number.parseInt(body.intervalSeconds ?? getPresenceState().intervalSeconds, 10);
-
-  if (!allowedPresenceStatuses.has(status)) {
-    throw new Error('Status must be online, idle, dnd, or invisible.');
-  }
-
-  if (activityNames.length > 25) {
-    throw new Error('You can rotate up to 25 activity texts.');
-  }
-
-  if (activityNames.some((name) => name.length > 128)) {
-    throw new Error('Each activity text must be 128 characters or fewer.');
-  }
-
-  if (!Number.isInteger(intervalSeconds) || intervalSeconds < 5 || intervalSeconds > 86400) {
-    throw new Error('Rotation interval must be between 5 and 86400 seconds.');
-  }
-
-  if (activityType === 'Streaming') {
-    if (activityNames.length === 0) {
-      throw new Error('Streaming presence needs at least one activity text.');
-    }
-
-    assertHttpUrl(activityUrl, 'Streaming URL');
-  }
-
-  return {
-    status,
-    activityType,
-    activityNames,
-    activityUrl: activityType === 'Streaming' ? activityUrl : '',
-    intervalSeconds,
-  };
-}
-
-function normalizeActivityType(value) {
-  const normalized = String(value || 'Watching').trim().toLowerCase();
-  const match = allowedActivityTypes.find((type) => type.toLowerCase() === normalized);
-
-  if (!match) {
-    throw new Error('Activity type must be Playing, Watching, Listening, Competing, or Streaming.');
-  }
-
-  return match;
-}
-
 function normalizeBotImage(image, kind) {
   if (!image?.dataUrl) {
     throw new Error(`Choose a ${kind} image first.`);
@@ -763,20 +718,6 @@ function createBotProfileError(error, kind) {
   }
 
   return message;
-}
-
-function assertHttpUrl(value, label) {
-  let url;
-
-  try {
-    url = new URL(value);
-  } catch {
-    throw new Error(`${label} must be a valid URL.`);
-  }
-
-  if (!['http:', 'https:'].includes(url.protocol)) {
-    throw new Error(`${label} must start with http or https.`);
-  }
 }
 
 function serveStatic(pathname, response) {
