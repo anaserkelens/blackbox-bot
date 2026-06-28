@@ -105,7 +105,7 @@ Optional systems are controlled by environment variables. For example, tickets n
 
 The stream monitor has two paths. `FEATURED_STREAMER_USER_ID` receives a Twitch announcement in `ANNOUNCEMENT_CHANNEL_ID` without receiving the live role. Other members receive `LIVE_ROLE_ID` while streaming on Twitch, with no announcement posted. Enable `STREAM_MONITOR_ENABLED` and the Discord Developer Portal Presence Intent to use it.
 
-The dashboard Live Embed tab controls the featured Twitch announcement template, including advanced embed fields, link buttons, and embed-safe divider/spacer layout blocks. Its settings are stored in `stream-embed.json`, automatically on `RAILWAY_VOLUME_MOUNT_PATH` when a volume is attached. Use `DASHBOARD_STREAM_EMBED_PATH` to override that location.
+The dashboard Live Embed tab controls the featured Twitch announcement template, including advanced embed fields, link buttons, and embed-safe divider/spacer layout blocks. Role mentions written as `<@&ROLE_ID>` inside the embed are automatically copied into the message content so Discord can send the notification. Its settings are stored in `stream-embed.json`, automatically on `RAILWAY_VOLUME_MOUNT_PATH` when a volume is attached. Use `DASHBOARD_STREAM_EMBED_PATH` to override that location.
 
 `/teststream` posts the currently saved live embed in the channel where the command is used. It is restricted at runtime to `BOT_OWNER_USER_ID`, who must also have `FOUNDER_ROLE_ID`; both IDs have UNDR CTRL defaults in `.env.example`.
 

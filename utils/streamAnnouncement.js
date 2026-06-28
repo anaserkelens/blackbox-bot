@@ -2,7 +2,7 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('
 
 function createStreamAnnouncementPayload(settings, context) {
   const values = createPlaceholderValues(context);
-  const content = replacePlaceholders(settings.content, values);
+  const baseContent = replacePlaceholders(settings.content, values);
   const embedSettings = settings.embed;
   const embed = new EmbedBuilder();
   let hasEmbed = false;
@@ -29,6 +29,18 @@ function createStreamAnnouncementPayload(settings, context) {
     url: resolveOptionalUrl(button.url, values, `Button "${button.label}" URL`),
   }))
     .filter((button) => button.label && button.url);
+  const embeddedRoleIds = findRoleMentionIds([
+    title,
+    description,
+    authorName,
+    footerText,
+    ...fields.flatMap((field) => [field.name, field.value]),
+  ]);
+  const contentRoleIds = findRoleMentionIds([baseContent]);
+  const hoistedRoleIds = embeddedRoleIds.filter((roleId) => !contentRoleIds.includes(roleId));
+  const roleIds = [...new Set([...contentRoleIds, ...embeddedRoleIds])];
+  const hoistedRoleMentions = hoistedRoleIds.map((roleId) => `<@&${roleId}>`).join(' ');
+  const content = [hoistedRoleMentions, baseContent].filter(Boolean).join('\n');
 
   if (title) {
     embed.setTitle(title);
@@ -96,6 +108,10 @@ function createStreamAnnouncementPayload(settings, context) {
     throw new Error('The resolved live embed exceeds Discord’s 6000-character total limit.');
   }
 
+  if (content.length > 2000) {
+    throw new Error('The resolved live announcement content exceeds Discord’s 2000-character limit.');
+  }
+
   if (!content && !hasEmbed && buttons.length === 0) {
     throw new Error('The live announcement template is empty.');
   }
@@ -103,7 +119,11 @@ function createStreamAnnouncementPayload(settings, context) {
   const payload = {
     ...(content ? { content } : {}),
     ...(hasEmbed ? { embeds: [embed] } : {}),
-    allowedMentions: settings.mentionStreamer ? { users: [context.member.id] } : { parse: [] },
+    allowedMentions: {
+      parse: [],
+      ...(settings.mentionStreamer ? { users: [context.member.id] } : {}),
+      ...(roleIds.length > 0 ? { roles: roleIds } : {}),
+    },
   };
 
   if (buttons.length > 0) {
@@ -120,6 +140,20 @@ function createStreamAnnouncementPayload(settings, context) {
   }
 
   return payload;
+}
+
+function findRoleMentionIds(values) {
+  const roleIds = [];
+
+  for (const value of values) {
+    for (const match of String(value || '').matchAll(/<@&(\d{17,20})>/g)) {
+      if (!roleIds.includes(match[1])) {
+        roleIds.push(match[1]);
+      }
+    }
+  }
+
+  return roleIds;
 }
 
 function resolveEmbedBlock(block, values) {
