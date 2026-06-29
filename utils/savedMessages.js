@@ -227,6 +227,7 @@ function sanitizeButton(button) {
   return {
     label: sanitizeText(button?.label || '', 80),
     url: sanitizeText(button?.url || '', 500),
+    emoji: sanitizeText(button?.emoji || '', 100),
   };
 }
 

@@ -399,7 +399,7 @@ async function handleGetWelcomeEmbed(response) {
 }
 
 async function handleSaveWelcomeEmbed(request, response) {
-  const body = await readJsonBody(request, 256 * 1024);
+  const body = await readJsonBody(request, config.dashboard.maxBodyBytes);
   let settings;
 
   try {

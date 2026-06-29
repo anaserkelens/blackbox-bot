@@ -65,17 +65,27 @@ const previewImage = document.querySelector('#preview-image');
 const previewSections = document.querySelector('#preview-sections');
 const previewButtons = document.querySelector('#preview-buttons');
 const sectionCount = document.querySelector('#section-count');
+const welcomeMessageForm = document.querySelector('#welcome-message-form');
+const welcomeMessageStorageStatus = document.querySelector('#welcome-message-storage-status');
+const refreshWelcomeMessageButton = document.querySelector('#refresh-welcome-message');
+const saveWelcomeMessageButton = document.querySelector('#save-welcome-message');
+const welcomeChannelIdInput = document.querySelector('#welcome-channel-id');
+const welcomeImageInput = document.querySelector('#welcome-image-file');
+const welcomeColorPicker = document.querySelector('#welcome-color-picker');
+const welcomeColorInput = document.querySelector('#welcome-color');
+const welcomeAllowMentionsInput = document.querySelector('#welcome-allow-mentions');
+const welcomeSectionsContainer = document.querySelector('#welcome-sections');
+const welcomeButtonsContainer = document.querySelector('#welcome-buttons');
+const addWelcomeSectionButton = document.querySelector('#add-welcome-section');
+const addWelcomeDividerButton = document.querySelector('#add-welcome-divider');
+const addWelcomeSpacerButton = document.querySelector('#add-welcome-spacer');
+const addWelcomeButtonButton = document.querySelector('#add-welcome-button');
+const welcomeDiscordPreview = document.querySelector('#welcome-discord-preview');
+const welcomePreviewImage = document.querySelector('#welcome-preview-image');
+const welcomePreviewSections = document.querySelector('#welcome-preview-sections');
+const welcomePreviewButtons = document.querySelector('#welcome-preview-buttons');
+const welcomeSectionCount = document.querySelector('#welcome-section-count');
 const liveEmbedForm = document.querySelector('#live-embed-form');
-const embedBuilderWorkspace = document.querySelector('#embed-builder-workspace');
-const embedBuilderTitle = document.querySelector('#embed-builder-title');
-const embedBuilderSubtitle = document.querySelector('#embed-builder-subtitle');
-const embedPlaceholderList = document.querySelector('#embed-placeholder-list');
-const embedChannelLabel = document.querySelector('#embed-channel-label');
-const embedSaveHint = document.querySelector('#embed-save-hint');
-const embedPreviewSubtitle = document.querySelector('#embed-preview-subtitle');
-const embedTimestampLabel = document.querySelector('#embed-timestamp-label');
-const liveEmbedPanel = document.querySelector('[data-panel="live-embed"]');
-const welcomeEmbedPanel = document.querySelector('[data-panel="welcome-embed"]');
 const refreshLiveEmbedButton = document.querySelector('#refresh-live-embed');
 const saveLiveEmbedButton = document.querySelector('#save-live-embed');
 const liveEmbedStorageStatus = document.querySelector('#live-embed-storage-status');
@@ -127,56 +137,7 @@ const welcomeMessageId = 'welcome-message';
 const embedBuilderDefinitions = {
   live: {
     endpoint: '/api/stream-embed',
-    panel: liveEmbedPanel,
     storageKey: liveEmbedStorageKey,
-    title: 'Live Announcement Builder',
-    subtitle: 'Used when the featured Twitch account goes live.',
-    channelLabel: 'Announcement channel ID',
-    channelPlaceholder: '1520519675543293972',
-    saveHint: 'Changes apply to the next featured stream announcement.',
-    saveLabel: 'Save Live Embed',
-    previewSubtitle: 'Sample stream data',
-    titlePlaceholder: '{displayName} is live!',
-    titleUrlPlaceholder: '{streamUrl}',
-    imageUrlPlaceholder: '{previewUrl}',
-    timestampLabel: 'Show the time the stream was detected',
-    placeholders: [
-      'member',
-      'displayName',
-      'streamTitle',
-      'streamUrl',
-      'gameName',
-      'twitchUsername',
-      'previewUrl',
-      'avatarUrl',
-    ],
-  },
-  welcome: {
-    endpoint: '/api/welcome-embed',
-    panel: welcomeEmbedPanel,
-    storageKey: welcomeEmbedStorageKey,
-    title: 'Welcome Message Builder',
-    subtitle: 'Sent automatically whenever a new member joins.',
-    channelLabel: 'Welcome channel ID',
-    channelPlaceholder: '1520407983354544171',
-    saveHint: 'Changes apply to the next member who joins.',
-    saveLabel: 'Save Welcome Message',
-    previewSubtitle: 'Sample new-member data',
-    titlePlaceholder: 'Welcome, {displayName}!',
-    titleUrlPlaceholder: 'Optional link',
-    imageUrlPlaceholder: 'Optional welcome image URL',
-    timestampLabel: 'Show the time the member joined',
-    placeholders: [
-      'member',
-      'displayName',
-      'username',
-      'userId',
-      'serverName',
-      'memberCount',
-      'avatarUrl',
-      'createdAt',
-      'joinedAt',
-    ],
   },
 };
 
@@ -187,10 +148,14 @@ const state = {
   botBannerImage: null,
   savedMessages: [],
   composerInitialized: false,
+  welcomeImage: null,
+  welcomeSettings: null,
+  welcomeStorage: null,
+  welcomeRestoreAttempted: false,
   activeEmbedBuilder: 'live',
-  embedBuilderSettings: { live: null, welcome: null },
-  embedBuilderStorage: { live: null, welcome: null },
-  embedBuilderRestoreAttempted: { live: false, welcome: false },
+  embedBuilderSettings: { live: null },
+  embedBuilderStorage: { live: null },
+  embedBuilderRestoreAttempted: { live: false },
   presenceRestoreAttempted: false,
   savedMessagesRefreshTimer: null,
   savedMessagesRequest: null,
@@ -270,6 +235,21 @@ function bindEvents() {
   sectionsContainer.addEventListener('input', updatePreview);
   sectionsContainer.addEventListener('change', updatePreview);
   buttonsContainer.addEventListener('input', updatePreview);
+  welcomeMessageForm.addEventListener('submit', handleSaveWelcomeMessage);
+  welcomeMessageForm.addEventListener('input', updateWelcomePreview);
+  welcomeMessageForm.addEventListener('change', updateWelcomePreview);
+  refreshWelcomeMessageButton.addEventListener('click', () => {
+    loadWelcomeMessageSettings(true).catch((error) => setSendStatus(error.message, 'error'));
+  });
+  welcomeImageInput.addEventListener('change', handleWelcomeImageChange);
+  welcomeColorPicker.addEventListener('input', handleWelcomeColorPickerInput);
+  welcomeColorInput.addEventListener('input', handleWelcomeColorInput);
+  addWelcomeSectionButton.addEventListener('click', () => addWelcomeSection('', null, true));
+  addWelcomeDividerButton.addEventListener('click', () => addWelcomeLayoutBlock('divider', 'small'));
+  addWelcomeSpacerButton.addEventListener('click', () => addWelcomeLayoutBlock('spacer', 'small'));
+  addWelcomeButtonButton.addEventListener('click', () => addWelcomeMessageButton({}, true));
+  welcomeSectionsContainer.addEventListener('click', handleWelcomeSectionsClick);
+  welcomeButtonsContainer.addEventListener('click', handleWelcomeButtonsClick);
   liveEmbedForm.addEventListener('submit', handleSaveLiveEmbed);
   liveEmbedForm.addEventListener('input', updateLiveEmbedPreview);
   liveEmbedForm.addEventListener('change', updateLiveEmbedPreview);
@@ -774,11 +754,12 @@ function setActiveTab(tab) {
     refreshBotSettings().catch((error) => setSendStatus(error.message, 'error'));
   }
 
-  if ((nextTab === 'live-embed' || nextTab === 'welcome-embed') && !dashboardView.hidden) {
-    const builderKind = nextTab === 'welcome-embed' ? 'welcome' : 'live';
+  if (nextTab === 'live-embed' && !dashboardView.hidden) {
+    loadLiveEmbedSettings(false, 'live').catch((error) => setSendStatus(error.message, 'error'));
+  }
 
-    activateEmbedBuilder(builderKind);
-    loadLiveEmbedSettings(false, builderKind).catch((error) => setSendStatus(error.message, 'error'));
+  if (nextTab === 'welcome-embed' && !dashboardView.hidden) {
+    loadWelcomeMessageSettings(false).catch((error) => setSendStatus(error.message, 'error'));
   }
 
   if (nextTab === 'messages' && !dashboardView.hidden) {
@@ -980,7 +961,7 @@ function applyMessage(message) {
   }
 
   for (const button of message.buttons || []) {
-    addButton(button.label, button.url);
+    addButton(button.label, button.url, button.emoji);
   }
 
   updatePreview();
@@ -1128,6 +1109,7 @@ function sanitizeSavedMessage(message) {
       ? message.buttons.map((button) => ({
           label: String(button?.label || ''),
           url: String(button?.url || ''),
+          emoji: String(button?.emoji || ''),
         }))
       : [],
     allowMentions: Boolean(message.allowMentions),
@@ -1315,7 +1297,7 @@ function addLayoutBlock(type, spacing) {
   updatePreview();
 }
 
-function addButton(label, url) {
+function addButton(label, url, emoji = '') {
   const block = document.createElement('section');
   block.className = 'button-block';
   block.innerHTML = `
@@ -1323,10 +1305,14 @@ function addButton(label, url) {
       <h2>Link Button</h2>
       <button class="secondary remove" type="button">Remove</button>
     </div>
-    <div class="button-fields">
+    <div class="button-fields button-fields-with-emoji">
       <label class="field">
         Label
         <input class="button-label" maxlength="80" />
+      </label>
+      <label class="field">
+        Emoji
+        <input class="button-emoji" maxlength="100" placeholder="🔥 or <:name:id>" />
       </label>
       <label class="field">
         URL
@@ -1336,6 +1322,7 @@ function addButton(label, url) {
   `;
 
   block.querySelector('.button-label').value = label;
+  block.querySelector('.button-emoji').value = emoji;
   block.querySelector('.button-url').value = url;
   block.querySelector('.remove').addEventListener('click', () => {
     block.remove();
@@ -1375,16 +1362,17 @@ function collectPayload() {
     color: messageColorInput.value.trim(),
     image: state.image,
     blocks: collectBlocks(),
-    buttons: [...document.querySelectorAll('.button-block')].map((block) => ({
+    buttons: [...buttonsContainer.querySelectorAll('.button-block')].map((block) => ({
       label: block.querySelector('.button-label').value,
       url: block.querySelector('.button-url').value,
+      emoji: block.querySelector('.button-emoji')?.value || '',
     })),
     allowMentions: allowMentionsInput.checked,
   };
 }
 
 function collectBlocks() {
-  return [...document.querySelectorAll('.content-block')]
+  return [...sectionsContainer.querySelectorAll('.content-block')]
     .map((block) => {
       const type = block.dataset.blockType;
 
@@ -1451,7 +1439,7 @@ function updatePreview() {
     anchor.href = button.url;
     anchor.target = '_blank';
     anchor.rel = 'noreferrer';
-    anchor.textContent = button.label;
+    appendPreviewButtonContent(anchor, button);
     previewButtons.append(anchor);
   }
 
@@ -1479,35 +1467,509 @@ function normalizeMessageColor(value) {
   return /^[0-9a-fA-F]{6}$/.test(normalized) ? `#${normalized.toUpperCase()}` : '';
 }
 
-function activateEmbedBuilder(kind) {
-  const definition = embedBuilderDefinitions[kind];
+async function loadWelcomeMessageSettings(showNotification = false) {
+  let result = await api('/api/welcome-embed');
 
-  state.activeEmbedBuilder = kind;
-  definition.panel.append(embedBuilderWorkspace);
-  embedBuilderTitle.textContent = definition.title;
-  embedBuilderSubtitle.textContent = definition.subtitle;
-  embedChannelLabel.textContent = definition.channelLabel;
-  liveChannelIdInput.placeholder = definition.channelPlaceholder;
-  embedSaveHint.textContent = definition.saveHint;
-  saveLiveEmbedButton.textContent = definition.saveLabel;
-  embedPreviewSubtitle.textContent = definition.previewSubtitle;
-  liveTitleInput.placeholder = definition.titlePlaceholder;
-  liveTitleUrlInput.placeholder = definition.titleUrlPlaceholder;
-  liveImageUrlInput.placeholder = definition.imageUrlPlaceholder;
-  embedTimestampLabel.textContent = definition.timestampLabel;
-  embedPlaceholderList.replaceChildren(
-    ...definition.placeholders.map((placeholder) => {
-      const code = document.createElement('code');
+  result = await restoreWelcomeMessageBackupIfNeeded(result);
+  state.welcomeSettings = result.settings || {};
+  state.welcomeStorage = result.storage || null;
+  applyWelcomeMessageSettings(state.welcomeSettings);
+  renderWelcomeMessageStorageStatus(state.welcomeStorage);
 
-      code.textContent = `{${placeholder}}`;
-      return code;
-    }),
-  );
-
-  if (state.embedBuilderSettings[kind]) {
-    applyLiveEmbedSettings(state.embedBuilderSettings[kind]);
-    renderLiveEmbedStorageStatus(state.embedBuilderStorage[kind]);
+  if (result.storage?.hasSavedSettings) {
+    writeWelcomeMessageBackup(state.welcomeSettings);
   }
+
+  if (showNotification) {
+    setSendStatus('Welcome message refreshed.', 'success');
+  }
+}
+
+async function restoreWelcomeMessageBackupIfNeeded(result) {
+  if (state.welcomeRestoreAttempted || result.storage?.hasSavedSettings) {
+    return result;
+  }
+
+  const backup = readWelcomeMessageBackup();
+
+  if (!backup) {
+    return result;
+  }
+
+  state.welcomeRestoreAttempted = true;
+
+  try {
+    const restored = await api('/api/welcome-embed', {
+      method: 'PUT',
+      body: { settings: backup },
+    });
+
+    setSendStatus('Welcome message restored from this browser after the bot restart.', 'success');
+    return restored;
+  } catch (error) {
+    state.welcomeRestoreAttempted = false;
+    setSendStatus(`Could not restore the welcome message browser backup: ${error.message}`, 'error');
+    return result;
+  }
+}
+
+function writeWelcomeMessageBackup(settings) {
+  if (!Array.isArray(settings?.blocks) || !Array.isArray(settings?.buttons)) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(welcomeEmbedStorageKey, JSON.stringify(settings));
+  } catch {
+    // Server-side storage remains authoritative when browser storage is unavailable.
+  }
+}
+
+function readWelcomeMessageBackup() {
+  try {
+    const settings = JSON.parse(window.localStorage.getItem(welcomeEmbedStorageKey) || 'null');
+
+    return Array.isArray(settings?.blocks) && Array.isArray(settings?.buttons) ? settings : null;
+  } catch {
+    return null;
+  }
+}
+
+function applyWelcomeMessageSettings(settings) {
+  welcomeChannelIdInput.value = settings.channelId || '';
+  welcomeColorInput.value = normalizeMessageColor(settings.color);
+  welcomeColorPicker.value = welcomeColorInput.value || '#2DD4BF';
+  welcomeAllowMentionsInput.checked = settings.allowMentions !== false;
+  state.welcomeImage = settings.image || null;
+  welcomeImageInput.value = '';
+  welcomeSectionsContainer.replaceChildren();
+  welcomeButtonsContainer.replaceChildren();
+
+  for (const block of settings.blocks || []) {
+    if (block.type === 'text') {
+      addWelcomeSection(block.content, block.accessory);
+    } else if (block.type === 'divider' || block.type === 'spacer') {
+      addWelcomeLayoutBlock(block.type, block.spacing);
+    }
+  }
+
+  for (const button of settings.buttons || []) {
+    addWelcomeMessageButton(button);
+  }
+
+  updateWelcomePreview();
+}
+
+async function handleSaveWelcomeMessage(event) {
+  event.preventDefault();
+  saveWelcomeMessageButton.disabled = true;
+
+  try {
+    const result = await api('/api/welcome-embed', {
+      method: 'PUT',
+      body: { settings: collectWelcomeMessageSettings() },
+    });
+
+    state.welcomeSettings = result.settings || {};
+    state.welcomeStorage = result.storage || null;
+    applyWelcomeMessageSettings(state.welcomeSettings);
+    writeWelcomeMessageBackup(state.welcomeSettings);
+    renderWelcomeMessageStorageStatus(state.welcomeStorage);
+    setSendStatus('Welcome message saved.', 'success');
+  } catch (error) {
+    setSendStatus(error.message, 'error');
+  } finally {
+    saveWelcomeMessageButton.disabled = false;
+  }
+}
+
+function collectWelcomeMessageSettings() {
+  return {
+    channelId: welcomeChannelIdInput.value.trim(),
+    color: welcomeColorInput.value.trim(),
+    image: state.welcomeImage,
+    blocks: [...welcomeSectionsContainer.querySelectorAll('.welcome-content-block')]
+      .map((block) => {
+        const type = block.dataset.blockType;
+
+        if (type === 'text') {
+          const accessoryEnabled = block.querySelector('.welcome-accessory-enabled')?.checked;
+
+          return {
+            type,
+            content: block.querySelector('.welcome-section-input').value,
+            accessory: accessoryEnabled
+              ? {
+                  label: block.querySelector('.welcome-accessory-label').value,
+                  url: block.querySelector('.welcome-accessory-url').value,
+                  emoji: block.querySelector('.welcome-accessory-emoji').value,
+                }
+              : null,
+          };
+        }
+
+        return {
+          type,
+          spacing: normalizeBlockSpacing(block.querySelector('.welcome-block-spacing')?.value),
+        };
+      })
+      .filter(Boolean),
+    buttons: [...welcomeButtonsContainer.querySelectorAll('.welcome-button-block')].map((block) => ({
+      label: block.querySelector('.welcome-button-label').value,
+      url: block.querySelector('.welcome-button-url').value,
+      emoji: block.querySelector('.welcome-button-emoji').value,
+    })),
+    allowMentions: welcomeAllowMentionsInput.checked,
+  };
+}
+
+function addWelcomeSection(value, accessory = null, focus = false) {
+  const index = welcomeSectionsContainer.querySelectorAll('.welcome-text-block').length + 1;
+  const block = document.createElement('section');
+
+  block.className = 'text-block content-block welcome-content-block welcome-text-block';
+  block.dataset.blockType = 'text';
+  block.innerHTML = `
+    <div class="block-header">
+      <h2>Text ${index}</h2>
+      <div class="block-actions">
+        <button class="secondary welcome-move-up" type="button">Up</button>
+        <button class="secondary welcome-move-down" type="button">Down</button>
+        <button class="secondary welcome-remove" type="button">Remove</button>
+      </div>
+    </div>
+    <textarea class="welcome-section-input" spellcheck="true"></textarea>
+    <label class="toggle-row">
+      <input class="welcome-accessory-enabled" type="checkbox" />
+      <span>Accessory button</span>
+    </label>
+    <div class="button-fields button-fields-with-emoji welcome-accessory-fields" hidden>
+      <label class="field">
+        Label
+        <input class="welcome-accessory-label" maxlength="80" />
+      </label>
+      <label class="field">
+        Emoji
+        <input class="welcome-accessory-emoji" maxlength="100" placeholder="👋 or <:name:id>" />
+      </label>
+      <label class="field">
+        URL
+        <input class="welcome-accessory-url" maxlength="512" placeholder="https://..." />
+      </label>
+    </div>
+  `;
+
+  block.querySelector('.welcome-section-input').value = value || '';
+  block.querySelector('.welcome-accessory-enabled').checked = Boolean(accessory);
+  block.querySelector('.welcome-accessory-label').value = accessory?.label || '';
+  block.querySelector('.welcome-accessory-emoji').value = accessory?.emoji || '';
+  block.querySelector('.welcome-accessory-url').value = accessory?.url || '';
+  updateWelcomeAccessoryFields(block);
+  block.querySelector('.welcome-accessory-enabled').addEventListener('change', () => {
+    updateWelcomeAccessoryFields(block);
+    updateWelcomePreview();
+  });
+  welcomeSectionsContainer.append(block);
+
+  if (focus) {
+    block.querySelector('.welcome-section-input').focus();
+  }
+
+  updateWelcomePreview();
+}
+
+function addWelcomeLayoutBlock(type, spacing = 'small') {
+  const isDivider = type === 'divider';
+  const block = document.createElement('section');
+
+  block.className = 'layout-block content-block welcome-content-block';
+  block.dataset.blockType = isDivider ? 'divider' : 'spacer';
+  block.innerHTML = `
+    <div class="block-header">
+      <h2>${isDivider ? 'Divider' : 'Spacer'}</h2>
+      <div class="block-actions">
+        <button class="secondary welcome-move-up" type="button">Up</button>
+        <button class="secondary welcome-move-down" type="button">Down</button>
+        <button class="secondary welcome-remove" type="button">Remove</button>
+      </div>
+    </div>
+    <label class="field">
+      Spacing
+      <select class="welcome-block-spacing">
+        <option value="small">Small</option>
+        <option value="large">Large</option>
+      </select>
+    </label>
+  `;
+
+  block.querySelector('.welcome-block-spacing').value = normalizeBlockSpacing(spacing);
+  welcomeSectionsContainer.append(block);
+  updateWelcomePreview();
+}
+
+function addWelcomeMessageButton(button = {}, focus = false) {
+  if (welcomeButtonsContainer.querySelectorAll('.welcome-button-block').length >= 5) {
+    setSendStatus('Welcome messages can contain up to 5 link buttons.', 'error');
+    return;
+  }
+
+  const block = document.createElement('section');
+
+  block.className = 'button-block welcome-button-block';
+  block.innerHTML = `
+    <div class="block-header">
+      <h2>Link Button</h2>
+      <div class="block-actions">
+        <button class="secondary welcome-button-up" type="button">Up</button>
+        <button class="secondary welcome-button-down" type="button">Down</button>
+        <button class="secondary welcome-button-remove" type="button">Remove</button>
+      </div>
+    </div>
+    <div class="button-fields button-fields-with-emoji">
+      <label class="field">
+        Label
+        <input class="welcome-button-label" maxlength="80" />
+      </label>
+      <label class="field">
+        Emoji
+        <input class="welcome-button-emoji" maxlength="100" placeholder="👋 or <:name:id>" />
+      </label>
+      <label class="field">
+        URL
+        <input class="welcome-button-url" maxlength="512" placeholder="https://..." />
+      </label>
+    </div>
+  `;
+
+  block.querySelector('.welcome-button-label').value = button.label || '';
+  block.querySelector('.welcome-button-emoji').value = button.emoji || '';
+  block.querySelector('.welcome-button-url').value = button.url || '';
+  welcomeButtonsContainer.append(block);
+  updateWelcomeButtonLimit();
+
+  if (focus) {
+    block.querySelector('.welcome-button-label').focus();
+  }
+
+  updateWelcomePreview();
+}
+
+function handleWelcomeSectionsClick(event) {
+  const block = event.target.closest('.welcome-content-block');
+
+  if (!block) {
+    return;
+  }
+
+  if (event.target.closest('.welcome-remove')) {
+    block.remove();
+  } else if (event.target.closest('.welcome-move-up') && block.previousElementSibling) {
+    welcomeSectionsContainer.insertBefore(block, block.previousElementSibling);
+  } else if (event.target.closest('.welcome-move-down') && block.nextElementSibling) {
+    welcomeSectionsContainer.insertBefore(block.nextElementSibling, block);
+  } else {
+    return;
+  }
+
+  updateWelcomePreview();
+}
+
+function handleWelcomeButtonsClick(event) {
+  const block = event.target.closest('.welcome-button-block');
+
+  if (!block) {
+    return;
+  }
+
+  if (event.target.closest('.welcome-button-remove')) {
+    block.remove();
+  } else if (event.target.closest('.welcome-button-up') && block.previousElementSibling) {
+    welcomeButtonsContainer.insertBefore(block, block.previousElementSibling);
+  } else if (event.target.closest('.welcome-button-down') && block.nextElementSibling) {
+    welcomeButtonsContainer.insertBefore(block.nextElementSibling, block);
+  } else {
+    return;
+  }
+
+  updateWelcomeButtonLimit();
+  updateWelcomePreview();
+}
+
+function updateWelcomeAccessoryFields(block) {
+  block.querySelector('.welcome-accessory-fields').hidden =
+    !block.querySelector('.welcome-accessory-enabled').checked;
+}
+
+function updateWelcomeButtonLimit() {
+  addWelcomeButtonButton.disabled =
+    welcomeButtonsContainer.querySelectorAll('.welcome-button-block').length >= 5;
+}
+
+async function handleWelcomeImageChange() {
+  const file = welcomeImageInput.files[0];
+
+  if (!file) {
+    state.welcomeImage = null;
+    updateWelcomePreview();
+    return;
+  }
+
+  if (!file.type.startsWith('image/')) {
+    setSendStatus('Select an image file.', 'error');
+    welcomeImageInput.value = '';
+    return;
+  }
+
+  state.welcomeImage = {
+    name: file.name,
+    dataUrl: await readFileAsDataUrl(file),
+  };
+  updateWelcomePreview();
+}
+
+function handleWelcomeColorPickerInput() {
+  welcomeColorInput.value = welcomeColorPicker.value.toUpperCase();
+  updateWelcomePreview();
+}
+
+function handleWelcomeColorInput() {
+  const color = normalizeMessageColor(welcomeColorInput.value);
+
+  if (color) {
+    welcomeColorPicker.value = color;
+  }
+
+  updateWelcomePreview();
+}
+
+function updateWelcomePreview() {
+  const settings = collectWelcomeMessageSettings();
+  const color = normalizeMessageColor(settings.color);
+  const blocks = settings.blocks
+    .map((block) => {
+      if (block.type !== 'text') {
+        return block;
+      }
+
+      return {
+        ...block,
+        content: replaceWelcomePreviewPlaceholders(block.content),
+        accessory: block.accessory
+          ? {
+              ...block.accessory,
+              label: replaceWelcomePreviewPlaceholders(block.accessory.label),
+              url: resolveWelcomePreviewUrl(block.accessory.url),
+            }
+          : null,
+      };
+    })
+    .filter((block) => block.type !== 'text' || block.content.trim());
+  const buttons = settings.buttons
+    .map((button) => ({
+      ...button,
+      label: replaceWelcomePreviewPlaceholders(button.label),
+      url: resolveWelcomePreviewUrl(button.url),
+    }))
+    .filter((button) => button.label && button.url);
+
+  welcomeDiscordPreview.classList.toggle('has-accent-color', Boolean(color));
+  welcomeDiscordPreview.style.setProperty('--preview-accent', color || 'transparent');
+  welcomePreviewImage.hidden = !state.welcomeImage;
+
+  if (state.welcomeImage) {
+    welcomePreviewImage.src = state.welcomeImage.dataUrl;
+  } else {
+    welcomePreviewImage.removeAttribute('src');
+  }
+
+  welcomePreviewSections.replaceChildren();
+
+  for (const block of blocks) {
+    if (block.type === 'text') {
+      welcomePreviewSections.append(createTextPreviewBlock(block));
+      continue;
+    }
+
+    const layout = document.createElement('div');
+    layout.className = `preview-layout preview-layout-${block.type} preview-layout-${block.spacing}`;
+    layout.setAttribute('aria-hidden', 'true');
+    welcomePreviewSections.append(layout);
+  }
+
+  welcomePreviewButtons.replaceChildren();
+
+  for (const button of buttons) {
+    const anchor = document.createElement('a');
+
+    anchor.className = 'preview-button';
+    anchor.href = button.url;
+    anchor.target = '_blank';
+    anchor.rel = 'noreferrer';
+    appendPreviewButtonContent(anchor, button);
+    welcomePreviewButtons.append(anchor);
+  }
+
+  welcomeSectionCount.textContent = `${blocks.length} block${blocks.length === 1 ? '' : 's'}`;
+  updateWelcomeButtonLimit();
+}
+
+function replaceWelcomePreviewPlaceholders(template) {
+  const values = {
+    member: '<@185282790969835520>',
+    displayName: '5noof',
+    username: '5noof',
+    userId: '185282790969835520',
+    serverName: 'UNDR CTRL',
+    memberCount: '1,337',
+    avatarUrl: 'https://cdn.discordapp.com/embed/avatars/0.png',
+    createdAt: '14 March 2025',
+    joinedAt: 'Today',
+  };
+
+  return String(template || '').replace(/\{([a-zA-Z][a-zA-Z0-9]*)\}/g, (placeholder, key) =>
+    Object.hasOwn(values, key) ? values[key] : placeholder,
+  );
+}
+
+function resolveWelcomePreviewUrl(template) {
+  const value = replaceWelcomePreviewPlaceholders(template).trim();
+
+  if (!value) {
+    return '';
+  }
+
+  try {
+    const url = new URL(value);
+
+    return ['http:', 'https:'].includes(url.protocol) ? url.toString() : '';
+  } catch {
+    return '';
+  }
+}
+
+function renderWelcomeMessageStorageStatus(storage) {
+  welcomeMessageStorageStatus.classList.remove('ready', 'offline');
+
+  if (!storage) {
+    welcomeMessageStorageStatus.textContent = 'Storage unavailable';
+    welcomeMessageStorageStatus.classList.add('offline');
+    return;
+  }
+
+  if (storage.persistent) {
+    welcomeMessageStorageStatus.textContent = storage.hasSavedSettings
+      ? 'Saved persistently'
+      : 'Persistent storage ready';
+    welcomeMessageStorageStatus.classList.add('ready');
+    welcomeMessageStorageStatus.title = `Storage: ${storage.source}`;
+    return;
+  }
+
+  welcomeMessageStorageStatus.textContent = storage.hasSavedSettings
+    ? 'Saved for this deployment'
+    : 'Storage is temporary';
+  welcomeMessageStorageStatus.classList.add('offline');
+  welcomeMessageStorageStatus.title = 'Attach a Railway volume so settings survive bot restarts and redeploys.';
 }
 
 async function loadLiveEmbedSettings(showNotification = false, kind = state.activeEmbedBuilder) {
@@ -2338,8 +2800,25 @@ function createTextPreviewBlock(block) {
   button.href = accessory.url;
   button.target = '_blank';
   button.rel = 'noreferrer';
-  button.textContent = accessory.label;
+  appendPreviewButtonContent(button, accessory);
   wrapper.append(pre, button);
 
   return wrapper;
+}
+
+function appendPreviewButtonContent(anchor, button) {
+  const customEmoji = String(button.emoji || '').match(/^<(a?):[^:>]+:(\d{17,20})>$/);
+
+  if (customEmoji) {
+    const image = document.createElement('img');
+    const extension = customEmoji[1] ? 'gif' : 'webp';
+
+    image.className = 'preview-button-emoji';
+    image.src = `https://cdn.discordapp.com/emojis/${customEmoji[2]}.${extension}?size=32&quality=lossless`;
+    image.alt = '';
+    anchor.append(image, document.createTextNode(button.label));
+    return;
+  }
+
+  anchor.textContent = button.emoji ? `${button.emoji} ${button.label}` : button.label;
 }

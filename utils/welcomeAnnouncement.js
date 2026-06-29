@@ -1,4 +1,6 @@
-const { createAnnouncementPayload } = require('./streamAnnouncement');
+const { config } = require('./config');
+const { createDashboardMessagePayload } = require('./dashboardMessage');
+const { replacePlaceholders } = require('./streamAnnouncement');
 
 function createWelcomeAnnouncementPayload(settings, member, timestamp = new Date()) {
   const joinedTimestamp = Math.floor(timestamp.getTime() / 1000);
@@ -15,8 +17,38 @@ function createWelcomeAnnouncementPayload(settings, member, timestamp = new Date
     createdAt: `<t:${createdTimestamp}:F>`,
     joinedAt: `<t:${joinedTimestamp}:F>`,
   };
+  const resolvedSettings = {
+    ...settings,
+    blocks: (settings.blocks || []).map((block) => resolveBlock(block, values)),
+    buttons: (settings.buttons || []).map((button) => resolveButton(button, values)),
+  };
+  const payload = createDashboardMessagePayload(resolvedSettings, config);
 
-  return createAnnouncementPayload(settings, values, timestamp);
+  payload.allowedMentions = settings.allowMentions
+    ? { parse: ['users', 'roles'], repliedUser: false }
+    : { parse: [], repliedUser: false };
+
+  return payload;
+}
+
+function resolveBlock(block, values) {
+  if (block.type !== 'text') {
+    return block;
+  }
+
+  return {
+    ...block,
+    content: replacePlaceholders(block.content, values),
+    accessory: block.accessory ? resolveButton(block.accessory, values) : null,
+  };
+}
+
+function resolveButton(button, values) {
+  return {
+    ...button,
+    label: replacePlaceholders(button.label, values),
+    url: replacePlaceholders(button.url, values),
+  };
 }
 
 module.exports = {

@@ -44,7 +44,15 @@ function createDashboardMessagePayload(input, config) {
         component.addSectionComponents((section) =>
           section
             .addTextDisplayComponents((textDisplay) => textDisplay.setContent(block.content))
-            .setButtonAccessory((button) => button.setLabel(block.accessory.label).setURL(block.accessory.url)),
+            .setButtonAccessory((button) => {
+              button.setLabel(block.accessory.label).setURL(block.accessory.url);
+
+              if (block.accessory.emoji) {
+                button.setEmoji(block.accessory.emoji);
+              }
+
+              return button;
+            }),
         );
       } else {
         component.addTextDisplayComponents((textDisplay) => textDisplay.setContent(block.content));
@@ -65,7 +73,15 @@ function createDashboardMessagePayload(input, config) {
 
     component.addActionRowComponents((actionRow) =>
       actionRow.addComponents(
-        ...buttons.map((button) => (builder) => builder.setLabel(button.label).setURL(button.url)),
+        ...buttons.map((button) => (builder) => {
+          builder.setLabel(button.label).setURL(button.url);
+
+          if (button.emoji) {
+            builder.setEmoji(button.emoji);
+          }
+
+          return builder;
+        }),
       ),
     );
   }
@@ -183,7 +199,9 @@ function normalizeAccessory(accessory) {
 
   assertHttpUrl(url, 'Accessory button URL');
 
-  return { label, url };
+  const emoji = String(accessory.emoji || '').trim();
+
+  return { label, url, emoji };
 }
 
 function normalizeButtons(buttons) {
@@ -195,6 +213,7 @@ function normalizeButtons(buttons) {
     .map((button) => ({
       label: String(button?.label || '').trim(),
       url: String(button?.url || '').trim(),
+      emoji: String(button?.emoji || '').trim(),
     }))
     .filter((button) => button.label || button.url);
 
@@ -209,6 +228,10 @@ function normalizeButtons(buttons) {
 
     if (button.label.length > 80) {
       throw new Error('Button labels must be 80 characters or fewer.');
+    }
+
+    if (button.emoji.length > 100) {
+      throw new Error('Button emojis must be 100 characters or fewer.');
     }
 
     assertHttpUrl(button.url, 'Button URL');

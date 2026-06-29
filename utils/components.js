@@ -1,3 +1,5 @@
+const { resolvePartialEmoji } = require('discord.js');
+
 const SeparatorSpacingSize = {
   Small: 1,
   Large: 2,
@@ -143,6 +145,21 @@ class ButtonBuilder {
   setURL(url) {
     this.data.url = url;
     this.data.style = 5;
+    return this;
+  }
+
+  setEmoji(emoji) {
+    const resolved = resolvePartialEmoji(String(emoji || '').trim());
+
+    if (!resolved) {
+      throw new Error('Button emoji must be a Unicode emoji or a custom server emoji such as <:name:id>.');
+    }
+
+    this.data.emoji = {
+      id: resolved.id,
+      name: resolved.name,
+      animated: resolved.animated,
+    };
     return this;
   }
 
