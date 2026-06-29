@@ -1,4 +1,4 @@
-const { MessageFlags, SlashCommandBuilder } = require('discord.js');
+const { MessageFlags, PermissionFlagsBits, SlashCommandBuilder } = require('discord.js');
 
 const { config } = require('../utils/config');
 const { createStreamAnnouncementPayload } = require('../utils/streamAnnouncement');
@@ -7,6 +7,7 @@ const { loadStreamEmbedSettings } = require('../utils/streamEmbedSettings');
 const data = new SlashCommandBuilder()
   .setName('teststream')
   .setDescription('Test the saved live stream announcement embed.')
+  .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
   .setDMPermission(false);
 
 async function execute(interaction) {

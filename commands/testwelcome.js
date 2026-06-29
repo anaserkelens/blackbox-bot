@@ -1,4 +1,4 @@
-const { MessageFlags, SlashCommandBuilder } = require('discord.js');
+const { MessageFlags, PermissionFlagsBits, SlashCommandBuilder } = require('discord.js');
 
 const { config } = require('../utils/config');
 const { createWelcomeAnnouncementPayload } = require('../utils/welcomeAnnouncement');
@@ -7,6 +7,7 @@ const { loadWelcomeEmbedSettings } = require('../utils/welcomeEmbedSettings');
 const data = new SlashCommandBuilder()
   .setName('testwelcome')
   .setDescription('Test the saved welcome message in the current channel.')
+  .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
   .setDMPermission(false);
 
 async function execute(interaction) {
