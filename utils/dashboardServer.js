@@ -5,6 +5,13 @@ const path = require('node:path');
 
 const { config } = require('./config');
 const { createDashboardMessagePayload } = require('./dashboardMessage');
+const {
+  getModerationCase,
+  getModerationCasesStorageInfo,
+  listModerationCases,
+  revokeModerationCase,
+  updateModerationCaseReason,
+} = require('./moderationCases');
 const { getPresenceState, updatePresenceRotation } = require('./presenceManager');
 const {
   getPresenceSettingsStorageStatus,
@@ -29,6 +36,7 @@ const {
   loadWelcomeEmbedSettings,
   saveWelcomeEmbedSettings,
 } = require('./welcomeEmbedSettings');
+const { colors, sendStructuredLog } = require('./structuredLog');
 
 const dashboardDirectory = path.join(__dirname, '..', 'dashboard');
 const sessionCookieName = 'blackbox_dashboard';
@@ -47,6 +55,7 @@ function startDashboard(client) {
   logSavedMessagesStorage();
   logStreamEmbedStorage();
   logWelcomeEmbedStorage();
+  logModerationCasesStorage();
 
   const server = http.createServer((request, response) => {
     handleRequest(client, request, response).catch((error) => {
@@ -99,6 +108,18 @@ function logWelcomeEmbedStorage() {
 
   if (!storage.persistent) {
     console.warn('Welcome embed settings will reset after redeploys unless a Railway volume is attached.');
+  }
+}
+
+function logModerationCasesStorage() {
+  const storage = getModerationCasesStorageInfo(config);
+
+  console.log(
+    `Moderation case storage: ${storage.filePath} (${storage.persistent ? 'persistent' : 'ephemeral'}, ${storage.source}).`,
+  );
+
+  if (!storage.persistent) {
+    console.warn('Moderation cases will reset after redeploys unless a Railway volume is attached.');
   }
 }
 
@@ -190,6 +211,21 @@ async function handleRequest(client, request, response) {
 
     if (request.method === 'PUT' && url.pathname === '/api/welcome-embed') {
       await handleSaveWelcomeEmbed(request, response);
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/moderation-cases') {
+      await handleGetModerationCases(response);
+      return;
+    }
+
+    if (request.method === 'PATCH' && /^\/api\/moderation-cases\/\d+\/reason$/.test(url.pathname)) {
+      await handleUpdateModerationCaseReason(client, request, url.pathname, response);
+      return;
+    }
+
+    if (request.method === 'PATCH' && /^\/api\/moderation-cases\/\d+\/status$/.test(url.pathname)) {
+      await handleUpdateModerationCaseStatus(client, request, url.pathname, response);
       return;
     }
 
@@ -414,6 +450,121 @@ async function handleSaveWelcomeEmbed(request, response) {
     settings,
     storage: await getWelcomeEmbedStorageStatus(config),
   });
+}
+
+async function handleGetModerationCases(response) {
+  const cases = await listModerationCases(config, config.guildId);
+
+  sendJson(response, 200, {
+    ok: true,
+    cases,
+    storage: getModerationCasesStorageInfo(config),
+  });
+}
+
+async function handleUpdateModerationCaseReason(client, request, pathname, response) {
+  const number = parseModerationCaseNumber(pathname);
+  const body = await readJsonBody(request, 64 * 1024);
+  const currentCase = await getModerationCase(config, number, config.guildId);
+
+  if (!currentCase) {
+    sendJson(response, 404, { error: `Case #${number} was not found.` });
+    return;
+  }
+
+  let moderationCase;
+
+  try {
+    moderationCase = await updateModerationCaseReason(
+      config,
+      number,
+      body.reason,
+      createDashboardCaseActor(),
+    );
+  } catch (error) {
+    sendJson(response, 400, { error: error.message });
+    return;
+  }
+
+  const logged = await sendStructuredLog(client, config.channels.caseFiles, {
+    title: 'Case Reason Corrected from Dashboard',
+    emoji: '✏️',
+    color: colors.info,
+    summary: `${moderationCase.reference} was updated through the staff dashboard.`,
+    referenceId: moderationCase.reference,
+    fields: [
+      { name: 'Case Member', value: `<@${moderationCase.userId}>\n-# ID: \`${moderationCase.userId}\`` },
+      { name: 'Edited By', value: `<@${config.ownerUserId}>\n-# Dashboard operator` },
+      { name: 'Previous Reason', value: currentCase.reason },
+      { name: 'Corrected Reason', value: moderationCase.reason },
+    ],
+  }).catch((error) => {
+    console.error(`Failed to log dashboard update for ${moderationCase.reference}:`, error);
+    return false;
+  });
+
+  sendJson(response, 200, { ok: true, case: moderationCase, logged });
+}
+
+async function handleUpdateModerationCaseStatus(client, request, pathname, response) {
+  const number = parseModerationCaseNumber(pathname);
+  const body = await readJsonBody(request, 64 * 1024);
+  const currentCase = await getModerationCase(config, number, config.guildId);
+
+  if (!currentCase) {
+    sendJson(response, 404, { error: `Case #${number} was not found.` });
+    return;
+  }
+
+  if (String(body.status || '').toLowerCase() !== 'revoked') {
+    sendJson(response, 400, { error: 'The dashboard currently supports revoking cases only.' });
+    return;
+  }
+
+  let moderationCase;
+
+  try {
+    moderationCase = await revokeModerationCase(
+      config,
+      number,
+      body.reason,
+      createDashboardCaseActor(),
+    );
+  } catch (error) {
+    sendJson(response, 400, { error: error.message });
+    return;
+  }
+
+  const latestStatus = moderationCase.statusHistory.at(-1);
+  const logged = await sendStructuredLog(client, config.channels.caseFiles, {
+    title: 'Moderation Case Revoked',
+    emoji: '🗑️',
+    color: colors.neutral,
+    summary: `${moderationCase.reference} was revoked through the staff dashboard.`,
+    referenceId: moderationCase.reference,
+    fields: [
+      { name: 'Case Member', value: `<@${moderationCase.userId}>\n-# ID: \`${moderationCase.userId}\`` },
+      { name: 'Original Action', value: moderationCase.action.toUpperCase() },
+      { name: 'Revoked By', value: `<@${config.ownerUserId}>\n-# Dashboard operator` },
+      { name: 'Revocation Reason', value: latestStatus.reason },
+    ],
+  }).catch((error) => {
+    console.error(`Failed to log revocation for ${moderationCase.reference}:`, error);
+    return false;
+  });
+
+  sendJson(response, 200, { ok: true, case: moderationCase, logged });
+}
+
+function parseModerationCaseNumber(pathname) {
+  return Number.parseInt(pathname.match(/^\/api\/moderation-cases\/(\d+)\//)?.[1], 10);
+}
+
+function createDashboardCaseActor() {
+  return {
+    id: config.ownerUserId,
+    tag: 'Dashboard operator',
+  };
 }
 
 async function handleImportMessage(client, request, response) {

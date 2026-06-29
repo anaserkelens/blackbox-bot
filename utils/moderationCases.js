@@ -66,6 +66,41 @@ async function updateModerationCaseReason(config, number, reason, editor) {
   });
 }
 
+async function revokeModerationCase(config, number, reason, editor) {
+  return mutateCaseStore(config, (store) => {
+    const moderationCase = store.cases.find((item) => item.number === normalizeCaseNumber(number));
+
+    if (!moderationCase) {
+      return null;
+    }
+
+    if (moderationCase.status === 'revoked') {
+      throw new Error(`${moderationCase.reference} is already revoked.`);
+    }
+
+    const revocationReason = normalizeText(reason, 1000);
+
+    if (!revocationReason) {
+      throw new Error('A revocation reason is required.');
+    }
+
+    const changedAt = new Date().toISOString();
+    const historyEntry = {
+      previousStatus: moderationCase.status,
+      newStatus: 'revoked',
+      reason: revocationReason,
+      editorId: normalizeSnowflake(editor?.id),
+      editorTag: normalizeText(editor?.tag || editor?.username || 'Dashboard operator', 100),
+      changedAt,
+    };
+
+    moderationCase.statusHistory = [...moderationCase.statusHistory, historyEntry].slice(-25);
+    moderationCase.status = 'revoked';
+    moderationCase.updatedAt = changedAt;
+    return moderationCase;
+  });
+}
+
 async function getModerationCase(config, number, guildId) {
   const store = await loadModerationCaseStore(config);
   const normalizedNumber = normalizeCaseNumber(number);
@@ -74,6 +109,15 @@ async function getModerationCase(config, number, guildId) {
   return store.cases.find(
     (item) => item.number === normalizedNumber && (!normalizedGuildId || item.guildId === normalizedGuildId),
   ) || null;
+}
+
+async function listModerationCases(config, guildId) {
+  const store = await loadModerationCaseStore(config);
+  const normalizedGuildId = normalizeSnowflake(guildId);
+
+  return store.cases
+    .filter((item) => !normalizedGuildId || item.guildId === normalizedGuildId)
+    .sort((left, right) => right.number - left.number);
 }
 
 async function listMemberModerationCases(config, guildId, userId, limit = 10) {
@@ -183,9 +227,28 @@ function normalizeModerationCase(input) {
     logDelivered: normalizeNullableBoolean(input.logDelivered),
     metadata: normalizeMetadata(input.metadata),
     reasonHistory: normalizeReasonHistory(input.reasonHistory),
+    statusHistory: normalizeStatusHistory(input.statusHistory),
     createdAt,
     updatedAt,
   };
+}
+
+function normalizeStatusHistory(history) {
+  if (!Array.isArray(history)) {
+    return [];
+  }
+
+  return history
+    .map((entry) => ({
+      previousStatus: normalizeStatus(entry?.previousStatus),
+      newStatus: normalizeStatus(entry?.newStatus),
+      reason: normalizeText(entry?.reason, 1000),
+      editorId: normalizeSnowflake(entry?.editorId),
+      editorTag: normalizeText(entry?.editorTag || 'Unknown moderator', 100),
+      changedAt: normalizeTimestamp(entry?.changedAt) || new Date().toISOString(),
+    }))
+    .filter((entry) => entry.reason && entry.editorId)
+    .slice(-25);
 }
 
 function normalizeReasonHistory(history) {
@@ -320,9 +383,11 @@ module.exports = {
   formatCaseReference,
   getModerationCase,
   getModerationCasesStorageInfo,
+  listModerationCases,
   listMemberModerationCases,
   loadModerationCaseStore,
   recordModerationCase,
   reserveModerationCaseNumber,
+  revokeModerationCase,
   updateModerationCaseReason,
 };

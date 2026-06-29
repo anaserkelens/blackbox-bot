@@ -16,6 +16,7 @@ const actionDetails = {
 function createModerationCasePayload(moderationCase, options = {}) {
   const details = getActionDetails(moderationCase.action);
   const reasonEdits = moderationCase.reasonHistory?.length || 0;
+  const latestStatusChange = moderationCase.statusHistory?.at(-1);
 
   return createStructuredLogPayload({
     title: `${details.label} ${moderationCase.reference}`,
@@ -60,6 +61,14 @@ function createModerationCasePayload(moderationCase, options = {}) {
         ? [{
             name: 'Reason History',
             value: `${reasonEdits} correction${reasonEdits === 1 ? '' : 's'} recorded. Last updated ${formatTimestamp(new Date(moderationCase.updatedAt), 'R')}.`,
+          }]
+        : []),
+      ...(latestStatusChange
+        ? [{
+            name: 'Status Change',
+            value:
+              `**${capitalize(latestStatusChange.newStatus)}:** ${latestStatusChange.reason}\n` +
+              `-# By <@${latestStatusChange.editorId}> ${formatTimestamp(new Date(latestStatusChange.changedAt), 'R')}`,
           }]
         : []),
     ],

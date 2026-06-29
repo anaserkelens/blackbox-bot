@@ -12,6 +12,32 @@ const overviewBotStatus = document.querySelector('#overview-bot-status');
 const dashboardApiStatus = document.querySelector('#dashboard-api-status');
 const savedMessagesContainer = document.querySelector('#saved-messages');
 const savedMessageCount = document.querySelector('#saved-message-count');
+const caseStorageStatus = document.querySelector('#case-storage-status');
+const refreshCasesButton = document.querySelector('#refresh-cases');
+const caseTotalCount = document.querySelector('#case-total-count');
+const caseRecentCount = document.querySelector('#case-recent-count');
+const caseRepeatCount = document.querySelector('#case-repeat-count');
+const caseCommonAction = document.querySelector('#case-common-action');
+const caseSearchInput = document.querySelector('#case-search');
+const caseActionFilter = document.querySelector('#case-action-filter');
+const caseStatusFilter = document.querySelector('#case-status-filter');
+const caseDateFilter = document.querySelector('#case-date-filter');
+const caseResultCount = document.querySelector('#case-result-count');
+const caseList = document.querySelector('#case-list');
+const caseDetailEmpty = document.querySelector('#case-detail-empty');
+const caseDetailContent = document.querySelector('#case-detail-content');
+const caseDetailReference = document.querySelector('#case-detail-reference');
+const caseDetailTitle = document.querySelector('#case-detail-title');
+const caseDetailStatus = document.querySelector('#case-detail-status');
+const caseDetailFields = document.querySelector('#case-detail-fields');
+const caseMemberIndicator = document.querySelector('#case-member-indicator');
+const caseMemberTimeline = document.querySelector('#case-member-timeline');
+const caseReasonForm = document.querySelector('#case-reason-form');
+const caseReasonInput = document.querySelector('#case-reason-input');
+const saveCaseReasonButton = document.querySelector('#save-case-reason');
+const caseRevokeForm = document.querySelector('#case-revoke-form');
+const caseRevokeReason = document.querySelector('#case-revoke-reason');
+const revokeCaseButton = document.querySelector('#revoke-case');
 const tabButtons = [...document.querySelectorAll('.tab-button')];
 const tabLinks = [...document.querySelectorAll('[data-tab-link]')];
 const tabPanels = [...document.querySelectorAll('.tab-panel')];
@@ -147,6 +173,9 @@ const state = {
   botAvatarImage: null,
   botBannerImage: null,
   savedMessages: [],
+  moderationCases: [],
+  moderationCaseStorage: null,
+  selectedCaseNumber: null,
   composerInitialized: false,
   welcomeImage: null,
   welcomeSettings: null,
@@ -217,6 +246,16 @@ function bindEvents() {
   messageColorPicker.addEventListener('input', handleMessageColorPickerInput);
   messageColorInput.addEventListener('input', handleMessageColorInput);
   savedMessagesContainer.addEventListener('click', handleSavedMessageClick);
+  refreshCasesButton.addEventListener('click', () => {
+    loadModerationCases(true).catch((error) => setSendStatus(error.message, 'error'));
+  });
+  caseSearchInput.addEventListener('input', renderModerationCases);
+  caseActionFilter.addEventListener('change', renderModerationCases);
+  caseStatusFilter.addEventListener('change', renderModerationCases);
+  caseDateFilter.addEventListener('change', renderModerationCases);
+  caseList.addEventListener('click', handleCaseListClick);
+  caseReasonForm.addEventListener('submit', handleCaseReasonSave);
+  caseRevokeForm.addEventListener('submit', handleCaseRevocation);
   imageInput.addEventListener('change', handleImageChange);
   addSectionButton.addEventListener('click', () => addSection(''));
   addDividerButton.addEventListener('click', () => addDivider('small'));
@@ -762,6 +801,10 @@ function setActiveTab(tab) {
     loadWelcomeMessageSettings(false).catch((error) => setSendStatus(error.message, 'error'));
   }
 
+  if (nextTab === 'cases' && !dashboardView.hidden) {
+    loadModerationCases(false).catch((error) => setSendStatus(error.message, 'error'));
+  }
+
   if (nextTab === 'messages' && !dashboardView.hidden) {
     startSavedMessagesSync();
     loadSavedMessages().catch((error) => setSendStatus(error.message, 'error'));
@@ -791,6 +834,464 @@ function stopSavedMessagesSync() {
 
   window.clearInterval(state.savedMessagesRefreshTimer);
   state.savedMessagesRefreshTimer = null;
+}
+
+async function loadModerationCases(showNotification = false) {
+  const result = await api('/api/moderation-cases');
+
+  state.moderationCases = Array.isArray(result.cases)
+    ? result.cases.map(sanitizeModerationCase).filter(Boolean)
+    : [];
+  state.moderationCaseStorage = result.storage || null;
+  renderModerationCaseStorage();
+  renderModerationCases();
+
+  if (showNotification) {
+    setSendStatus('Moderation cases refreshed.', 'success');
+  }
+}
+
+function sanitizeModerationCase(moderationCase) {
+  if (!moderationCase || typeof moderationCase !== 'object') {
+    return null;
+  }
+
+  const number = Number.parseInt(moderationCase.number, 10);
+
+  if (!Number.isInteger(number) || number < 1) {
+    return null;
+  }
+
+  return {
+    ...moderationCase,
+    number,
+    reference: String(moderationCase.reference || `CASE-${String(number).padStart(6, '0')}`),
+    action: String(moderationCase.action || 'warn').toLowerCase(),
+    status: String(moderationCase.status || 'active').toLowerCase(),
+    userId: String(moderationCase.userId || ''),
+    userTag: String(moderationCase.userTag || 'Unknown user'),
+    moderatorId: String(moderationCase.moderatorId || ''),
+    moderatorTag: String(moderationCase.moderatorTag || 'Unknown moderator'),
+    reason: String(moderationCase.reason || 'No reason recorded.'),
+    durationMs: Number.isFinite(Number(moderationCase.durationMs))
+      ? Number(moderationCase.durationMs)
+      : null,
+    reasonHistory: Array.isArray(moderationCase.reasonHistory) ? moderationCase.reasonHistory : [],
+    statusHistory: Array.isArray(moderationCase.statusHistory) ? moderationCase.statusHistory : [],
+  };
+}
+
+function renderModerationCases() {
+  const filteredCases = getFilteredModerationCases();
+  const filteredNumbers = new Set(filteredCases.map((moderationCase) => moderationCase.number));
+
+  if (!filteredNumbers.has(state.selectedCaseNumber)) {
+    state.selectedCaseNumber = filteredCases[0]?.number || null;
+  }
+
+  renderModerationCaseMetrics();
+  caseResultCount.textContent = `${filteredCases.length} case${filteredCases.length === 1 ? '' : 's'}`;
+  caseList.replaceChildren();
+
+  if (filteredCases.length === 0) {
+    const empty = document.createElement('p');
+
+    empty.className = 'case-empty-list';
+    empty.textContent = state.moderationCases.length
+      ? 'No cases match these filters.'
+      : 'No moderation cases have been recorded yet.';
+    caseList.append(empty);
+  } else {
+    const memberCounts = countCasesByMember(state.moderationCases);
+
+    for (const moderationCase of filteredCases) {
+      caseList.append(createModerationCaseListItem(moderationCase, memberCounts));
+    }
+  }
+
+  renderSelectedModerationCase();
+}
+
+function getFilteredModerationCases() {
+  const query = caseSearchInput.value.trim().toLowerCase();
+  const action = caseActionFilter.value;
+  const status = caseStatusFilter.value;
+  const dateDays = Number.parseInt(caseDateFilter.value, 10);
+  const cutoff = Number.isInteger(dateDays)
+    ? Date.now() - dateDays * 24 * 60 * 60 * 1000
+    : null;
+
+  return state.moderationCases.filter((moderationCase) => {
+    if (action && moderationCase.action !== action) return false;
+    if (status && getModerationCaseEffectiveStatus(moderationCase) !== status) return false;
+    if (cutoff && Date.parse(moderationCase.createdAt) < cutoff) return false;
+    if (!query) return true;
+
+    return [
+      moderationCase.reference,
+      moderationCase.number,
+      moderationCase.action,
+      moderationCase.status,
+      moderationCase.userId,
+      moderationCase.userTag,
+      moderationCase.moderatorId,
+      moderationCase.moderatorTag,
+      moderationCase.reason,
+    ].some((value) => String(value || '').toLowerCase().includes(query));
+  });
+}
+
+function renderModerationCaseMetrics() {
+  const cases = state.moderationCases;
+  const recentCutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const activeCases = cases.filter(
+    (moderationCase) => getModerationCaseEffectiveStatus(moderationCase) !== 'revoked',
+  );
+  const memberCounts = countCasesByMember(activeCases);
+  const actionCounts = activeCases.reduce((counts, moderationCase) => {
+    counts[moderationCase.action] = (counts[moderationCase.action] || 0) + 1;
+    return counts;
+  }, {});
+  const commonAction = Object.entries(actionCounts).sort((left, right) => right[1] - left[1])[0];
+
+  caseTotalCount.textContent = cases.length.toLocaleString();
+  caseRecentCount.textContent = cases
+    .filter((moderationCase) => Date.parse(moderationCase.createdAt) >= recentCutoff)
+    .length
+    .toLocaleString();
+  caseRepeatCount.textContent = [...memberCounts.values()]
+    .filter((count) => count > 1)
+    .length
+    .toLocaleString();
+  caseCommonAction.textContent = commonAction
+    ? `${getModerationActionLabel(commonAction[0])} (${commonAction[1]})`
+    : 'None';
+}
+
+function countCasesByMember(cases) {
+  return cases.reduce((counts, moderationCase) => {
+    counts.set(moderationCase.userId, (counts.get(moderationCase.userId) || 0) + 1);
+    return counts;
+  }, new Map());
+}
+
+function createModerationCaseListItem(moderationCase, memberCounts) {
+  const button = document.createElement('button');
+  const heading = document.createElement('span');
+  const reference = document.createElement('strong');
+  const action = document.createElement('span');
+  const meta = document.createElement('span');
+  const member = document.createElement('span');
+  const created = document.createElement('span');
+  const reason = document.createElement('span');
+  const flags = document.createElement('span');
+  const status = document.createElement('span');
+  const memberCaseCount = memberCounts.get(moderationCase.userId) || 0;
+
+  button.type = 'button';
+  button.className = `case-list-item${state.selectedCaseNumber === moderationCase.number ? ' active' : ''}`;
+  button.dataset.caseNumber = String(moderationCase.number);
+  heading.className = 'case-list-heading';
+  reference.textContent = moderationCase.reference;
+  action.className = 'case-action-pill';
+  action.textContent = getModerationActionLabel(moderationCase.action);
+  heading.append(reference, action);
+  meta.className = 'case-list-meta';
+  member.textContent = moderationCase.userTag;
+  created.textContent = formatDashboardCaseDate(moderationCase.createdAt);
+  meta.append(member, created);
+  reason.className = 'case-list-reason';
+  reason.textContent = moderationCase.reason;
+  flags.className = 'case-list-flags';
+  status.className = `case-status-badge ${getModerationCaseEffectiveStatus(moderationCase)}`;
+  status.textContent = capitalizeDashboardText(getModerationCaseEffectiveStatus(moderationCase));
+  flags.append(status);
+
+  if (memberCaseCount > 1) {
+    const repeat = document.createElement('span');
+
+    repeat.className = 'case-repeat-pill';
+    repeat.textContent = `${memberCaseCount} cases`;
+    flags.append(repeat);
+  }
+
+  button.append(heading, meta, reason, flags);
+  return button;
+}
+
+function handleCaseListClick(event) {
+  const item = event.target.closest('.case-list-item');
+
+  if (!item) {
+    return;
+  }
+
+  state.selectedCaseNumber = Number.parseInt(item.dataset.caseNumber, 10);
+  renderModerationCases();
+}
+
+function renderSelectedModerationCase() {
+  const moderationCase = state.moderationCases.find(
+    (item) => item.number === state.selectedCaseNumber,
+  );
+
+  caseDetailEmpty.hidden = Boolean(moderationCase);
+  caseDetailContent.hidden = !moderationCase;
+
+  if (!moderationCase) {
+    return;
+  }
+
+  const status = getModerationCaseEffectiveStatus(moderationCase);
+  const memberCases = state.moderationCases
+    .filter((item) => item.userId === moderationCase.userId)
+    .sort((left, right) => right.number - left.number);
+  const latestStatusChange = moderationCase.statusHistory.at(-1);
+
+  caseDetailReference.textContent = moderationCase.reference;
+  caseDetailTitle.textContent = `${getModerationActionLabel(moderationCase.action)} · ${moderationCase.userTag}`;
+  caseDetailStatus.className = `case-status-badge ${status}`;
+  caseDetailStatus.textContent = capitalizeDashboardText(status);
+  caseDetailFields.replaceChildren(
+    createCaseDetailField('Member', `${moderationCase.userTag}\n${moderationCase.userId}`),
+    createCaseDetailField('Moderator', `${moderationCase.moderatorTag}\n${moderationCase.moderatorId}`),
+    createCaseDetailField('Action', getModerationActionLabel(moderationCase.action)),
+    createCaseDetailField('Created', formatDashboardCaseDateTime(moderationCase.createdAt)),
+    ...(moderationCase.durationMs
+      ? [createCaseDetailField('Duration', formatDashboardDuration(moderationCase.durationMs))]
+      : []),
+    createCaseDetailField('DM Delivery', formatDashboardDelivery(moderationCase.dmDelivered)),
+    createCaseDetailField('Case Log', formatDashboardDelivery(moderationCase.logDelivered)),
+    createCaseDetailField('Reason', moderationCase.reason, true),
+    ...(moderationCase.reasonHistory.length
+      ? [createCaseDetailField(
+          'Reason Corrections',
+          moderationCase.reasonHistory
+            .map((entry) => `${formatDashboardCaseDateTime(entry.editedAt)} · ${entry.editorTag}\n${entry.previousReason} → ${entry.newReason}`)
+            .join('\n\n'),
+          true,
+        )]
+      : []),
+    ...(latestStatusChange
+      ? [createCaseDetailField(
+          'Revocation Audit',
+          `${latestStatusChange.editorTag} · ${formatDashboardCaseDateTime(latestStatusChange.changedAt)}\n${latestStatusChange.reason}`,
+          true,
+        )]
+      : []),
+  );
+
+  caseMemberIndicator.textContent = memberCases.length > 1
+    ? `Repeat member · ${memberCases.length} cases`
+    : 'First recorded case';
+  caseMemberTimeline.replaceChildren(
+    ...memberCases.slice(0, 20).map((item) => createCaseTimelineItem(item, moderationCase.number)),
+  );
+  caseReasonInput.value = moderationCase.reason;
+  caseRevokeReason.value = '';
+  caseRevokeForm.hidden = status === 'revoked';
+  saveCaseReasonButton.disabled = false;
+  revokeCaseButton.disabled = false;
+}
+
+function createCaseDetailField(label, value, wide = false) {
+  const field = document.createElement('section');
+  const name = document.createElement('span');
+  const content = document.createElement('p');
+
+  field.className = `case-detail-field${wide ? ' wide' : ''}`;
+  name.textContent = label;
+  content.textContent = value;
+  field.append(name, content);
+  return field;
+}
+
+function createCaseTimelineItem(moderationCase, currentNumber) {
+  const item = document.createElement('section');
+  const heading = document.createElement('strong');
+  const meta = document.createElement('span');
+  const reason = document.createElement('span');
+
+  item.className = `case-timeline-item${moderationCase.number === currentNumber ? ' current' : ''}`;
+  heading.textContent = `${moderationCase.reference} · ${getModerationActionLabel(moderationCase.action)}`;
+  meta.textContent = `${capitalizeDashboardText(getModerationCaseEffectiveStatus(moderationCase))} · ${formatDashboardCaseDateTime(moderationCase.createdAt)}`;
+  reason.textContent = moderationCase.reason;
+  item.append(heading, meta, reason);
+  return item;
+}
+
+async function handleCaseReasonSave(event) {
+  event.preventDefault();
+  const moderationCase = state.moderationCases.find(
+    (item) => item.number === state.selectedCaseNumber,
+  );
+
+  if (!moderationCase) {
+    return;
+  }
+
+  const reason = caseReasonInput.value.trim();
+
+  if (!reason || reason === moderationCase.reason) {
+    setSendStatus(reason ? 'Enter a different reason before saving.' : 'A case reason is required.', 'error');
+    return;
+  }
+
+  saveCaseReasonButton.disabled = true;
+
+  try {
+    const result = await api(`/api/moderation-cases/${moderationCase.number}/reason`, {
+      method: 'PATCH',
+      body: { reason },
+    });
+
+    replaceModerationCase(result.case);
+    setSendStatus(
+      `${moderationCase.reference} reason corrected.${result.logged ? '' : ' The case-file log was unavailable.'}`,
+      'success',
+    );
+  } catch (error) {
+    setSendStatus(error.message, 'error');
+  } finally {
+    saveCaseReasonButton.disabled = false;
+  }
+}
+
+async function handleCaseRevocation(event) {
+  event.preventDefault();
+  const moderationCase = state.moderationCases.find(
+    (item) => item.number === state.selectedCaseNumber,
+  );
+  const reason = caseRevokeReason.value.trim();
+
+  if (!moderationCase || !reason) {
+    setSendStatus('A revocation reason is required.', 'error');
+    return;
+  }
+
+  if (!window.confirm(`Revoke ${moderationCase.reference}? The original case will remain in the audit trail.`)) {
+    return;
+  }
+
+  revokeCaseButton.disabled = true;
+
+  try {
+    const result = await api(`/api/moderation-cases/${moderationCase.number}/status`, {
+      method: 'PATCH',
+      body: { status: 'revoked', reason },
+    });
+
+    replaceModerationCase(result.case);
+    setSendStatus(
+      `${moderationCase.reference} revoked.${result.logged ? '' : ' The case-file log was unavailable.'}`,
+      'success',
+    );
+  } catch (error) {
+    setSendStatus(error.message, 'error');
+  } finally {
+    revokeCaseButton.disabled = false;
+  }
+}
+
+function replaceModerationCase(input) {
+  const moderationCase = sanitizeModerationCase(input);
+
+  if (!moderationCase) {
+    return;
+  }
+
+  const index = state.moderationCases.findIndex((item) => item.number === moderationCase.number);
+
+  if (index === -1) {
+    state.moderationCases.unshift(moderationCase);
+  } else {
+    state.moderationCases[index] = moderationCase;
+  }
+
+  state.selectedCaseNumber = moderationCase.number;
+  renderModerationCases();
+}
+
+function renderModerationCaseStorage() {
+  const storage = state.moderationCaseStorage;
+
+  caseStorageStatus.classList.remove('ready', 'offline');
+
+  if (!storage) {
+    caseStorageStatus.textContent = 'Storage unavailable';
+    caseStorageStatus.classList.add('offline');
+    return;
+  }
+
+  caseStorageStatus.textContent = storage.persistent ? 'Saved persistently' : 'Storage is temporary';
+  caseStorageStatus.classList.add(storage.persistent ? 'ready' : 'offline');
+  caseStorageStatus.title = storage.persistent
+    ? `Storage: ${storage.source}`
+    : 'Attach a Railway volume so cases survive redeploys.';
+}
+
+function getModerationCaseEffectiveStatus(moderationCase) {
+  if (moderationCase.status === 'revoked') {
+    return 'revoked';
+  }
+
+  if (
+    moderationCase.action === 'timeout' &&
+    moderationCase.durationMs &&
+    Date.parse(moderationCase.createdAt) + moderationCase.durationMs <= Date.now()
+  ) {
+    return 'expired';
+  }
+
+  return moderationCase.status || 'active';
+}
+
+function getModerationActionLabel(action) {
+  return {
+    warn: 'Warning',
+    timeout: 'Timeout',
+    kick: 'Kick',
+    ban: 'Ban',
+  }[action] || 'Moderation';
+}
+
+function formatDashboardCaseDate(value) {
+  const date = new Date(value);
+
+  return Number.isFinite(date.getTime())
+    ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(date)
+    : 'Unknown date';
+}
+
+function formatDashboardCaseDateTime(value) {
+  const date = new Date(value);
+
+  return Number.isFinite(date.getTime())
+    ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+    : 'Unknown date';
+}
+
+function formatDashboardDuration(milliseconds) {
+  const totalMinutes = Math.max(1, Math.round(Number(milliseconds) / 60000));
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+
+  return [
+    days ? `${days}d` : '',
+    hours ? `${hours}h` : '',
+    minutes ? `${minutes}m` : '',
+  ].filter(Boolean).join(' ');
+}
+
+function formatDashboardDelivery(value) {
+  return value === true ? 'Delivered' : (value === false ? 'Failed' : 'Not recorded');
+}
+
+function capitalizeDashboardText(value) {
+  const text = String(value || '');
+
+  return text ? `${text[0].toUpperCase()}${text.slice(1)}` : 'Unknown';
 }
 
 function handleSavedMessageClick(event) {
