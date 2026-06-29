@@ -94,6 +94,7 @@ https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=412317
    DASHBOARD_PRESENCE_PATH
    DASHBOARD_STREAM_EMBED_PATH
    DASHBOARD_WELCOME_EMBED_PATH
+   MODERATION_CASES_PATH
    ENABLE_SERVER_MEMBERS_INTENT
    ENABLE_MESSAGE_CONTENT_INTENT
    ENABLE_PRESENCE_INTENT
@@ -123,6 +124,10 @@ All audit messages use Discord Components V2 containers with timestamps, referen
 `/warn member:<user> reason:<text>` sends the member a formal warning by DM and records the complete case in `#case-files`. If DMs are closed, the failed delivery is recorded in the case.
 
 `/kick`, `/ban`, and `/timeout` provide bot-managed versions of Discord’s moderation actions. They enforce moderator permissions and role hierarchy, write identifiable audit-log reasons, DM the affected member through a Components V2 notice, and record DM delivery status in a single non-duplicated case log.
+
+Bot-issued warnings, timeouts, kicks, and bans are stored in a sequential moderation ledger (`CASE-000001`, `CASE-000002`, and so on). Staff can use `/case number:<number>` to inspect one case, `/history member:<user>` to view a member’s ten most recent cases, and `/reason case:<number> reason:<text>` to correct a stored reason. Corrections retain their reason history and are logged in `#case-files`.
+
+The ledger is stored at `RAILWAY_VOLUME_MOUNT_PATH/moderation-cases.json` when a Railway volume is attached. Set `MODERATION_CASES_PATH` to override its location. Without persistent storage, cases can reset after a redeployment.
 
 Optional systems are controlled by environment variables. For example, tickets need `TICKET_CHANNEL_ID`, ticket logs need `TICKET_LOG_CHANNEL_ID`, and reaction roles need `REACTION_ROLE_MESSAGE_ID`, `REACTION_ROLE_EMOJI_ID`, and `VERIFIED_ROLE_ID`. See [.env.example](.env.example) for the full list.
 

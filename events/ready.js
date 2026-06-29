@@ -1,6 +1,7 @@
 const { Events } = require('discord.js');
 
 const { config } = require('../utils/config');
+const { getModerationCasesStorageInfo } = require('../utils/moderationCases');
 const { startPresenceRotation } = require('../utils/presenceManager');
 const { getPresenceSettingsStorageInfo, loadPresenceSettings } = require('../utils/presenceSettings');
 const { colors, sendStructuredLog } = require('../utils/structuredLog');
@@ -13,7 +14,16 @@ async function execute(client) {
   console.log(`Logged in as ${client.user.tag}`);
 
   const presenceStorage = getPresenceSettingsStorageInfo(config);
+  const moderationCasesStorage = getModerationCasesStorageInfo(config);
   let presence;
+
+  console.log(
+    `Moderation case storage: ${moderationCasesStorage.filePath} (${moderationCasesStorage.persistent ? 'persistent' : 'ephemeral'}, ${moderationCasesStorage.source}).`,
+  );
+
+  if (!moderationCasesStorage.persistent) {
+    console.warn('Moderation cases will reset after Railway redeploys unless a persistent volume is attached.');
+  }
 
   try {
     presence = await loadPresenceSettings(config);
@@ -44,6 +54,7 @@ async function execute(client) {
       { name: 'Node.js', value: process.version },
       { name: 'Automatic Command Sync', value: config.autoRegisterCommands ? 'Enabled' : 'Disabled' },
       { name: 'Presence Storage', value: `${presenceStorage.persistent ? 'Persistent' : 'Ephemeral'} via ${presenceStorage.source}` },
+      { name: 'Moderation Case Storage', value: `${moderationCasesStorage.persistent ? 'Persistent' : 'Ephemeral'} via ${moderationCasesStorage.source}` },
     ],
   }).catch((error) => console.error('Failed to send startup operation log:', error));
 

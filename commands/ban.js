@@ -4,18 +4,23 @@ const {
   SlashCommandBuilder,
 } = require('discord.js');
 
+const { config } = require('../utils/config');
 const {
   canUseModerationCommand,
   clearBotModerationAction,
   colors,
   createAuditReason,
-  createCaseId,
   getTargetBlockReason,
   logBotModerationAction,
   prepareDirectMessage,
   registerBotModerationAction,
   sendModerationDirectMessage,
 } = require('../utils/moderationActions');
+const {
+  formatCaseReference,
+  recordModerationCase,
+  reserveModerationCaseNumber,
+} = require('../utils/moderationCases');
 
 const data = new SlashCommandBuilder()
   .setName('ban')
@@ -71,7 +76,16 @@ async function execute(interaction) {
 
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-  const caseId = createCaseId('ban', user.id);
+  let caseNumber;
+
+  try {
+    caseNumber = await reserveModerationCaseNumber(config);
+  } catch (error) {
+    await interaction.editReply(`The ban was not applied because case storage is unavailable: ${error.message}`);
+    return;
+  }
+
+  const caseId = formatCaseReference(caseNumber);
   const dmChannel = await prepareDirectMessage(user);
   registerBotModerationAction('ban', interaction.guild.id, user.id, { caseId });
 
@@ -111,9 +125,30 @@ async function execute(interaction) {
     dmDelivered,
     extraFields: [{ name: 'Deleted Message History', value: historyLabel }],
   });
+  let caseSaved = true;
+
+  try {
+    await recordModerationCase(config, {
+      number: caseNumber,
+      guildId: interaction.guildId,
+      action: 'ban',
+      userId: user.id,
+      userTag: user.tag || user.username,
+      moderatorId: interaction.user.id,
+      moderatorTag: interaction.user.tag || interaction.user.username,
+      reason,
+      channelId: interaction.channelId,
+      dmDelivered,
+      logDelivered: logged,
+      metadata: { deleteMessageSeconds },
+    });
+  } catch (error) {
+    caseSaved = false;
+    console.error(`Failed to store ${caseId}:`, error);
+  }
 
   await interaction.editReply(
-    `${user.tag || user.username} was banned.${dmDelivered ? '' : ' Their DM could not be delivered.'}${logged ? '' : ' The case log channel was unavailable.'}`,
+    `${caseId}: ${user.tag || user.username} was banned.${dmDelivered ? '' : ' Their DM could not be delivered.'}${logged ? '' : ' The case log channel was unavailable.'}${caseSaved ? '' : ' The action succeeded, but the case ledger could not be updated.'}`,
   );
 }
 

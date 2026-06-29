@@ -117,6 +117,7 @@ const config = {
     presencePath: readEnv('DASHBOARD_PRESENCE_PATH'),
     streamEmbedPath: readEnv('DASHBOARD_STREAM_EMBED_PATH'),
     welcomeEmbedPath: readEnv('DASHBOARD_WELCOME_EMBED_PATH'),
+    moderationCasesPath: readEnv('MODERATION_CASES_PATH'),
     railwayVolumeMountPath: readEnv('RAILWAY_VOLUME_MOUNT_PATH'),
   },
 };

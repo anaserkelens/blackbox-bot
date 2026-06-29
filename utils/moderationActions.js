@@ -11,10 +11,6 @@ const {
 
 const activeBotActions = new Map();
 
-function createCaseId(action, userId) {
-  return `${action.toUpperCase()}-${userId}-${Date.now()}`;
-}
-
 function canUseModerationCommand(interaction, permission) {
   const hasModeratorRole = config.roles.moderator
     ? interaction.member?.roles?.cache?.has(config.roles.moderator)
@@ -160,7 +156,6 @@ module.exports = {
   clearBotModerationAction,
   colors,
   createAuditReason,
-  createCaseId,
   getTargetBlockReason,
   hasRecentBotModerationAction,
   logBotModerationAction,

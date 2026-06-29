@@ -6,6 +6,11 @@ const {
 
 const { config } = require('../utils/config');
 const {
+  formatCaseReference,
+  recordModerationCase,
+  reserveModerationCaseNumber,
+} = require('../utils/moderationCases');
+const {
   colors,
   createStructuredLogPayload,
   formatUser,
@@ -62,7 +67,16 @@ async function execute(interaction) {
 
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-  const caseId = `WARN-${user.id}-${Date.now()}`;
+  let caseNumber;
+
+  try {
+    caseNumber = await reserveModerationCaseNumber(config);
+  } catch (error) {
+    await interaction.editReply(`The warning was not issued because case storage is unavailable: ${error.message}`);
+    return;
+  }
+
+  const caseId = formatCaseReference(caseNumber);
   let dmDelivered = true;
 
   try {
@@ -99,9 +113,29 @@ async function execute(interaction) {
       { name: 'Member Present', value: member ? 'Yes' : 'No / unresolved' },
     ],
   });
+  let caseSaved = true;
+
+  try {
+    await recordModerationCase(config, {
+      number: caseNumber,
+      guildId: interaction.guildId,
+      action: 'warn',
+      userId: user.id,
+      userTag: user.tag || user.username,
+      moderatorId: interaction.user.id,
+      moderatorTag: interaction.user.tag || interaction.user.username,
+      reason,
+      channelId: interaction.channelId,
+      dmDelivered,
+      logDelivered: logged,
+    });
+  } catch (error) {
+    caseSaved = false;
+    console.error(`Failed to store ${caseId}:`, error);
+  }
 
   await interaction.editReply(
-    `Warning issued to ${user}.${dmDelivered ? '' : ' Their DMs are closed.'}${logged ? '' : ' The case log channel was unavailable.'}`,
+    `${caseId} issued to ${user}.${dmDelivered ? '' : ' Their DMs are closed.'}${logged ? '' : ' The case log channel was unavailable.'}${caseSaved ? '' : ' The action succeeded, but the case ledger could not be updated.'}`,
   );
 }
 
