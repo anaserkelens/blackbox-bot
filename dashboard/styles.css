@@ -597,6 +597,155 @@ h2 {
   text-align: center;
 }
 
+.progression-metric-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.progression-admin-grid,
+.progression-mission-workspace {
+  align-items: start;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(360px, 0.8fr) minmax(0, 1.2fr);
+}
+
+.progression-settings-panel,
+.progression-leaderboard-panel,
+.progression-mission-list-panel,
+.progression-mission-editor {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+.progression-settings-panel > button,
+.progression-mission-editor > button {
+  justify-self: start;
+}
+
+#progression-profile-search {
+  max-width: 240px;
+}
+
+.progression-profile-list,
+.progression-mission-list {
+  display: grid;
+  gap: 9px;
+  max-height: 620px;
+  overflow-y: auto;
+  padding-right: 3px;
+}
+
+.progression-profile-row {
+  align-items: center;
+  border: 1px solid rgba(20, 30, 48, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.4);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) repeat(3, auto);
+  padding: 11px 13px;
+}
+
+.progression-profile-identity {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.progression-profile-identity strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.progression-profile-identity span,
+.progression-profile-stat span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.progression-profile-stat {
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+}
+
+.progression-profile-stat strong {
+  font-size: 13px;
+}
+
+.progression-mission-item {
+  width: 100%;
+  min-height: 0;
+  border: 1px solid rgba(20, 30, 48, 0.08);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.42);
+  color: var(--text);
+  display: grid;
+  gap: 7px;
+  padding: 12px 13px;
+  text-align: left;
+  white-space: normal;
+}
+
+.progression-mission-item:hover,
+.progression-mission-item.active {
+  border-color: rgba(0, 122, 255, 0.28);
+  background: rgba(0, 122, 255, 0.08);
+}
+
+.progression-mission-heading,
+.progression-mission-meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.progression-mission-description,
+.progression-mission-meta {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.progression-mission-description {
+  line-height: 1.4;
+}
+
+.progression-mission-state,
+.progression-mission-category {
+  border: 1px solid rgba(20, 30, 48, 0.09);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 760;
+  padding: 4px 7px;
+  text-transform: uppercase;
+}
+
+.progression-mission-state.enabled {
+  border-color: rgba(19, 166, 111, 0.18);
+  background: rgba(19, 166, 111, 0.08);
+  color: var(--green);
+}
+
+.progression-mission-state.disabled {
+  color: var(--muted);
+}
+
+.progression-mission-category {
+  border-color: rgba(0, 122, 255, 0.16);
+  background: rgba(0, 122, 255, 0.06);
+  color: var(--blue);
+}
+
+.progression-empty-state {
+  color: var(--muted);
+  padding: 30px 12px;
+  text-align: center;
+}
+
 .live-embed-workspace {
   align-items: start;
   display: grid;
@@ -1393,6 +1542,8 @@ textarea:focus {
   .live-embed-workspace,
   .case-workspace,
   .case-filter-grid,
+  .progression-admin-grid,
+  .progression-mission-workspace,
   .form-grid,
   .button-fields,
   .bot-grid,
@@ -1409,6 +1560,14 @@ textarea:focus {
 
   .case-detail-field.wide {
     grid-column: auto;
+  }
+
+  .progression-profile-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .progression-profile-stat {
+    justify-items: start;
   }
 
   .span-2 {

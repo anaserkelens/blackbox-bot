@@ -95,6 +95,7 @@ https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=412317
    DASHBOARD_STREAM_EMBED_PATH
    DASHBOARD_WELCOME_EMBED_PATH
    MODERATION_CASES_PATH
+   PROGRESSION_PATH
    ENABLE_SERVER_MEMBERS_INTENT
    ENABLE_MESSAGE_CONTENT_INTENT
    ENABLE_PRESENCE_INTENT
@@ -130,6 +131,16 @@ Bot-issued warnings, timeouts, kicks, and bans are stored in a sequential modera
 The ledger is stored at `RAILWAY_VOLUME_MOUNT_PATH/moderation-cases.json` when a Railway volume is attached. Set `MODERATION_CASES_PATH` to override its location. Without persistent storage, cases can reset after a redeployment.
 
 The dashboard Cases tab provides staff-facing search and filters for case number, member, moderator, reason, action, status, and date. It includes case totals, 30-day activity, repeat-member indicators, member timelines, full reason-correction history, and audited case revocation. Dashboard corrections and revocations update the same persistent ledger and post a Components V2 audit entry in `#case-files`.
+
+## Member Progression
+
+The progression system gives every member a bot-only Level and XP account without creating or changing Discord roles. Members can use `/profile [member]`, `/challenges`, and `/leaderboard` to view Components V2 profile cards, current mission progress, and server standings.
+
+Missions automatically track meaningful messages, unique welcomes for newly joined members, eligible voice minutes, Discord game-presence minutes, streaming minutes, and same-game fireteam time in voice. Daily, weekly, monthly, and one-time reset cycles are supported. Completion awards XP automatically, sends the member a DM, and uses an increasing level curve where the next level costs `current level × 100 XP`.
+
+The dashboard Progression tab controls tracking eligibility, anti-spam cooldowns, voice participation requirements, AFK/deafened exclusions, and the welcome-credit window. Admins can create, edit, enable, disable, and delete mil-sim-themed missions; select their automatic metric and reset cadence; optionally target a specific game; set goals and XP rewards; and review member levels, XP, and completion totals.
+
+Progression data is stored at `RAILWAY_VOLUME_MOUNT_PATH/progression.json` when a Railway volume is attached, or at `PROGRESSION_PATH` when overridden. Message tracking requires the Message Content Intent, welcome tracking requires the Server Members Intent, and gaming/streaming tracking requires the Presence Intent. Voice tracking uses Discord voice-state events.
 
 Optional systems are controlled by environment variables. For example, tickets need `TICKET_CHANNEL_ID`, ticket logs need `TICKET_LOG_CHANNEL_ID`, and reaction roles need `REACTION_ROLE_MESSAGE_ID`, `REACTION_ROLE_EMOJI_ID`, and `VERIFIED_ROLE_ID`. See [.env.example](.env.example) for the full list.
 

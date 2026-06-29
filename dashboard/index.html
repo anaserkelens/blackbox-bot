@@ -45,6 +45,7 @@
           <button class="tab-button" type="button" data-tab="overview" aria-selected="true">Overview</button>
           <button class="tab-button" type="button" data-tab="messages" aria-selected="false">Messages</button>
           <button class="tab-button" type="button" data-tab="cases" aria-selected="false">Cases</button>
+          <button class="tab-button" type="button" data-tab="progression" aria-selected="false">Progression</button>
           <button class="tab-button" type="button" data-tab="live-embed" aria-selected="false">Live Embed</button>
           <button class="tab-button" type="button" data-tab="welcome-embed" aria-selected="false">Welcome Message</button>
           <button class="tab-button" type="button" data-tab="bot" aria-selected="false">Bot</button>
@@ -306,6 +307,157 @@
                 </form>
               </div>
             </section>
+          </section>
+        </section>
+
+        <section class="tab-panel" data-panel="progression" hidden>
+          <section class="dashboard-panel">
+            <div class="toolbar-row">
+              <div>
+                <h2>Member Progression</h2>
+                <span class="muted">Configure missions, tracking rules, XP rewards, and member accounts.</span>
+              </div>
+              <div class="toolbar-actions">
+                <span id="progression-storage-status" class="status-pill">Checking storage</span>
+                <button id="refresh-progression" class="secondary" type="button">Refresh</button>
+              </div>
+            </div>
+          </section>
+
+          <div class="metric-grid progression-metric-grid">
+            <section class="metric-panel">
+              <p class="metric-label">Profiles</p>
+              <strong id="progression-profile-count">0</strong>
+            </section>
+            <section class="metric-panel">
+              <p class="metric-label">XP Awarded</p>
+              <strong id="progression-xp-total">0</strong>
+            </section>
+            <section class="metric-panel">
+              <p class="metric-label">Missions Complete</p>
+              <strong id="progression-completion-total">0</strong>
+            </section>
+            <section class="metric-panel">
+              <p class="metric-label">Active Missions</p>
+              <strong id="progression-active-count">0</strong>
+            </section>
+          </div>
+
+          <section class="progression-admin-grid">
+            <form id="progression-settings-form" class="dashboard-panel progression-settings-panel">
+              <div class="toolbar-row">
+                <div>
+                  <h2>Tracking Rules</h2>
+                  <span class="muted">Anti-abuse and eligibility controls.</span>
+                </div>
+                <span id="progression-intent-status" class="status-pill">Checking intents</span>
+              </div>
+
+              <label class="toggle-row">
+                <input id="progression-enabled" type="checkbox" />
+                <span>Enable progression tracking</span>
+              </label>
+
+              <div class="form-grid">
+                <label class="field">
+                  Minimum voice participants
+                  <input id="progression-voice-participants" type="number" min="1" max="25" required />
+                </label>
+                <label class="field">
+                  Message XP cooldown (seconds)
+                  <input id="progression-message-cooldown" type="number" min="0" max="3600" required />
+                </label>
+                <label class="field">
+                  Minimum message length
+                  <input id="progression-message-length" type="number" min="1" max="500" required />
+                </label>
+                <label class="field">
+                  Welcome credit window (hours)
+                  <input id="progression-welcome-window" type="number" min="1" max="168" required />
+                </label>
+                <label class="toggle-row">
+                  <input id="progression-exclude-afk" type="checkbox" />
+                  <span>Exclude the AFK channel</span>
+                </label>
+                <label class="toggle-row">
+                  <input id="progression-exclude-deafened" type="checkbox" />
+                  <span>Exclude deafened members</span>
+                </label>
+              </div>
+
+              <button id="save-progression-settings" type="submit">Save Tracking Rules</button>
+            </form>
+
+            <section class="dashboard-panel progression-leaderboard-panel">
+              <div class="toolbar-row">
+                <div>
+                  <h2>Member Accounts</h2>
+                  <span class="muted">Current levels, XP, and completions.</span>
+                </div>
+                <input id="progression-profile-search" type="search" placeholder="Search members" aria-label="Search member accounts" />
+              </div>
+              <div id="progression-profile-list" class="progression-profile-list"></div>
+            </section>
+          </section>
+
+          <section class="progression-mission-workspace">
+            <aside class="dashboard-panel progression-mission-list-panel">
+              <div class="toolbar-row">
+                <div>
+                  <h2>Mission Library</h2>
+                  <span id="progression-mission-count" class="muted">0 missions</span>
+                </div>
+                <button id="new-progression-mission" class="secondary" type="button">New Mission</button>
+              </div>
+              <div id="progression-mission-list" class="progression-mission-list"></div>
+            </aside>
+
+            <form id="progression-mission-form" class="dashboard-panel progression-mission-editor">
+              <div class="toolbar-row">
+                <div>
+                  <p id="progression-mission-mode" class="eyebrow">NEW MISSION</p>
+                  <h2>Mission Configuration</h2>
+                </div>
+                <button id="delete-progression-mission" class="danger" type="button" hidden>Delete Mission</button>
+              </div>
+
+              <div class="form-grid">
+                <label class="field span-2">
+                  Mission name
+                  <input id="progression-mission-name" maxlength="80" required />
+                </label>
+                <label class="field span-2">
+                  Description
+                  <textarea id="progression-mission-description" class="compact-textarea" maxlength="300" required></textarea>
+                </label>
+                <label class="field">
+                  Tracking metric
+                  <select id="progression-mission-metric" required></select>
+                </label>
+                <label class="field">
+                  Reset cadence
+                  <select id="progression-mission-cadence" required></select>
+                </label>
+                <label class="field">
+                  Target
+                  <input id="progression-mission-target" type="number" min="1" max="1000000" required />
+                </label>
+                <label class="field">
+                  XP reward
+                  <input id="progression-mission-xp" type="number" min="1" max="1000000" required />
+                </label>
+                <label id="progression-specific-game-field" class="field span-2" hidden>
+                  Specific game (optional)
+                  <input id="progression-mission-game" maxlength="100" placeholder="Leave blank to allow any game" />
+                </label>
+                <label class="toggle-row span-2">
+                  <input id="progression-mission-enabled" type="checkbox" checked />
+                  <span>Mission enabled</span>
+                </label>
+              </div>
+
+              <button id="save-progression-mission" type="submit">Save Mission</button>
+            </form>
           </section>
         </section>
 

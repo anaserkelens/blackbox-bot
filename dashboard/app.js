@@ -38,6 +38,40 @@ const saveCaseReasonButton = document.querySelector('#save-case-reason');
 const caseRevokeForm = document.querySelector('#case-revoke-form');
 const caseRevokeReason = document.querySelector('#case-revoke-reason');
 const revokeCaseButton = document.querySelector('#revoke-case');
+const progressionStorageStatus = document.querySelector('#progression-storage-status');
+const refreshProgressionButton = document.querySelector('#refresh-progression');
+const progressionProfileCount = document.querySelector('#progression-profile-count');
+const progressionXpTotal = document.querySelector('#progression-xp-total');
+const progressionCompletionTotal = document.querySelector('#progression-completion-total');
+const progressionActiveCount = document.querySelector('#progression-active-count');
+const progressionSettingsForm = document.querySelector('#progression-settings-form');
+const progressionIntentStatus = document.querySelector('#progression-intent-status');
+const progressionEnabledInput = document.querySelector('#progression-enabled');
+const progressionVoiceParticipantsInput = document.querySelector('#progression-voice-participants');
+const progressionMessageCooldownInput = document.querySelector('#progression-message-cooldown');
+const progressionMessageLengthInput = document.querySelector('#progression-message-length');
+const progressionWelcomeWindowInput = document.querySelector('#progression-welcome-window');
+const progressionExcludeAfkInput = document.querySelector('#progression-exclude-afk');
+const progressionExcludeDeafenedInput = document.querySelector('#progression-exclude-deafened');
+const saveProgressionSettingsButton = document.querySelector('#save-progression-settings');
+const progressionProfileSearch = document.querySelector('#progression-profile-search');
+const progressionProfileList = document.querySelector('#progression-profile-list');
+const progressionMissionCount = document.querySelector('#progression-mission-count');
+const progressionMissionList = document.querySelector('#progression-mission-list');
+const newProgressionMissionButton = document.querySelector('#new-progression-mission');
+const progressionMissionForm = document.querySelector('#progression-mission-form');
+const progressionMissionMode = document.querySelector('#progression-mission-mode');
+const deleteProgressionMissionButton = document.querySelector('#delete-progression-mission');
+const progressionMissionNameInput = document.querySelector('#progression-mission-name');
+const progressionMissionDescriptionInput = document.querySelector('#progression-mission-description');
+const progressionMissionMetricInput = document.querySelector('#progression-mission-metric');
+const progressionMissionCadenceInput = document.querySelector('#progression-mission-cadence');
+const progressionMissionTargetInput = document.querySelector('#progression-mission-target');
+const progressionMissionXpInput = document.querySelector('#progression-mission-xp');
+const progressionSpecificGameField = document.querySelector('#progression-specific-game-field');
+const progressionMissionGameInput = document.querySelector('#progression-mission-game');
+const progressionMissionEnabledInput = document.querySelector('#progression-mission-enabled');
+const saveProgressionMissionButton = document.querySelector('#save-progression-mission');
 const tabButtons = [...document.querySelectorAll('.tab-button')];
 const tabLinks = [...document.querySelectorAll('[data-tab-link]')];
 const tabPanels = [...document.querySelectorAll('.tab-panel')];
@@ -176,6 +210,16 @@ const state = {
   moderationCases: [],
   moderationCaseStorage: null,
   selectedCaseNumber: null,
+  progression: {
+    settings: null,
+    challenges: [],
+    profiles: [],
+    metrics: [],
+    cadences: [],
+    storage: null,
+    tracking: null,
+    selectedMissionId: null,
+  },
   composerInitialized: false,
   welcomeImage: null,
   welcomeSettings: null,
@@ -256,6 +300,16 @@ function bindEvents() {
   caseList.addEventListener('click', handleCaseListClick);
   caseReasonForm.addEventListener('submit', handleCaseReasonSave);
   caseRevokeForm.addEventListener('submit', handleCaseRevocation);
+  refreshProgressionButton.addEventListener('click', () => {
+    loadProgressionDashboard(true).catch((error) => setSendStatus(error.message, 'error'));
+  });
+  progressionSettingsForm.addEventListener('submit', handleProgressionSettingsSave);
+  progressionProfileSearch.addEventListener('input', renderProgressionProfiles);
+  progressionMissionList.addEventListener('click', handleProgressionMissionListClick);
+  newProgressionMissionButton.addEventListener('click', resetProgressionMissionEditor);
+  progressionMissionForm.addEventListener('submit', handleProgressionMissionSave);
+  deleteProgressionMissionButton.addEventListener('click', handleProgressionMissionDelete);
+  progressionMissionMetricInput.addEventListener('change', updateProgressionGameField);
   imageInput.addEventListener('change', handleImageChange);
   addSectionButton.addEventListener('click', () => addSection(''));
   addDividerButton.addEventListener('click', () => addDivider('small'));
@@ -805,6 +859,10 @@ function setActiveTab(tab) {
     loadModerationCases(false).catch((error) => setSendStatus(error.message, 'error'));
   }
 
+  if (nextTab === 'progression' && !dashboardView.hidden) {
+    loadProgressionDashboard(false).catch((error) => setSendStatus(error.message, 'error'));
+  }
+
   if (nextTab === 'messages' && !dashboardView.hidden) {
     startSavedMessagesSync();
     loadSavedMessages().catch((error) => setSendStatus(error.message, 'error'));
@@ -834,6 +892,396 @@ function stopSavedMessagesSync() {
 
   window.clearInterval(state.savedMessagesRefreshTimer);
   state.savedMessagesRefreshTimer = null;
+}
+
+async function loadProgressionDashboard(showNotification = false) {
+  const result = await api('/api/progression');
+  const previousMissionId = state.progression.selectedMissionId;
+
+  state.progression.settings = result.settings || {};
+  state.progression.challenges = Array.isArray(result.challenges) ? result.challenges : [];
+  state.progression.profiles = Array.isArray(result.profiles) ? result.profiles : [];
+  state.progression.metrics = Array.isArray(result.metrics) ? result.metrics : [];
+  state.progression.cadences = Array.isArray(result.cadences) ? result.cadences : [];
+  state.progression.storage = result.storage || null;
+  state.progression.tracking = result.tracking || null;
+  state.progression.selectedMissionId = state.progression.challenges.some(
+    (challenge) => challenge.id === previousMissionId,
+  )
+    ? previousMissionId
+    : state.progression.challenges[0]?.id || null;
+
+  applyProgressionSettings();
+  renderProgressionMetrics();
+  renderProgressionStorage();
+  renderProgressionIntentStatus();
+  renderProgressionProfiles();
+  renderProgressionMissionOptions();
+  renderProgressionMissions();
+  renderProgressionMissionEditor();
+
+  if (showNotification) {
+    setSendStatus('Progression data refreshed.', 'success');
+  }
+}
+
+function applyProgressionSettings() {
+  const settings = state.progression.settings || {};
+
+  progressionEnabledInput.checked = settings.enabled !== false;
+  progressionVoiceParticipantsInput.value = settings.minimumVoiceParticipants || 2;
+  progressionMessageCooldownInput.value = settings.messageCooldownSeconds ?? 60;
+  progressionMessageLengthInput.value = settings.minimumMessageLength || 5;
+  progressionWelcomeWindowInput.value = settings.welcomeWindowHours || 24;
+  progressionExcludeAfkInput.checked = settings.excludeAfkChannel !== false;
+  progressionExcludeDeafenedInput.checked = settings.excludeDeafened !== false;
+}
+
+function renderProgressionMetrics() {
+  const profiles = state.progression.profiles;
+  const challenges = state.progression.challenges;
+
+  progressionProfileCount.textContent = profiles.length.toLocaleString();
+  progressionXpTotal.textContent = profiles
+    .reduce((total, profile) => total + (Number(profile.xp) || 0), 0)
+    .toLocaleString();
+  progressionCompletionTotal.textContent = profiles
+    .reduce((total, profile) => total + (Number(profile.completedMissions) || 0), 0)
+    .toLocaleString();
+  progressionActiveCount.textContent = challenges
+    .filter((challenge) => challenge.enabled)
+    .length
+    .toLocaleString();
+}
+
+function renderProgressionStorage() {
+  const storage = state.progression.storage;
+
+  progressionStorageStatus.classList.remove('ready', 'offline');
+
+  if (!storage) {
+    progressionStorageStatus.textContent = 'Storage unavailable';
+    progressionStorageStatus.classList.add('offline');
+    return;
+  }
+
+  progressionStorageStatus.textContent = storage.persistent ? 'Saved persistently' : 'Storage is temporary';
+  progressionStorageStatus.classList.add(storage.persistent ? 'ready' : 'offline');
+  progressionStorageStatus.title = storage.persistent
+    ? `Storage: ${storage.source}`
+    : 'Attach a Railway volume so progression survives redeploys.';
+}
+
+function renderProgressionIntentStatus() {
+  const tracking = state.progression.tracking;
+
+  progressionIntentStatus.classList.remove('ready', 'offline');
+
+  if (!tracking) {
+    progressionIntentStatus.textContent = 'Intent status unavailable';
+    progressionIntentStatus.classList.add('offline');
+    return;
+  }
+
+  const missing = [];
+
+  if (!tracking.membersIntent) missing.push('Members');
+  if (!tracking.messageContentIntent) missing.push('Message Content');
+  if (!tracking.presenceIntent) missing.push('Presence');
+
+  progressionIntentStatus.textContent = missing.length
+    ? `Missing: ${missing.join(', ')}`
+    : 'All tracking intents ready';
+  progressionIntentStatus.classList.add(missing.length ? 'offline' : 'ready');
+  progressionIntentStatus.title = missing.length
+    ? 'Enable the matching privileged intents in Discord and Railway.'
+    : 'Welcome, message, game, and stream tracking are available.';
+}
+
+function renderProgressionProfiles() {
+  const query = progressionProfileSearch.value.trim().toLowerCase();
+  const profiles = state.progression.profiles.filter((profile) =>
+    !query ||
+    String(profile.userTag || '').toLowerCase().includes(query) ||
+    String(profile.userId || '').includes(query),
+  );
+
+  progressionProfileList.replaceChildren();
+
+  if (profiles.length === 0) {
+    const empty = document.createElement('p');
+
+    empty.className = 'progression-empty-state';
+    empty.textContent = state.progression.profiles.length
+      ? 'No member accounts match that search.'
+      : 'No member has earned progression XP yet.';
+    progressionProfileList.append(empty);
+    return;
+  }
+
+  for (const [index, profile] of profiles.entries()) {
+    const row = document.createElement('section');
+    const identity = document.createElement('div');
+    const name = document.createElement('strong');
+    const id = document.createElement('span');
+
+    row.className = 'progression-profile-row';
+    identity.className = 'progression-profile-identity';
+    name.textContent = `${index + 1}. ${profile.userTag}`;
+    id.textContent = profile.userId;
+    identity.append(name, id);
+    row.append(
+      identity,
+      createProgressionProfileStat(`Level ${profile.level?.level || 1}`, 'Level'),
+      createProgressionProfileStat((profile.xp || 0).toLocaleString(), 'XP'),
+      createProgressionProfileStat((profile.completedMissions || 0).toLocaleString(), 'Missions'),
+    );
+    progressionProfileList.append(row);
+  }
+}
+
+function createProgressionProfileStat(value, label) {
+  const stat = document.createElement('div');
+  const strong = document.createElement('strong');
+  const span = document.createElement('span');
+
+  stat.className = 'progression-profile-stat';
+  strong.textContent = value;
+  span.textContent = label;
+  stat.append(strong, span);
+  return stat;
+}
+
+function renderProgressionMissionOptions() {
+  const selectedMetric = progressionMissionMetricInput.value;
+  const selectedCadence = progressionMissionCadenceInput.value;
+
+  progressionMissionMetricInput.replaceChildren(
+    ...state.progression.metrics.map((metric) => {
+      const option = document.createElement('option');
+
+      option.value = metric.value;
+      option.textContent = `${metric.label} (${metric.unit})`;
+      return option;
+    }),
+  );
+  progressionMissionCadenceInput.replaceChildren(
+    ...state.progression.cadences.map((cadence) => {
+      const option = document.createElement('option');
+
+      option.value = cadence;
+      option.textContent = capitalizeDashboardText(cadence);
+      return option;
+    }),
+  );
+
+  if (state.progression.metrics.some((metric) => metric.value === selectedMetric)) {
+    progressionMissionMetricInput.value = selectedMetric;
+  }
+
+  if (state.progression.cadences.includes(selectedCadence)) {
+    progressionMissionCadenceInput.value = selectedCadence;
+  }
+}
+
+function renderProgressionMissions() {
+  const challenges = [...state.progression.challenges].sort((left, right) =>
+    Number(right.enabled) - Number(left.enabled) || left.name.localeCompare(right.name),
+  );
+
+  progressionMissionCount.textContent = `${challenges.length} mission${challenges.length === 1 ? '' : 's'}`;
+  progressionMissionList.replaceChildren();
+
+  if (challenges.length === 0) {
+    const empty = document.createElement('p');
+
+    empty.className = 'progression-empty-state';
+    empty.textContent = 'Create the first mission for your members.';
+    progressionMissionList.append(empty);
+    return;
+  }
+
+  for (const challenge of challenges) {
+    const button = document.createElement('button');
+    const heading = document.createElement('span');
+    const name = document.createElement('strong');
+    const stateBadge = document.createElement('span');
+    const description = document.createElement('span');
+    const meta = document.createElement('span');
+    const category = document.createElement('span');
+    const reward = document.createElement('span');
+
+    button.type = 'button';
+    button.className =
+      `progression-mission-item${challenge.id === state.progression.selectedMissionId ? ' active' : ''}`;
+    button.dataset.missionId = challenge.id;
+    heading.className = 'progression-mission-heading';
+    name.textContent = challenge.name;
+    stateBadge.className = `progression-mission-state ${challenge.enabled ? 'enabled' : 'disabled'}`;
+    stateBadge.textContent = challenge.enabled ? 'Enabled' : 'Disabled';
+    heading.append(name, stateBadge);
+    description.className = 'progression-mission-description';
+    description.textContent = challenge.description;
+    meta.className = 'progression-mission-meta';
+    category.className = 'progression-mission-category';
+    category.textContent = `${challenge.category} · ${challenge.cadence}`;
+    reward.textContent = `${challenge.target.toLocaleString()} target · ${challenge.xp.toLocaleString()} XP`;
+    meta.append(category, reward);
+    button.append(heading, description, meta);
+    progressionMissionList.append(button);
+  }
+}
+
+function handleProgressionMissionListClick(event) {
+  const item = event.target.closest('.progression-mission-item');
+
+  if (!item) {
+    return;
+  }
+
+  state.progression.selectedMissionId = item.dataset.missionId;
+  renderProgressionMissions();
+  renderProgressionMissionEditor();
+}
+
+function renderProgressionMissionEditor() {
+  const challenge = state.progression.challenges.find(
+    (item) => item.id === state.progression.selectedMissionId,
+  );
+
+  if (!challenge) {
+    resetProgressionMissionEditor();
+    return;
+  }
+
+  progressionMissionMode.textContent = `EDIT · ${challenge.id}`;
+  progressionMissionNameInput.value = challenge.name;
+  progressionMissionDescriptionInput.value = challenge.description;
+  progressionMissionMetricInput.value = challenge.metric;
+  progressionMissionCadenceInput.value = challenge.cadence;
+  progressionMissionTargetInput.value = challenge.target;
+  progressionMissionXpInput.value = challenge.xp;
+  progressionMissionGameInput.value = challenge.specificGame || '';
+  progressionMissionEnabledInput.checked = challenge.enabled;
+  deleteProgressionMissionButton.hidden = false;
+  updateProgressionGameField();
+}
+
+function resetProgressionMissionEditor() {
+  state.progression.selectedMissionId = null;
+  progressionMissionMode.textContent = 'NEW MISSION';
+  progressionMissionNameInput.value = '';
+  progressionMissionDescriptionInput.value = '';
+  progressionMissionMetricInput.value = state.progression.metrics[0]?.value || '';
+  progressionMissionCadenceInput.value = 'daily';
+  progressionMissionTargetInput.value = 1;
+  progressionMissionXpInput.value = 100;
+  progressionMissionGameInput.value = '';
+  progressionMissionEnabledInput.checked = true;
+  deleteProgressionMissionButton.hidden = true;
+  renderProgressionMissions();
+  updateProgressionGameField();
+  progressionMissionNameInput.focus();
+}
+
+function updateProgressionGameField() {
+  progressionSpecificGameField.hidden = ![
+    'gaming_minutes',
+    'streaming_minutes',
+    'squad_gaming_minutes',
+  ].includes(progressionMissionMetricInput.value);
+}
+
+async function handleProgressionSettingsSave(event) {
+  event.preventDefault();
+  saveProgressionSettingsButton.disabled = true;
+
+  try {
+    const result = await api('/api/progression/settings', {
+      method: 'PUT',
+      body: {
+        settings: {
+          enabled: progressionEnabledInput.checked,
+          minimumVoiceParticipants: Number(progressionVoiceParticipantsInput.value),
+          messageCooldownSeconds: Number(progressionMessageCooldownInput.value),
+          minimumMessageLength: Number(progressionMessageLengthInput.value),
+          welcomeWindowHours: Number(progressionWelcomeWindowInput.value),
+          excludeAfkChannel: progressionExcludeAfkInput.checked,
+          excludeDeafened: progressionExcludeDeafenedInput.checked,
+        },
+      },
+    });
+
+    state.progression.settings = result.settings;
+    applyProgressionSettings();
+    setSendStatus('Progression tracking rules saved.', 'success');
+  } catch (error) {
+    setSendStatus(error.message, 'error');
+  } finally {
+    saveProgressionSettingsButton.disabled = false;
+  }
+}
+
+async function handleProgressionMissionSave(event) {
+  event.preventDefault();
+  const missionId = state.progression.selectedMissionId;
+  const challenge = {
+    name: progressionMissionNameInput.value.trim(),
+    description: progressionMissionDescriptionInput.value.trim(),
+    metric: progressionMissionMetricInput.value,
+    cadence: progressionMissionCadenceInput.value,
+    target: Number(progressionMissionTargetInput.value),
+    xp: Number(progressionMissionXpInput.value),
+    specificGame: progressionMissionGameInput.value.trim(),
+    enabled: progressionMissionEnabledInput.checked,
+  };
+
+  saveProgressionMissionButton.disabled = true;
+
+  try {
+    const result = await api(
+      missionId
+        ? `/api/progression/challenges/${encodeURIComponent(missionId)}`
+        : '/api/progression/challenges',
+      {
+        method: missionId ? 'PUT' : 'POST',
+        body: { challenge },
+      },
+    );
+
+    state.progression.selectedMissionId = result.challenge.id;
+    await loadProgressionDashboard(false);
+    setSendStatus(`Mission "${result.challenge.name}" saved.`, 'success');
+  } catch (error) {
+    setSendStatus(error.message, 'error');
+  } finally {
+    saveProgressionMissionButton.disabled = false;
+  }
+}
+
+async function handleProgressionMissionDelete() {
+  const challenge = state.progression.challenges.find(
+    (item) => item.id === state.progression.selectedMissionId,
+  );
+
+  if (!challenge || !window.confirm(`Delete "${challenge.name}"? Member progress for this mission will also be removed.`)) {
+    return;
+  }
+
+  deleteProgressionMissionButton.disabled = true;
+
+  try {
+    await api(`/api/progression/challenges/${encodeURIComponent(challenge.id)}`, {
+      method: 'DELETE',
+    });
+    state.progression.selectedMissionId = null;
+    await loadProgressionDashboard(false);
+    setSendStatus(`Mission "${challenge.name}" deleted.`, 'success');
+  } catch (error) {
+    setSendStatus(error.message, 'error');
+  } finally {
+    deleteProgressionMissionButton.disabled = false;
+  }
 }
 
 async function loadModerationCases(showNotification = false) {

@@ -19,6 +19,14 @@ const {
   savePresenceSettings,
 } = require('./presenceSettings');
 const {
+  createProgressionChallenge,
+  deleteProgressionChallenge,
+  getProgressionOverview,
+  getProgressionStorageInfo,
+  saveProgressionSettings,
+  updateProgressionChallenge,
+} = require('./progression');
+const {
   deleteSavedMessage,
   getSavedMessagesStorageInfo,
   loadSavedMessages,
@@ -56,6 +64,7 @@ function startDashboard(client) {
   logStreamEmbedStorage();
   logWelcomeEmbedStorage();
   logModerationCasesStorage();
+  logProgressionStorage();
 
   const server = http.createServer((request, response) => {
     handleRequest(client, request, response).catch((error) => {
@@ -120,6 +129,18 @@ function logModerationCasesStorage() {
 
   if (!storage.persistent) {
     console.warn('Moderation cases will reset after redeploys unless a Railway volume is attached.');
+  }
+}
+
+function logProgressionStorage() {
+  const storage = getProgressionStorageInfo(config);
+
+  console.log(
+    `Progression storage: ${storage.filePath} (${storage.persistent ? 'persistent' : 'ephemeral'}, ${storage.source}).`,
+  );
+
+  if (!storage.persistent) {
+    console.warn('Progression profiles and missions will reset after redeploys unless a Railway volume is attached.');
   }
 }
 
@@ -226,6 +247,31 @@ async function handleRequest(client, request, response) {
 
     if (request.method === 'PATCH' && /^\/api\/moderation-cases\/\d+\/status$/.test(url.pathname)) {
       await handleUpdateModerationCaseStatus(client, request, url.pathname, response);
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/progression') {
+      await handleGetProgression(response);
+      return;
+    }
+
+    if (request.method === 'PUT' && url.pathname === '/api/progression/settings') {
+      await handleSaveProgressionSettings(client, request, response);
+      return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/progression/challenges') {
+      await handleCreateProgressionChallenge(client, request, response);
+      return;
+    }
+
+    if (request.method === 'PUT' && url.pathname.startsWith('/api/progression/challenges/')) {
+      await handleUpdateProgressionChallenge(client, request, url.pathname, response);
+      return;
+    }
+
+    if (request.method === 'DELETE' && url.pathname.startsWith('/api/progression/challenges/')) {
+      await handleDeleteProgressionChallenge(client, url.pathname, response);
       return;
     }
 
@@ -565,6 +611,131 @@ function createDashboardCaseActor() {
     id: config.ownerUserId,
     tag: 'Dashboard operator',
   };
+}
+
+async function handleGetProgression(response) {
+  const overview = await getProgressionOverview(config, config.guildId);
+
+  sendJson(response, 200, {
+    ok: true,
+    ...overview,
+    storage: getProgressionStorageInfo(config),
+    tracking: {
+      membersIntent: config.intents.members,
+      messageContentIntent: config.intents.messageContent,
+      presenceIntent: config.intents.presences,
+    },
+  });
+}
+
+async function handleSaveProgressionSettings(client, request, response) {
+  const body = await readJsonBody(request, 64 * 1024);
+  let settings;
+
+  try {
+    settings = await saveProgressionSettings(config, body.settings);
+  } catch (error) {
+    sendJson(response, 400, { error: error.message });
+    return;
+  }
+
+  await logProgressionDashboardAction(client, {
+    title: 'Progression Settings Updated',
+    summary: 'Automatic mission tracking settings were changed through the dashboard.',
+    referenceId: `PROGRESSION-SETTINGS-${Date.now()}`,
+    fields: [
+      { name: 'System', value: settings.enabled ? 'Enabled' : 'Disabled' },
+      { name: 'Minimum Voice Participants', value: String(settings.minimumVoiceParticipants) },
+      { name: 'Message Cooldown', value: `${settings.messageCooldownSeconds} seconds` },
+    ],
+  });
+  sendJson(response, 200, { ok: true, settings });
+}
+
+async function handleCreateProgressionChallenge(client, request, response) {
+  const body = await readJsonBody(request, 64 * 1024);
+  let challenge;
+
+  try {
+    challenge = await createProgressionChallenge(config, body.challenge);
+  } catch (error) {
+    sendJson(response, 400, { error: error.message });
+    return;
+  }
+
+  await logProgressionChallengeChange(client, 'Mission Created', challenge);
+  sendJson(response, 201, { ok: true, challenge });
+}
+
+async function handleUpdateProgressionChallenge(client, request, pathname, response) {
+  const challengeId = parseProgressionChallengeId(pathname);
+  const body = await readJsonBody(request, 64 * 1024);
+  let challenge;
+
+  try {
+    challenge = await updateProgressionChallenge(config, challengeId, body.challenge);
+  } catch (error) {
+    sendJson(response, 400, { error: error.message });
+    return;
+  }
+
+  if (!challenge) {
+    sendJson(response, 404, { error: 'Mission was not found.' });
+    return;
+  }
+
+  await logProgressionChallengeChange(client, 'Mission Updated', challenge);
+  sendJson(response, 200, { ok: true, challenge });
+}
+
+async function handleDeleteProgressionChallenge(client, pathname, response) {
+  const challengeId = parseProgressionChallengeId(pathname);
+  const challenge = await deleteProgressionChallenge(config, challengeId);
+
+  if (!challenge) {
+    sendJson(response, 404, { error: 'Mission was not found.' });
+    return;
+  }
+
+  await logProgressionChallengeChange(client, 'Mission Deleted', challenge, colors.danger);
+  sendJson(response, 200, { ok: true, challenge });
+}
+
+async function logProgressionChallengeChange(client, title, challenge, color = colors.info) {
+  return logProgressionDashboardAction(client, {
+    title,
+    color,
+    summary: `**${challenge.name}** was changed through the dashboard.`,
+    referenceId: `MISSION-${challenge.id}-${Date.now()}`,
+    fields: [
+      { name: 'Metric', value: challenge.metric },
+      { name: 'Target', value: challenge.target.toLocaleString() },
+      { name: 'Reward', value: `${challenge.xp.toLocaleString()} XP` },
+      { name: 'Cadence', value: challenge.cadence },
+      { name: 'Enabled', value: challenge.enabled ? 'Yes' : 'No' },
+    ],
+  });
+}
+
+async function logProgressionDashboardAction(client, options) {
+  return sendStructuredLog(client, config.channels.operationLog, {
+    emoji: '🎯',
+    color: options.color ?? colors.info,
+    ...options,
+  }).catch((error) => {
+    console.error(`Failed to log progression dashboard action ${options.referenceId}:`, error);
+    return false;
+  });
+}
+
+function parseProgressionChallengeId(pathname) {
+  const encodedId = pathname.slice('/api/progression/challenges/'.length);
+
+  try {
+    return decodeURIComponent(encodedId).trim();
+  } catch {
+    return '';
+  }
 }
 
 async function handleImportMessage(client, request, response) {
