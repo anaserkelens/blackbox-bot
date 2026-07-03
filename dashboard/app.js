@@ -977,6 +977,13 @@ function renderProgressionIntentStatus() {
 
   progressionIntentStatus.classList.remove('ready', 'offline');
 
+  if (state.progression.settings?.enabled === false) {
+    progressionIntentStatus.textContent = 'Progression disabled';
+    progressionIntentStatus.classList.add('offline');
+    progressionIntentStatus.title = 'Challenges, XP tracking, and member progression commands are paused.';
+    return;
+  }
+
   if (!tracking) {
     progressionIntentStatus.textContent = 'Intent status unavailable';
     progressionIntentStatus.classList.add('offline');
@@ -1214,7 +1221,13 @@ async function handleProgressionSettingsSave(event) {
 
     state.progression.settings = result.settings;
     applyProgressionSettings();
-    setSendStatus('Progression tracking rules saved.', 'success');
+    renderProgressionIntentStatus();
+    setSendStatus(
+      result.settings.enabled
+        ? 'Tracking rules saved. Challenges and progression are enabled.'
+        : 'Tracking rules saved. Challenges and progression are disabled.',
+      'success',
+    );
   } catch (error) {
     setSendStatus(error.message, 'error');
   } finally {

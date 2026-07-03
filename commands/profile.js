@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { MessageFlags, SlashCommandBuilder } = require('discord.js');
 
 const { config } = require('../utils/config');
 const { createProfileCardPayload } = require('../utils/progressionDisplay');
@@ -20,10 +20,22 @@ async function execute(interaction) {
     user.id === interaction.user.id ? interaction.member : null
   );
   const userTag = member?.displayName || user.globalName || user.tag || user.username;
-  const [progression, overview] = await Promise.all([
-    getMemberProgression(config, interaction.guildId, user.id, userTag),
-    getProgressionOverview(config, interaction.guildId),
-  ]);
+  const progression = await getMemberProgression(
+    config,
+    interaction.guildId,
+    user.id,
+    userTag,
+  );
+
+  if (!progression.settings.enabled) {
+    await interaction.reply({
+      content: 'Challenges and progression are currently disabled by an administrator.',
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  const overview = await getProgressionOverview(config, interaction.guildId);
   const leaderboardPosition = overview.profiles.findIndex((profile) => profile.userId === user.id) + 1;
 
   await interaction.reply(

@@ -112,6 +112,7 @@ const defaultChallenges = [
 ];
 
 let mutationQueue = Promise.resolve();
+let settingsRevision = 0;
 
 async function loadProgressionState(config) {
   await mutationQueue.catch(() => null);
@@ -241,10 +242,17 @@ async function recordProgressBatch(config, entries, now = new Date()) {
 }
 
 async function saveProgressionSettings(config, input) {
-  return mutateProgressionState(config, (state) => {
+  const settings = await mutateProgressionState(config, (state) => {
     state.settings = normalizeSettings(input, state.settings);
     return state.settings;
   });
+
+  settingsRevision += 1;
+  return settings;
+}
+
+function getProgressionSettingsRevision() {
+  return settingsRevision;
 }
 
 async function createProgressionChallenge(config, input) {
@@ -718,6 +726,7 @@ module.exports = {
   getLevelDetails,
   getMemberProgression,
   getProgressionOverview,
+  getProgressionSettingsRevision,
   getProgressionStorageInfo,
   loadProgressionState,
   metricDefinitions,

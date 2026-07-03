@@ -1,7 +1,11 @@
 const { ActivityType, Events } = require('discord.js');
 
 const { config } = require('../utils/config');
-const { loadProgressionState, recordProgressBatch } = require('../utils/progression');
+const {
+  getProgressionSettingsRevision,
+  loadProgressionState,
+  recordProgressBatch,
+} = require('../utils/progression');
 const { createMissionCompletionPayload } = require('../utils/progressionDisplay');
 
 const recentJoins = new Map();
@@ -9,6 +13,7 @@ const welcomeCredits = new Map();
 const messageCooldowns = new Map();
 let settingsCache = null;
 let settingsCacheExpiresAt = 0;
+let settingsCacheRevision = -1;
 
 module.exports = {
   name: 'progressionTracker',
@@ -234,13 +239,20 @@ async function notifyProgressionCompletions(client, completions) {
 }
 
 async function getTrackerSettings() {
-  if (settingsCache && Date.now() < settingsCacheExpiresAt) {
+  const currentRevision = getProgressionSettingsRevision();
+
+  if (
+    settingsCache &&
+    settingsCacheRevision === currentRevision &&
+    Date.now() < settingsCacheExpiresAt
+  ) {
     return settingsCache;
   }
 
   const state = await loadProgressionState(config);
 
   settingsCache = state.settings;
+  settingsCacheRevision = getProgressionSettingsRevision();
   settingsCacheExpiresAt = Date.now() + 30000;
   return settingsCache;
 }

@@ -22,6 +22,14 @@ async function execute(interaction) {
     userTag,
   );
 
+  if (!progression.settings.enabled) {
+    await interaction.reply({
+      content: 'Challenges and progression are currently disabled by an administrator.',
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
   await interaction.reply({
     ...createChallengesPayload(interaction.user, progression),
     flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
