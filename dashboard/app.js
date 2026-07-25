@@ -25,6 +25,13 @@ const activityStorageStatus = document.querySelector('#activity-storage-status')
 const refreshActivityButton = document.querySelector('#refresh-activity');
 const activityFilterButtons = [...document.querySelectorAll('.activity-filter')];
 const activityFeed = document.querySelector('#activity-feed');
+const journalDate = document.querySelector('#journal-date');
+const journalTabs = [...document.querySelectorAll('.journal-tab')];
+const journalSummary = document.querySelector('[data-journal-panel="summary"]');
+const journalRightPage = document.querySelector('.journal-page-right');
+const overviewInsightGrid = document.querySelector('.overview-insight-grid');
+const overviewHealthPanel = overviewInsightGrid?.querySelector('.health-panel');
+const overviewActivityPanel = overviewInsightGrid?.querySelector('.activity-panel');
 const memberSearchForm = document.querySelector('#member-search-form');
 const memberSearchInput = document.querySelector('#member-search');
 const memberSearchButton = document.querySelector('#member-search-button');
@@ -323,6 +330,7 @@ const seededWelcomeMessage = {
 init();
 
 async function init() {
+  initializeJournal();
   bindEvents();
   resetMailboxBuilder();
   renderSavedMessages();
@@ -356,6 +364,9 @@ function bindEvents() {
       activityFilterButtons.forEach((item) => item.classList.toggle('active', item === button));
       loadActivityFeed(false).catch((error) => setSendStatus(error.message, 'error'));
     });
+  });
+  journalTabs.forEach((button) => {
+    button.addEventListener('click', () => setJournalPage(button.dataset.journalTab));
   });
   memberSearchForm.addEventListener('submit', handleMemberSearch);
   memberSearchResults.addEventListener('click', handleMemberResultClick);
@@ -1337,6 +1348,48 @@ function getPresenceActivityNames() {
   return [...presenceActivityList.querySelectorAll('.presence-activity-name')]
     .map((input) => input.value.trim())
     .filter(Boolean);
+}
+
+function initializeJournal() {
+  if (!journalRightPage || !overviewHealthPanel || !overviewActivityPanel) {
+    return;
+  }
+
+  overviewHealthPanel.classList.add('journal-panel');
+  overviewHealthPanel.dataset.journalPanel = 'pulse';
+  overviewHealthPanel.hidden = true;
+  overviewActivityPanel.classList.add('journal-panel');
+  overviewActivityPanel.dataset.journalPanel = 'activity';
+  overviewActivityPanel.hidden = true;
+  journalRightPage.append(overviewHealthPanel, overviewActivityPanel);
+  overviewInsightGrid.remove();
+  document.querySelector('.home-actions-panel')?.remove();
+
+  journalDate.textContent = new Intl.DateTimeFormat(undefined, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  }).format(new Date());
+  setJournalPage('summary');
+}
+
+function setJournalPage(page) {
+  const nextPage = journalTabs.some((button) => button.dataset.journalTab === page)
+    ? page
+    : 'summary';
+  const panels = [journalSummary, overviewHealthPanel, overviewActivityPanel].filter(Boolean);
+
+  journalTabs.forEach((button) => {
+    const isSelected = button.dataset.journalTab === nextPage;
+
+    button.classList.toggle('active', isSelected);
+    button.setAttribute('aria-selected', String(isSelected));
+    button.tabIndex = isSelected ? 0 : -1;
+  });
+
+  panels.forEach((panel) => {
+    panel.hidden = panel.dataset.journalPanel !== nextPage;
+  });
 }
 
 function showLogin() {

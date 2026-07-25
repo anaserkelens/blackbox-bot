@@ -124,66 +124,95 @@
 
           <div class="dashboard-content">
             <section class="tab-panel" data-panel="overview">
-          <section class="home-welcome" aria-labelledby="room-heading">
-            <div class="welcome-copy">
-              <p class="eyebrow">Welcome back</p>
-              <h1 id="room-heading">The room is yours.</h1>
-              <p>
-                Settle in, see how everyone is doing, and shape the next little moment for your community.
-              </p>
-              <div class="welcome-actions">
+          <section class="journal" aria-labelledby="room-heading">
+            <div class="journal-bookmark" aria-hidden="true"></div>
+
+            <section class="journal-page journal-page-left">
+              <div class="journal-date">
+                <span id="journal-date">Today</span>
+                <span>01</span>
+              </div>
+
+              <div class="journal-welcome">
+                <p class="eyebrow">Welcome back</p>
+                <h1 id="room-heading">What shall we make today?</h1>
+                <p>Bean kept your place warm. Pick something up, or take a quiet look around.</p>
+              </div>
+
+              <div class="journal-actions" aria-label="Quick actions">
                 <button type="button" data-tab-link="messages">
-                  <i class="fa-solid fa-pen-nib" aria-hidden="true"></i>
-                  Write something
+                  <span><i class="fa-solid fa-pen-nib" aria-hidden="true"></i></span>
+                  <strong>Write a message</strong>
+                  <small>Messages</small>
+                  <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                 </button>
-                <button class="secondary" type="button" data-tab-link="members">
-                  <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                  Find a member
+                <button type="button" data-tab-link="live-embed">
+                  <span><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i></span>
+                  <strong>Prepare the next stream</strong>
+                  <small>Live</small>
+                  <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                </button>
+                <button type="button" data-tab-link="welcome-embed">
+                  <span><i class="fa-solid fa-hand-sparkles" aria-hidden="true"></i></span>
+                  <strong>Welcome someone new</strong>
+                  <small>Welcome</small>
+                  <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                </button>
+                <button type="button" data-tab-link="voice-rooms">
+                  <span><i class="fa-solid fa-headphones" aria-hidden="true"></i></span>
+                  <strong>Visit the voice lounge</strong>
+                  <small>Voice</small>
+                  <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                 </button>
               </div>
-            </div>
 
-            <div class="cozy-nook" aria-hidden="true">
-              <div class="nook-arch">
-                <div class="nook-window">
-                  <span class="nook-moon"></span>
-                  <span class="nook-star star-one"></span>
-                  <span class="nook-star star-two"></span>
-                </div>
-                <span class="nook-lamp"></span>
-                <span class="nook-table"></span>
-                <div class="nook-cushion">
-                  <img src="/assets/bean-icon.png" alt="" />
-                </div>
+              <div class="journal-signoff">
+                <span><img src="/assets/bean-icon.png" alt="" /></span>
+                <p>Everything is right where you left it.</p>
               </div>
-            </div>
+            </section>
 
-            <aside class="room-note">
-              <div class="room-note-heading">
-                <span><i class="fa-solid fa-thumbtack" aria-hidden="true"></i></span>
-                <div>
-                  <p>Room note</p>
-                  <strong>Everything looks peaceful.</strong>
-                </div>
+            <section class="journal-page journal-page-right">
+              <div class="journal-tabs" role="tablist" aria-label="Overview pages">
+                <button class="journal-tab active" type="button" role="tab" data-journal-tab="summary" aria-selected="true">Today</button>
+                <button class="journal-tab" type="button" role="tab" data-journal-tab="pulse" aria-selected="false">Bean's pulse</button>
+                <button class="journal-tab" type="button" role="tab" data-journal-tab="activity" aria-selected="false">Around the room</button>
               </div>
-              <p class="room-note-copy">
-                Bean is nearby and keeping an eye on things while you decide what comes next.
-              </p>
-              <div class="room-note-list">
-                <div>
-                  <span>Bean</span>
-                  <strong id="overview-bot-status">Checking</strong>
+
+              <div class="journal-panel journal-summary" data-journal-panel="summary">
+                <div class="journal-note">
+                  <span><i class="fa-solid fa-thumbtack" aria-hidden="true"></i></span>
+                  <div>
+                    <p class="eyebrow">A note from Bean</p>
+                    <h2>The room feels peaceful.</h2>
+                    <p>Nothing needs your attention right away. You can take your time.</p>
+                  </div>
                 </div>
-                <div>
-                  <span>Community</span>
-                  <strong data-guild-name>UNDR CTRL</strong>
+
+                <div class="journal-status-list">
+                  <div>
+                    <span><i class="fa-solid fa-robot" aria-hidden="true"></i></span>
+                    <small>Bean</small>
+                    <strong id="overview-bot-status">Checking</strong>
+                  </div>
+                  <div>
+                    <span><i class="fa-solid fa-people-group" aria-hidden="true"></i></span>
+                    <small>Community</small>
+                    <strong data-guild-name>UNDR CTRL</strong>
+                  </div>
+                  <div>
+                    <span><i class="fa-solid fa-folder-open" aria-hidden="true"></i></span>
+                    <small>Open cases</small>
+                    <strong id="overview-open-cases">Checking</strong>
+                  </div>
                 </div>
-                <div>
-                  <span>Open cases</span>
-                  <strong id="overview-open-cases">Checking</strong>
-                </div>
+
+                <button class="journal-suggestion" type="button" data-tab-link="members">
+                  <span><small>Looking for someone?</small><strong>Open the member directory</strong></span>
+                  <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                </button>
               </div>
-            </aside>
+            </section>
           </section>
 
           <section class="home-actions-panel">
