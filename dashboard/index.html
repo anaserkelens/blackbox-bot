@@ -42,49 +42,39 @@
 
       <section id="dashboard-view" class="dashboard" hidden>
         <header class="topbar">
-          <div class="topbar-orbit orbit-one" aria-hidden="true"></div>
-          <div class="topbar-orbit orbit-two" aria-hidden="true"></div>
-
-          <div class="topbar-utility">
-            <div class="brand-lockup">
-              <span class="bean-mark-wrap">
-                <img class="bean-mark" src="/assets/bean-icon.png" alt="" />
-              </span>
-              <div>
-                <p class="eyebrow" data-guild-name>UNDR CTRL</p>
-                <p class="brand-subtitle">Community operating room</p>
-              </div>
-            </div>
-
-            <div class="status-cluster">
-              <div class="shift-clock" aria-label="Local dashboard time">
-                <span id="dashboard-daypart">On shift</span>
-                <strong id="dashboard-clock">--:--</strong>
-              </div>
-              <span id="bot-status" class="status-pill">Checking</span>
-              <button id="logout" class="secondary topbar-logout" type="button">
-                <span>Exit</span>
-                <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
-              </button>
+          <div class="home-brand">
+            <span class="bean-mark-wrap">
+              <img class="bean-mark" src="/assets/bean-icon.png" alt="" />
+            </span>
+            <div>
+              <p class="home-brand-name">Bean's place</p>
+              <p class="home-brand-community" data-guild-name>UNDR CTRL</p>
             </div>
           </div>
 
-          <div class="topbar-story">
-            <div>
-              <p class="topbar-index">BEAN / CTRL-01</p>
-              <h1>Keep the room<br /><em>in motion.</em></h1>
+          <div class="home-greeting">
+            <span id="dashboard-daypart">On shift</span>
+            <strong>Make yourself at home.</strong>
+          </div>
+
+          <div class="status-cluster">
+            <div class="shift-clock" aria-label="Local dashboard time">
+              <span>Local time</span>
+              <strong id="dashboard-clock">--:--</strong>
             </div>
-            <p class="topbar-note">
-              One living surface for the people, messages, and moments that shape your community.
-            </p>
+            <span id="bot-status" class="status-pill">Checking</span>
+            <button id="logout" class="secondary topbar-logout" type="button">
+              <span>Leave Bean's place</span>
+              <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
+            </button>
           </div>
         </header>
 
         <div class="dashboard-layout">
           <nav class="dashboard-tabs" aria-label="Dashboard spaces">
             <div class="nav-intro" aria-hidden="true">
-              <span>Spaces</span>
-              <small>Move through Bean</small>
+              <span>Room map</span>
+              <small>Pick a space</small>
             </div>
             <button class="tab-button" type="button" data-tab="overview" aria-selected="true">
               <i class="fa-solid fa-house" aria-hidden="true"></i>
@@ -134,103 +124,126 @@
 
           <div class="dashboard-content">
             <section class="tab-panel" data-panel="overview">
-          <section class="experience-stage" aria-labelledby="room-heading">
-            <div class="stage-copy">
-              <p class="stage-kicker"><span></span> The room right now</p>
-              <h2 id="room-heading">Everything is<br /><em>under control.</em></h2>
-              <p class="stage-description">
-                Bean is holding the door. Shape the next moment, check the pulse, or simply watch the room move.
+          <section class="home-welcome" aria-labelledby="room-heading">
+            <div class="welcome-copy">
+              <p class="eyebrow">Welcome back</p>
+              <h1 id="room-heading">The room is yours.</h1>
+              <p>
+                Settle in, see how everyone is doing, and shape the next little moment for your community.
               </p>
-              <div class="stage-actions">
+              <div class="welcome-actions">
                 <button type="button" data-tab-link="messages">
-                  Make a message
-                  <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+                  <i class="fa-solid fa-pen-nib" aria-hidden="true"></i>
+                  Write something
                 </button>
-                <button class="stage-action-quiet" type="button" data-tab-link="members">
-                  Find someone
+                <button class="secondary" type="button" data-tab-link="members">
+                  <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                  Find a member
                 </button>
               </div>
             </div>
 
-            <div class="bean-signal" aria-hidden="true">
-              <div class="signal-ring signal-ring-one"></div>
-              <div class="signal-ring signal-ring-two"></div>
-              <div class="signal-orbit-dot"></div>
-              <div class="signal-core">
-                <img src="/assets/bean-icon.png" alt="" />
+            <div class="cozy-nook" aria-hidden="true">
+              <div class="nook-arch">
+                <div class="nook-window">
+                  <span class="nook-moon"></span>
+                  <span class="nook-star star-one"></span>
+                  <span class="nook-star star-two"></span>
+                </div>
+                <span class="nook-lamp"></span>
+                <span class="nook-table"></span>
+                <div class="nook-cushion">
+                  <img src="/assets/bean-icon.png" alt="" />
+                </div>
               </div>
-              <span class="signal-caption signal-caption-top">LISTENING</span>
-              <span class="signal-caption signal-caption-bottom">BEAN / LIVE</span>
             </div>
 
-            <div class="stage-metrics">
-              <div class="stage-metric">
-                <span>01 / CONNECTION</span>
-                <strong id="overview-bot-status">Checking</strong>
+            <aside class="room-note">
+              <div class="room-note-heading">
+                <span><i class="fa-solid fa-thumbtack" aria-hidden="true"></i></span>
+                <div>
+                  <p>Room note</p>
+                  <strong>Everything looks peaceful.</strong>
+                </div>
               </div>
-              <div class="stage-metric">
-                <span>02 / COMMUNITY</span>
-                <strong data-guild-name>UNDR CTRL</strong>
+              <p class="room-note-copy">
+                Bean is nearby and keeping an eye on things while you decide what comes next.
+              </p>
+              <div class="room-note-list">
+                <div>
+                  <span>Bean</span>
+                  <strong id="overview-bot-status">Checking</strong>
+                </div>
+                <div>
+                  <span>Community</span>
+                  <strong data-guild-name>UNDR CTRL</strong>
+                </div>
+                <div>
+                  <span>Open cases</span>
+                  <strong id="overview-open-cases">Checking</strong>
+                </div>
               </div>
-              <div class="stage-metric">
-                <span>03 / OPEN CASES</span>
-                <strong id="overview-open-cases">Checking</strong>
-              </div>
-            </div>
+            </aside>
           </section>
 
-          <section class="journey-section">
-            <div class="journey-heading">
-              <p class="eyebrow">Choose a doorway</p>
-              <h2>Where do you want to take the room?</h2>
-              <p>Jump straight into the work that changes what people see, hear, and feel.</p>
+          <section class="home-actions-panel">
+            <div class="home-actions-intro">
+              <p class="eyebrow">Pick up where you left off</p>
+              <h2>What feels right?</h2>
+              <p>
+                No rush. Choose a corner and Bean will have everything ready for you.
+              </p>
+              <span class="home-actions-detail">
+                <i class="fa-solid fa-mug-hot" aria-hidden="true"></i>
+                Your usual tools, close at hand
+              </span>
             </div>
 
-            <div class="quick-launch-grid">
-              <button class="quick-action quick-action-message" type="button" data-tab-link="messages">
-                <span class="quick-action-number">01</span>
-                <span class="quick-action-icon"><i class="fa-solid fa-message" aria-hidden="true"></i></span>
-                <span class="quick-action-copy">
-                  <strong>Say something</strong>
-                  <small>Compose a polished Discord message</small>
+            <div class="home-action-list">
+              <button class="home-action" type="button" data-tab-link="messages">
+                <span class="home-action-icon"><i class="fa-solid fa-message" aria-hidden="true"></i></span>
+                <span class="home-action-copy">
+                  <strong>Write a message</strong>
+                  <small>Put together something thoughtful for Discord</small>
                 </span>
-                <i class="fa-solid fa-arrow-right quick-action-arrow" aria-hidden="true"></i>
+                <span class="home-action-room">Desk</span>
+                <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
               </button>
-              <button class="quick-action quick-action-live" type="button" data-tab-link="live-embed">
-                <span class="quick-action-number">02</span>
-                <span class="quick-action-icon live"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i></span>
-                <span class="quick-action-copy">
-                  <strong>Go on air</strong>
-                  <small>Shape the next stream announcement</small>
+              <button class="home-action" type="button" data-tab-link="live-embed">
+                <span class="home-action-icon"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i></span>
+                <span class="home-action-copy">
+                  <strong>Prepare the live announcement</strong>
+                  <small>Make the next stream feel worth showing up for</small>
                 </span>
-                <i class="fa-solid fa-arrow-right quick-action-arrow" aria-hidden="true"></i>
+                <span class="home-action-room">Studio</span>
+                <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
               </button>
-              <button class="quick-action quick-action-welcome" type="button" data-tab-link="welcome-embed">
-                <span class="quick-action-number">03</span>
-                <span class="quick-action-icon welcome"><i class="fa-solid fa-hand-sparkles" aria-hidden="true"></i></span>
-                <span class="quick-action-copy">
-                  <strong>Open the door</strong>
-                  <small>Design a warmer first hello</small>
+              <button class="home-action" type="button" data-tab-link="welcome-embed">
+                <span class="home-action-icon"><i class="fa-solid fa-hand-sparkles" aria-hidden="true"></i></span>
+                <span class="home-action-copy">
+                  <strong>Warm up the welcome</strong>
+                  <small>Give new members a lovely first hello</small>
                 </span>
-                <i class="fa-solid fa-arrow-right quick-action-arrow" aria-hidden="true"></i>
+                <span class="home-action-room">Front door</span>
+                <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
               </button>
-              <button class="quick-action quick-action-bean" type="button" data-tab-link="bot">
-                <span class="quick-action-number">04</span>
-                <span class="quick-action-icon bot"><i class="fa-solid fa-robot" aria-hidden="true"></i></span>
-                <span class="quick-action-copy">
-                  <strong>Tune Bean</strong>
-                  <small>Change the face and voice of the bot</small>
+              <button class="home-action" type="button" data-tab-link="bot">
+                <span class="home-action-icon"><i class="fa-solid fa-robot" aria-hidden="true"></i></span>
+                <span class="home-action-copy">
+                  <strong>Spend a moment with Bean</strong>
+                  <small>Change the bot's profile, presence, and voice</small>
                 </span>
-                <i class="fa-solid fa-arrow-right quick-action-arrow" aria-hidden="true"></i>
+                <span class="home-action-room">Bean's nook</span>
+                <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
               </button>
-              <button class="quick-action quick-action-voice" type="button" data-tab-link="voice-rooms">
-                <span class="quick-action-number">05</span>
-                <span class="quick-action-icon voice"><i class="fa-solid fa-mug-hot" aria-hidden="true"></i></span>
-                <span class="quick-action-copy">
-                  <strong>Enter the lounge</strong>
-                  <small>See who is talking and shape the voice rooms</small>
+              <button class="home-action" type="button" data-tab-link="voice-rooms">
+                <span class="home-action-icon"><i class="fa-solid fa-headphones" aria-hidden="true"></i></span>
+                <span class="home-action-copy">
+                  <strong>Visit the voice lounge</strong>
+                  <small>See who's around and manage temporary rooms</small>
                 </span>
-                <i class="fa-solid fa-arrow-right quick-action-arrow" aria-hidden="true"></i>
+                <span class="home-action-room">Lounge</span>
+                <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
               </button>
             </div>
           </section>
