@@ -164,6 +164,7 @@ async function handleRequest(client, request, response) {
       ok: true,
       botReady: client.isReady(),
       tag: client.user?.tag || null,
+      guildName: getDashboardGuildName(client),
     });
     return;
   }
@@ -191,7 +192,12 @@ async function handleRequest(client, request, response) {
     }
 
     if (request.method === 'GET' && url.pathname === '/api/session') {
-      sendJson(response, 200, { ok: true, botReady: client.isReady(), tag: client.user?.tag || null });
+      sendJson(response, 200, {
+        ok: true,
+        botReady: client.isReady(),
+        tag: client.user?.tag || null,
+        guildName: getDashboardGuildName(client),
+      });
       return;
     }
 
@@ -329,7 +335,13 @@ async function handleLogin(client, request, response) {
     maxAge: 7 * 24 * 60 * 60,
     secure: isSecureRequest(request),
   });
-  sendJson(response, 200, { ok: true, botReady: client.isReady(), tag: client.user?.tag || null, sessionToken });
+  sendJson(response, 200, {
+    ok: true,
+    botReady: client.isReady(),
+    tag: client.user?.tag || null,
+    guildName: getDashboardGuildName(client),
+    sessionToken,
+  });
 }
 
 async function handleClassicLogin(client, request, response) {
@@ -1134,6 +1146,7 @@ async function createBotState(client) {
   return {
     ok: true,
     botReady: client.isReady(),
+    guildName: getDashboardGuildName(client),
     id: user?.id || null,
     tag: user?.tag || null,
     username: user?.username || null,
@@ -1143,6 +1156,19 @@ async function createBotState(client) {
     presence: getPresenceState(),
     presenceStorage,
   };
+}
+
+function getDashboardGuildName(client) {
+  const guildCache = client.guilds?.cache;
+
+  if (!guildCache) {
+    return config.communityName;
+  }
+
+  const configuredGuild = config.guildId ? guildCache.get(config.guildId) : null;
+  const guild = configuredGuild || guildCache.first?.() || guildCache.values?.().next().value;
+
+  return guild?.name || config.communityName;
 }
 
 function normalizeBotImage(image, kind) {

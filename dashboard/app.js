@@ -9,6 +9,7 @@ const passwordInput = document.querySelector('#password');
 const logoutButton = document.querySelector('#logout');
 const botStatus = document.querySelector('#bot-status');
 const overviewBotStatus = document.querySelector('#overview-bot-status');
+const guildNameElements = [...document.querySelectorAll('[data-guild-name]')];
 const dashboardApiStatus = document.querySelector('#dashboard-api-status');
 const savedMessagesContainer = document.querySelector('#saved-messages');
 const savedMessageCount = document.querySelector('#saved-message-count');
@@ -202,6 +203,7 @@ const embedBuilderDefinitions = {
 };
 
 const state = {
+  guildName: 'UNDR CTRL',
   currentMessageId: null,
   image: null,
   botAvatarImage: null,
@@ -413,6 +415,7 @@ async function checkApiStatus() {
     const ping = await api('/api/ping');
     const botText = ping.botReady || health.botReady ? `Bot online${ping.tag ? `: ${ping.tag}` : ''}` : 'Bot not ready';
 
+    setGuildName(ping.guildName);
     setApiStatus(`API connected. ${botText}.`, 'success');
     dashboardApiStatus.textContent = 'Connected';
   } catch (error) {
@@ -469,6 +472,7 @@ function renderBotSettings(bot) {
     return;
   }
 
+  setGuildName(bot.guildName);
   setBotStatus(Boolean(bot.botReady), bot.tag);
   botProfileTag.textContent = bot.tag || 'Bot not ready';
   botProfileName.textContent = bot.username || bot.tag || 'Bean';
@@ -807,6 +811,7 @@ function showDashboard(session) {
   dashboardView.hidden = false;
   document.body.classList.remove('login-active');
   document.body.classList.add('dashboard-active');
+  setGuildName(session?.guildName);
   setBotStatus(Boolean(session?.botReady), session?.tag);
   setActiveTab(getActiveTab());
   renderSavedMessages();
@@ -826,6 +831,19 @@ function setBotStatus(isReady, tag) {
   overviewBotStatus.textContent = text;
   botStatus.classList.toggle('ready', isReady);
   botStatus.classList.toggle('offline', !isReady);
+}
+
+function setGuildName(guildName) {
+  const name = String(guildName || '').trim();
+
+  if (!name) {
+    return;
+  }
+
+  state.guildName = name;
+  guildNameElements.forEach((element) => {
+    element.textContent = name;
+  });
 }
 
 function getActiveTab() {
@@ -2881,7 +2899,7 @@ function replaceWelcomePreviewPlaceholders(template) {
     displayName: '5noof',
     username: '5noof',
     userId: '185282790969835520',
-    serverName: 'UNDR CTRL',
+    serverName: state.guildName,
     memberCount: '1,337',
     avatarUrl: 'https://cdn.discordapp.com/embed/avatars/0.png',
     createdAt: '14 March 2025',
@@ -3485,7 +3503,7 @@ function replaceLivePreviewPlaceholders(template) {
         ...sharedValues,
         username: '5noof',
         userId: '185282790969835520',
-        serverName: 'UNDR CTRL',
+        serverName: state.guildName,
         memberCount: '1,337',
         createdAt: '14 March 2025',
         joinedAt: 'Today',
