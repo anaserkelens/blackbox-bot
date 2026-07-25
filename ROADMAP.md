@@ -30,6 +30,6 @@
 - Case search, filtering, statistics, and member timelines
 - Audited reason corrections and case revocation
 - Join-to-create temporary voice rooms
-- Public and permission-gated private room options
+- Instant public rooms named after their creators
 - One-minute empty-room cleanup
 - Dashboard Voice Rooms configuration and active-room oversight

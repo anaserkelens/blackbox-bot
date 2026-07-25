@@ -135,13 +135,11 @@ The dashboard Cases tab provides staff-facing search and filters for case number
 
 ## Temporary Voice Rooms
 
-Members who join the create lobby (`TEMP_VOICE_TRIGGER_CHANNEL_ID`, default `1520514900978307226`) receive a DM from Bean with public and private room options. Their choice opens a Discord modal for the room name. Bean creates the voice channel under the lobby's category, gives its creator room-management permission, and moves them inside.
-
-Private rooms stay visible to the server while denying Connect to everyone by default. The room owner, administrators, and any member or role with an explicit Connect permission can join. Public rooms follow the category's normal access rules.
+When a member joins the create lobby (`TEMP_VOICE_TRIGGER_CHANNEL_ID`, default `1520514900978307226`), Bean immediately creates a public voice channel named `username's Room` under the lobby's category, gives its creator room-management permission, and moves them inside. There is no DM, button, or naming form.
 
 Bean needs Manage Channels, Manage Roles, Move Members, View Channels, Connect, and Speak in the lobby's server/category. The invite link above includes those permissions.
 
-Tracked rooms are deleted after they remain completely empty for one minute. Their IDs, owners, and privacy state are stored at `RAILWAY_VOLUME_MOUNT_PATH/temporary-voice.json` when a Railway volume is attached, or at `TEMP_VOICE_PATH` when overridden. The dashboard Voice Rooms tab can enable or pause creation, change the lobby, show active rooms and occupants, and delete a room immediately.
+Tracked rooms are deleted after they remain completely empty for one minute. Their IDs and owners are stored at `RAILWAY_VOLUME_MOUNT_PATH/temporary-voice.json` when a Railway volume is attached, or at `TEMP_VOICE_PATH` when overridden. The dashboard Voice Rooms tab can enable or pause creation, change the lobby, show active rooms and occupants, and delete a room immediately.
 
 Optional systems are controlled by environment variables. For example, tickets need `TICKET_CHANNEL_ID`, ticket logs need `TICKET_LOG_CHANNEL_ID`, and reaction roles need `REACTION_ROLE_MESSAGE_ID`, `REACTION_ROLE_EMOJI_ID`, and `VERIFIED_ROLE_ID`. See [.env.example](.env.example) for the full list.
 

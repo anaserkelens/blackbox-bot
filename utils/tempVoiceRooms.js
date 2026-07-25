@@ -1,19 +1,10 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
-const {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  ChannelType,
-  ModalBuilder,
-  TextInputBuilder,
-  TextInputStyle,
-} = require('discord.js');
+const { ChannelType } = require('discord.js');
 
 const defaultTempVoicePath = path.join(__dirname, '..', 'data', 'temporary-voice.json');
 const roomTimers = new Map();
-const promptCooldowns = new Map();
 const creationLocks = new Set();
 let cachedState = null;
 let stateQueue = Promise.resolve();
@@ -75,6 +66,24 @@ async function initializeTempVoiceRooms(client, config) {
       continue;
     }
 
+    if (room.private) {
+      const madePublic = await channel.permissionOverwrites
+        .edit(channel.guild.roles.everyone, {
+          ViewChannel: null,
+          Connect: null,
+        }, { reason: 'Temporary voice rooms are now public by default' })
+        .then(() => true)
+        .catch((error) => {
+          console.error(`Failed to make legacy temporary voice room ${channel.id} public:`, error);
+          return false;
+        });
+
+      if (madePublic) {
+        room.private = false;
+        changed = true;
+      }
+    }
+
     if (channel.members.size === 0) {
       scheduleRoomDeletion(client, config, room.channelId);
     }
@@ -99,7 +108,7 @@ async function handleTempVoiceStateUpdate(oldState, newState, client, config) {
     state.settings.enabled &&
     newState.channelId === state.settings.triggerChannelId
   ) {
-    await sendCreationPrompt(member, state.settings.triggerChannelId);
+    await createMemberRoom(member, newState.channel, config);
   }
 
   if (newState.channelId && isTrackedRoom(state, newState.channelId)) {
@@ -113,20 +122,6 @@ async function handleTempVoiceStateUpdate(oldState, newState, client, config) {
       scheduleRoomDeletion(client, config, oldState.channelId);
     }
   }
-}
-
-async function handleTempVoiceInteraction(interaction, client, config) {
-  if (interaction.isButton() && interaction.customId.startsWith('bean_voice_create:')) {
-    await handleCreateButton(interaction, client, config);
-    return true;
-  }
-
-  if (interaction.isModalSubmit() && interaction.customId.startsWith('bean_voice_modal:')) {
-    await handleRoomModal(interaction, client, config);
-    return true;
-  }
-
-  return false;
 }
 
 async function handleTrackedChannelDelete(channel, config) {
@@ -239,151 +234,32 @@ async function deleteTempVoiceRoom(client, config, channelId, reason = 'Deleted 
   return room;
 }
 
-async function sendCreationPrompt(member, triggerChannelId) {
-  const cooldownKey = `${member.guild.id}:${member.id}`;
-  const now = Date.now();
+async function createMemberRoom(member, trigger, config) {
+  const lockKey = `${member.guild.id}:${member.id}`;
 
-  if (now - (promptCooldowns.get(cooldownKey) || 0) < 15000) {
-    return;
-  }
-
-  promptCooldowns.set(cooldownKey, now);
-  const cooldownTimer = setTimeout(() => promptCooldowns.delete(cooldownKey), 15000);
-  cooldownTimer.unref?.();
-
-  const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`bean_voice_create:public:${member.guild.id}`)
-      .setLabel('Create public room')
-      .setEmoji('☕')
-      .setStyle(ButtonStyle.Primary),
-    new ButtonBuilder()
-      .setCustomId(`bean_voice_create:private:${member.guild.id}`)
-      .setLabel('Create private room')
-      .setEmoji('🔒')
-      .setStyle(ButtonStyle.Secondary),
-  );
-
-  await member.send({
-    content:
-      `You joined <#${triggerChannelId}>. Choose the kind of voice room you want, then Bean will ask for its name.\n` +
-      'Private rooms remain visible, but only you and members with permission can connect.',
-    components: [row],
-  }).catch((error) => {
-    console.warn(`Could not DM temporary voice controls to ${member.user.tag}:`, error.message);
-  });
-}
-
-async function handleCreateButton(interaction, client, config) {
-  const [, visibility, guildId] = interaction.customId.split(':');
-  const context = await getCreationContext(interaction.user.id, guildId, client, config);
-
-  if (!context.ok) {
-    await interaction.reply({ content: context.error });
-    return;
-  }
-
-  const modal = new ModalBuilder()
-    .setCustomId(`bean_voice_modal:${visibility}:${guildId}`)
-    .setTitle(visibility === 'private' ? 'Create a private room' : 'Create a public room');
-  const nameInput = new TextInputBuilder()
-    .setCustomId('room_name')
-    .setLabel('Voice channel name')
-    .setPlaceholder(`${interaction.user.globalName || interaction.user.username}'s room`)
-    .setMinLength(1)
-    .setMaxLength(100)
-    .setRequired(true)
-    .setStyle(TextInputStyle.Short);
-
-  modal.addComponents(new ActionRowBuilder().addComponents(nameInput));
-  await interaction.showModal(modal);
-}
-
-async function handleRoomModal(interaction, client, config) {
-  const [, visibility, guildId] = interaction.customId.split(':');
-  const context = await getCreationContext(interaction.user.id, guildId, client, config);
-
-  if (!context.ok) {
-    await interaction.reply({ content: context.error });
-    return;
-  }
-
-  const name = normalizeRoomName(interaction.fields.getTextInputValue('room_name'));
-
-  if (!name) {
-    await interaction.reply({ content: 'Please use a channel name with at least one visible character.' });
-    return;
-  }
-
-  const lockKey = `${guildId}:${interaction.user.id}`;
-
-  if (creationLocks.has(lockKey)) {
-    await interaction.reply({ content: 'Bean is already preparing a voice room for you.' });
-    return;
+  if (creationLocks.has(lockKey) || member.voice.channelId !== trigger?.id) {
+    return null;
   }
 
   creationLocks.add(lockKey);
 
   try {
-    await interaction.deferReply();
-    const room = await createRoom(client, config, {
-      guild: context.guild,
-      member: context.member,
-      trigger: context.trigger,
+    const username = member.user.username || member.user.globalName || member.displayName || 'Guest';
+    const name = normalizeRoomName(`${username}'s Room`) || "Guest's Room";
+
+    return await createRoom(config, {
+      guild: member.guild,
+      member,
+      trigger,
       name,
-      private: visibility === 'private',
     });
-
-    await interaction.editReply(
-      `${room.private ? '🔒 Private' : '☕ Public'} room created: <#${room.channelId}>. ` +
-      'Bean will remove it after it has been empty for one minute.',
-    );
-  } catch (error) {
-    console.error('Temporary voice room creation failed:', error);
-    const message = `I couldn't create that room: ${error.message}`;
-
-    if (interaction.deferred || interaction.replied) {
-      await interaction.editReply(message);
-    } else {
-      await interaction.reply({ content: message });
-    }
   } finally {
     creationLocks.delete(lockKey);
   }
 }
 
-async function getCreationContext(userId, guildId, client, config) {
-  const state = await loadState(config);
-
-  if (!state.settings.enabled) {
-    return { ok: false, error: 'Temporary voice rooms are disabled right now.' };
-  }
-
-  const resolvedGuild = client.guilds.cache.get(guildId)
-    || await client.guilds.fetch(guildId).catch(() => null);
-
-  if (!resolvedGuild) {
-    return { ok: false, error: 'Bean can no longer find that server.' };
-  }
-
-  const member = resolvedGuild.members.cache.get(userId)
-    || await resolvedGuild.members.fetch(userId).catch(() => null);
-  const trigger = resolvedGuild.channels.cache.get(state.settings.triggerChannelId)
-    || await resolvedGuild.channels.fetch(state.settings.triggerChannelId).catch(() => null);
-
-  if (!member || member.voice.channelId !== state.settings.triggerChannelId) {
-    return { ok: false, error: `Join <#${state.settings.triggerChannelId}> again before creating a room.` };
-  }
-
-  if (!trigger || trigger.type !== ChannelType.GuildVoice) {
-    return { ok: false, error: 'The temporary voice lobby is not available right now.' };
-  }
-
-  return { ok: true, guild: resolvedGuild, member, trigger };
-}
-
-async function createRoom(client, config, options) {
-  const { guild, member, trigger, name, private: isPrivate } = options;
+async function createRoom(config, options) {
+  const { guild, member, trigger, name } = options;
   let channel;
 
   try {
@@ -393,13 +269,6 @@ async function createRoom(client, config, options) {
       parent: trigger.parentId || undefined,
       reason: `Temporary voice room created for ${member.user.tag} (${member.id})`,
     });
-
-    if (isPrivate) {
-      await channel.permissionOverwrites.edit(guild.roles.everyone, {
-        ViewChannel: true,
-        Connect: false,
-      });
-    }
 
     await channel.permissionOverwrites.edit(member, {
       ViewChannel: true,
@@ -413,7 +282,7 @@ async function createRoom(client, config, options) {
       channelId: channel.id,
       guildId: guild.id,
       ownerId: member.id,
-      private: isPrivate,
+      private: false,
       createdAt: new Date().toISOString(),
     };
 
@@ -583,7 +452,6 @@ module.exports = {
   deleteTempVoiceRoom,
   getTempVoiceOverview,
   getTempVoiceStorageInfo,
-  handleTempVoiceInteraction,
   handleTempVoiceStateUpdate,
   handleTrackedChannelDelete,
   initializeTempVoiceRooms,

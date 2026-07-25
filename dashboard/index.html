@@ -550,7 +550,7 @@
               <div>
                 <p class="eyebrow">JOIN TO CREATE</p>
                 <h2>Voice Rooms</h2>
-                <span class="muted">A cozy corner members can name, open, or keep private.</span>
+                <span class="muted">A cozy corner appears the moment a member joins the create lobby.</span>
               </div>
               <div class="toolbar-actions">
                 <span id="voice-room-status" class="status-pill">Checking rooms</span>
@@ -574,9 +574,9 @@
               <strong id="voice-member-count">0</strong>
             </section>
             <section class="metric-panel voice-metric">
-              <span class="voice-metric-icon"><i class="fa-solid fa-lock" aria-hidden="true"></i></span>
-              <p class="metric-label">Private Rooms</p>
-              <strong id="voice-private-count">0</strong>
+              <span class="voice-metric-icon"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i></span>
+              <p class="metric-label">Room Creation</p>
+              <strong>Instant</strong>
             </section>
             <section class="metric-panel voice-metric">
               <span class="voice-metric-icon"><i class="fa-solid fa-clock" aria-hidden="true"></i></span>
@@ -599,7 +599,7 @@
                 <input id="voice-room-enabled" type="checkbox" />
                 <span>Enable temporary voice rooms</span>
               </label>
-              <span class="muted">Members joining the lobby receive Bean's public/private room controls in a DM.</span>
+              <span class="muted">Bean instantly creates a public room named after the member and moves them inside.</span>
 
               <label class="field voice-trigger-field">
                 Create lobby channel ID
@@ -626,22 +626,22 @@
               <ol class="voice-step-list">
                 <li>
                   <span>1</span>
-                  <div><strong>Join the lobby</strong><small>Bean notices the member.</small></div>
+                  <div><strong>Join the lobby</strong><small>Bean notices the member instantly.</small></div>
                 </li>
                 <li>
                   <span>2</span>
-                  <div><strong>Pick public or private</strong><small>A DM button opens the naming form.</small></div>
+                  <div><strong>Room appears</strong><small>Bean creates “username's Room”.</small></div>
                 </li>
                 <li>
                   <span>3</span>
-                  <div><strong>Settle in</strong><small>Bean creates the room and moves them in.</small></div>
+                  <div><strong>Settle in</strong><small>Bean moves the member straight inside.</small></div>
                 </li>
               </ol>
               <div class="voice-privacy-card">
-                <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                <i class="fa-solid fa-door-open" aria-hidden="true"></i>
                 <div>
-                  <strong>Private, not hidden</strong>
-                  <p>Everyone can see private rooms. Only the owner and members they permit can connect.</p>
+                  <strong>Public by default</strong>
+                  <p>Friends can see and join every automatically created room right away.</p>
                 </div>
               </div>
             </section>

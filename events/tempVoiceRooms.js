@@ -3,7 +3,6 @@ const { Events } = require('discord.js');
 const { config } = require('../utils/config');
 const {
   getTempVoiceStorageInfo,
-  handleTempVoiceInteraction,
   handleTempVoiceStateUpdate,
   handleTrackedChannelDelete,
   initializeTempVoiceRooms,
@@ -15,20 +14,6 @@ module.exports = {
     client.on(Events.VoiceStateUpdate, (oldState, newState) => {
       handleTempVoiceStateUpdate(oldState, newState, client, config).catch((error) => {
         console.error('Temporary voice state handling failed:', error);
-      });
-    });
-
-    client.on(Events.InteractionCreate, (interaction) => {
-      handleTempVoiceInteraction(interaction, client, config).catch((error) => {
-        console.error('Temporary voice interaction failed:', error);
-
-        const response = { content: 'Something went wrong while opening that voice room.' };
-
-        if (interaction.replied || interaction.deferred) {
-          interaction.followUp(response).catch(() => null);
-        } else if (interaction.isRepliable()) {
-          interaction.reply(response).catch(() => null);
-        }
       });
     });
 

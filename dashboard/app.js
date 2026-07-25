@@ -45,7 +45,6 @@ const voiceRoomStorageStatus = document.querySelector('#voice-room-storage-statu
 const refreshVoiceRoomsButton = document.querySelector('#refresh-voice-rooms');
 const voiceRoomCount = document.querySelector('#voice-room-count');
 const voiceMemberCount = document.querySelector('#voice-member-count');
-const voicePrivateCount = document.querySelector('#voice-private-count');
 const voiceRoomSettingsForm = document.querySelector('#voice-room-settings-form');
 const voiceRoomEnabledInput = document.querySelector('#voice-room-enabled');
 const voiceRoomTriggerIdInput = document.querySelector('#voice-room-trigger-id');
@@ -1182,7 +1181,6 @@ function renderVoiceRooms() {
   voiceRoomTriggerIdInput.value = settings.triggerChannelId || '';
   voiceRoomCount.textContent = Number(totals.rooms || 0).toLocaleString();
   voiceMemberCount.textContent = Number(totals.members || 0).toLocaleString();
-  voicePrivateCount.textContent = Number(totals.privateRooms || 0).toLocaleString();
 
   voiceRoomStatus.classList.remove('ready', 'offline');
   voiceRoomStatus.textContent = settings.enabled === false ? 'Rooms paused' : 'Ready for guests';
