@@ -42,12 +42,30 @@
 
       <section id="dashboard-view" class="dashboard" hidden>
         <header class="topbar">
-          <div class="brand-lockup">
-            <img class="bean-mark" src="/assets/bean-icon.png" alt="" />
-            <div>
-              <p class="eyebrow" data-guild-name>UNDR CTRL</p>
-              <h1>Bean Dashboard</h1>
-              <p class="topbar-note">Your community, tucked into one cozy corner.</p>
+          <div class="topbar-orbit orbit-one" aria-hidden="true"></div>
+          <div class="topbar-orbit orbit-two" aria-hidden="true"></div>
+
+          <div class="topbar-utility">
+            <div class="brand-lockup">
+              <span class="bean-mark-wrap">
+                <img class="bean-mark" src="/assets/bean-icon.png" alt="" />
+              </span>
+              <div>
+                <p class="eyebrow" data-guild-name>UNDR CTRL</p>
+                <p class="brand-subtitle">Community operating room</p>
+              </div>
+            </div>
+
+            <div class="status-cluster">
+              <div class="shift-clock" aria-label="Local dashboard time">
+                <span id="dashboard-daypart">On shift</span>
+                <strong id="dashboard-clock">--:--</strong>
+              </div>
+              <span id="bot-status" class="status-pill">Checking</span>
+              <button id="logout" class="secondary topbar-logout" type="button">
+                <span>Exit</span>
+                <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
+              </button>
             </div>
           </div>
 
