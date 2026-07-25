@@ -256,6 +256,7 @@ init();
 
 async function init() {
   bindEvents();
+  bindPlayfulInteractions();
   renderSavedMessages();
 
   checkApiStatus();
@@ -268,6 +269,58 @@ async function init() {
     clearSessionToken();
     showLogin();
   }
+}
+
+function bindPlayfulInteractions() {
+  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    return;
+  }
+
+  const topbar = document.querySelector('.topbar');
+
+  topbar?.addEventListener('pointermove', (event) => {
+    const bounds = topbar.getBoundingClientRect();
+    const x = ((event.clientX - bounds.left) / bounds.width) * 100;
+    const y = ((event.clientY - bounds.top) / bounds.height) * 100;
+
+    topbar.style.setProperty('--pointer-x', `${x}%`);
+    topbar.style.setProperty('--pointer-y', `${y}%`);
+  });
+
+  topbar?.addEventListener('pointerleave', () => {
+    topbar.style.removeProperty('--pointer-x');
+    topbar.style.removeProperty('--pointer-y');
+  });
+
+  dashboardView.addEventListener('pointermove', (event) => {
+    const card = event.target.closest('.playful-card');
+
+    if (!card) {
+      return;
+    }
+
+    const bounds = card.getBoundingClientRect();
+    const horizontal = (event.clientX - bounds.left) / bounds.width - 0.5;
+    const vertical = (event.clientY - bounds.top) / bounds.height - 0.5;
+
+    card.style.setProperty('--tilt-x', `${vertical * -3.5}deg`);
+    card.style.setProperty('--tilt-y', `${horizontal * 3.5}deg`);
+    card.style.setProperty('--glow-x', `${(horizontal + 0.5) * 100}%`);
+    card.style.setProperty('--glow-y', `${(vertical + 0.5) * 100}%`);
+  });
+
+  dashboardView.addEventListener('pointerout', (event) => {
+    const card = event.target.closest('.playful-card');
+
+    if (!card || card.contains(event.relatedTarget)) {
+      return;
+    }
+
+    card.style.removeProperty('--tilt-x');
+    card.style.removeProperty('--tilt-y');
+    card.style.removeProperty('--glow-x');
+    card.style.removeProperty('--glow-y');
+  });
 }
 
 function bindEvents() {
