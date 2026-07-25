@@ -8,6 +8,8 @@ const apiStatus = document.querySelector('#api-status');
 const passwordInput = document.querySelector('#password');
 const logoutButton = document.querySelector('#logout');
 const botStatus = document.querySelector('#bot-status');
+const dashboardClock = document.querySelector('#dashboard-clock');
+const dashboardDaypart = document.querySelector('#dashboard-daypart');
 const overviewBotStatus = document.querySelector('#overview-bot-status');
 const overviewOpenCases = document.querySelector('#overview-open-cases');
 const healthStatus = document.querySelector('#health-status');
@@ -299,6 +301,7 @@ const state = {
   savedMessagesRefreshTimer: null,
   savedMessagesRequest: null,
   voiceRoomsRefreshTimer: null,
+  interfaceClockTimer: null,
 };
 
 const welcomeStarter = `# WELCOME TO UNDR CTRL
@@ -1341,6 +1344,7 @@ function showLogin() {
   loginView.hidden = false;
   document.body.classList.add('login-active');
   document.body.classList.remove('dashboard-active');
+  stopInterfaceClock();
 
   if (new URLSearchParams(window.location.search).get('loginError') === 'invalid') {
     loginError.textContent = 'Invalid dashboard password.';
@@ -1355,6 +1359,7 @@ function showDashboard(session) {
   dashboardView.hidden = false;
   document.body.classList.remove('login-active');
   document.body.classList.add('dashboard-active');
+  startInterfaceClock();
   setGuildName(session?.guildName);
   setBotStatus(Boolean(session?.botReady), session?.tag);
   setActiveTab(getActiveTab());
@@ -1381,6 +1386,41 @@ function setBotStatus(isReady, tag) {
   overviewBotStatus.textContent = text;
   botStatus.classList.toggle('ready', isReady);
   botStatus.classList.toggle('offline', !isReady);
+}
+
+function startInterfaceClock() {
+  updateInterfaceClock();
+
+  if (!state.interfaceClockTimer) {
+    state.interfaceClockTimer = window.setInterval(updateInterfaceClock, 30_000);
+  }
+}
+
+function stopInterfaceClock() {
+  if (!state.interfaceClockTimer) {
+    return;
+  }
+
+  window.clearInterval(state.interfaceClockTimer);
+  state.interfaceClockTimer = null;
+}
+
+function updateInterfaceClock() {
+  const now = new Date();
+  const hour = now.getHours();
+  const daypart = hour < 5
+    ? 'Late shift'
+    : hour < 12
+      ? 'Morning shift'
+      : hour < 18
+        ? 'Afternoon shift'
+        : 'Evening shift';
+
+  dashboardDaypart.textContent = daypart;
+  dashboardClock.textContent = new Intl.DateTimeFormat(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(now);
 }
 
 async function loadDashboardHealth(showNotification = false) {
@@ -2121,8 +2161,13 @@ function getActiveTab() {
 function setActiveTab(tab) {
   const nextTab = tabButtons.some((button) => button.dataset.tab === tab) ? tab : 'overview';
 
+  dashboardView.dataset.activeTab = nextTab;
+
   for (const button of tabButtons) {
-    button.setAttribute('aria-selected', String(button.dataset.tab === nextTab));
+    const isSelected = button.dataset.tab === nextTab;
+
+    button.setAttribute('aria-selected', String(isSelected));
+    button.toggleAttribute('aria-current', isSelected);
   }
 
   for (const panel of tabPanels) {

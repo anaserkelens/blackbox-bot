@@ -50,139 +50,167 @@
               <p class="topbar-note">Your community, tucked into one cozy corner.</p>
             </div>
           </div>
-          <div class="status-cluster">
-            <span id="bot-status" class="status-pill">Checking</span>
-            <button id="logout" class="secondary" type="button">Log out</button>
+
+          <div class="topbar-story">
+            <div>
+              <p class="topbar-index">BEAN / CTRL-01</p>
+              <h1>Keep the room<br /><em>in motion.</em></h1>
+            </div>
+            <p class="topbar-note">
+              One living surface for the people, messages, and moments that shape your community.
+            </p>
           </div>
         </header>
 
         <div class="dashboard-layout">
-          <nav class="dashboard-tabs" aria-label="Dashboard tabs">
+          <nav class="dashboard-tabs" aria-label="Dashboard spaces">
             <div class="nav-intro" aria-hidden="true">
-              <span>Bean's nook</span>
-              <small>Pick a corner</small>
+              <span>Spaces</span>
+              <small>Move through Bean</small>
             </div>
             <button class="tab-button" type="button" data-tab="overview" aria-selected="true">
               <i class="fa-solid fa-house" aria-hidden="true"></i>
-              Overview
+              <span class="tab-label">Room</span>
             </button>
             <button class="tab-button" type="button" data-tab="mailbox" aria-selected="false">
               <i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i>
-              Mailbox
+              <span class="tab-label">Mailbox</span>
             </button>
             <button class="tab-button" type="button" data-tab="messages" aria-selected="false">
               <i class="fa-solid fa-message" aria-hidden="true"></i>
-              Messages
+              <span class="tab-label">Messages</span>
             </button>
             <button class="tab-button" type="button" data-tab="cases" aria-selected="false">
               <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
-              Cases
+              <span class="tab-label">Cases</span>
             </button>
             <button class="tab-button" type="button" data-tab="members" aria-selected="false">
               <i class="fa-solid fa-address-card" aria-hidden="true"></i>
-              Members
+              <span class="tab-label">Members</span>
             </button>
             <button class="tab-button" type="button" data-tab="analytics" aria-selected="false">
               <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
-              Analytics
+              <span class="tab-label">Signals</span>
             </button>
             <button class="tab-button" type="button" data-tab="voice-rooms" aria-selected="false">
               <i class="fa-solid fa-mug-hot" aria-hidden="true"></i>
-              Voice Rooms
+              <span class="tab-label">Voice</span>
             </button>
             <button class="tab-button" type="button" data-tab="live-embed" aria-selected="false">
               <i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
-              Live Embed
+              <span class="tab-label">Live</span>
             </button>
             <button class="tab-button" type="button" data-tab="welcome-embed" aria-selected="false">
               <i class="fa-solid fa-hand-sparkles" aria-hidden="true"></i>
-              Welcome Message
+              <span class="tab-label">Welcome</span>
             </button>
             <button class="tab-button" type="button" data-tab="bot" aria-selected="false">
               <i class="fa-solid fa-robot" aria-hidden="true"></i>
-              Bot
+              <span class="tab-label">Bean</span>
             </button>
             <button class="tab-button" type="button" data-tab="settings" aria-selected="false">
               <i class="fa-solid fa-gear" aria-hidden="true"></i>
-              Settings
+              <span class="tab-label">Settings</span>
             </button>
           </nav>
 
           <div class="dashboard-content">
             <section class="tab-panel" data-panel="overview">
-          <div class="metric-grid">
-            <section class="metric-panel playful-card">
-              <div class="metric-heading">
-                <span class="metric-icon" aria-hidden="true"><i class="fa-solid fa-robot"></i></span>
-                <p class="metric-label">Bot</p>
+          <section class="experience-stage" aria-labelledby="room-heading">
+            <div class="stage-copy">
+              <p class="stage-kicker"><span></span> The room right now</p>
+              <h2 id="room-heading">Everything is<br /><em>under control.</em></h2>
+              <p class="stage-description">
+                Bean is holding the door. Shape the next moment, check the pulse, or simply watch the room move.
+              </p>
+              <div class="stage-actions">
+                <button type="button" data-tab-link="messages">
+                  Make a message
+                  <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
+                </button>
+                <button class="stage-action-quiet" type="button" data-tab-link="members">
+                  Find someone
+                </button>
               </div>
-              <strong id="overview-bot-status">Checking</strong>
-              <span class="metric-hint">Discord connection</span>
-            </section>
-            <section class="metric-panel playful-card">
-              <div class="metric-heading">
-                <span class="metric-icon warm" aria-hidden="true"><i class="fa-solid fa-people-group"></i></span>
-                <p class="metric-label">Guild</p>
-              </div>
-              <strong data-guild-name>UNDR CTRL</strong>
-              <span class="metric-hint">Your shared corner</span>
-            </section>
-            <section class="metric-panel playful-card">
-              <div class="metric-heading">
-                <span class="metric-icon sage" aria-hidden="true"><i class="fa-solid fa-folder-open"></i></span>
-                <p class="metric-label">Open Cases</p>
-              </div>
-              <strong id="overview-open-cases">Checking</strong>
-              <span class="metric-hint">Active moderation records</span>
-            </section>
-          </div>
-
-          <section class="dashboard-panel quick-launch-panel">
-            <div class="section-heading">
-              <div>
-                <p class="eyebrow">Quick launch</p>
-                <h2>What are we making today?</h2>
-              </div>
-              <span class="section-kicker"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Ready when you are</span>
             </div>
+
+            <div class="bean-signal" aria-hidden="true">
+              <div class="signal-ring signal-ring-one"></div>
+              <div class="signal-ring signal-ring-two"></div>
+              <div class="signal-orbit-dot"></div>
+              <div class="signal-core">
+                <img src="/assets/bean-icon.png" alt="" />
+              </div>
+              <span class="signal-caption signal-caption-top">LISTENING</span>
+              <span class="signal-caption signal-caption-bottom">BEAN / LIVE</span>
+            </div>
+
+            <div class="stage-metrics">
+              <div class="stage-metric">
+                <span>01 / CONNECTION</span>
+                <strong id="overview-bot-status">Checking</strong>
+              </div>
+              <div class="stage-metric">
+                <span>02 / COMMUNITY</span>
+                <strong data-guild-name>UNDR CTRL</strong>
+              </div>
+              <div class="stage-metric">
+                <span>03 / OPEN CASES</span>
+                <strong id="overview-open-cases">Checking</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="journey-section">
+            <div class="journey-heading">
+              <p class="eyebrow">Choose a doorway</p>
+              <h2>Where do you want to take the room?</h2>
+              <p>Jump straight into the work that changes what people see, hear, and feel.</p>
+            </div>
+
             <div class="quick-launch-grid">
-              <button class="quick-action playful-card" type="button" data-tab-link="messages">
+              <button class="quick-action quick-action-message" type="button" data-tab-link="messages">
+                <span class="quick-action-number">01</span>
                 <span class="quick-action-icon"><i class="fa-solid fa-message" aria-hidden="true"></i></span>
                 <span class="quick-action-copy">
-                  <strong>Compose a message</strong>
-                  <small>Build a polished Discord post</small>
+                  <strong>Say something</strong>
+                  <small>Compose a polished Discord message</small>
                 </span>
                 <i class="fa-solid fa-arrow-right quick-action-arrow" aria-hidden="true"></i>
               </button>
-              <button class="quick-action playful-card" type="button" data-tab-link="live-embed">
+              <button class="quick-action quick-action-live" type="button" data-tab-link="live-embed">
+                <span class="quick-action-number">02</span>
                 <span class="quick-action-icon live"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i></span>
                 <span class="quick-action-copy">
-                  <strong>Shape the live embed</strong>
-                  <small>Make stream announcements shine</small>
+                  <strong>Go on air</strong>
+                  <small>Shape the next stream announcement</small>
                 </span>
                 <i class="fa-solid fa-arrow-right quick-action-arrow" aria-hidden="true"></i>
               </button>
-              <button class="quick-action playful-card" type="button" data-tab-link="welcome-embed">
+              <button class="quick-action quick-action-welcome" type="button" data-tab-link="welcome-embed">
+                <span class="quick-action-number">03</span>
                 <span class="quick-action-icon welcome"><i class="fa-solid fa-hand-sparkles" aria-hidden="true"></i></span>
                 <span class="quick-action-copy">
-                  <strong>Warm up the welcome</strong>
-                  <small>Greet new members with personality</small>
+                  <strong>Open the door</strong>
+                  <small>Design a warmer first hello</small>
                 </span>
                 <i class="fa-solid fa-arrow-right quick-action-arrow" aria-hidden="true"></i>
               </button>
-              <button class="quick-action playful-card" type="button" data-tab-link="bot">
+              <button class="quick-action quick-action-bean" type="button" data-tab-link="bot">
+                <span class="quick-action-number">04</span>
                 <span class="quick-action-icon bot"><i class="fa-solid fa-robot" aria-hidden="true"></i></span>
                 <span class="quick-action-copy">
                   <strong>Tune Bean</strong>
-                  <small>Update profile and presence</small>
+                  <small>Change the face and voice of the bot</small>
                 </span>
                 <i class="fa-solid fa-arrow-right quick-action-arrow" aria-hidden="true"></i>
               </button>
-              <button class="quick-action playful-card voice-quick-action" type="button" data-tab-link="voice-rooms">
+              <button class="quick-action quick-action-voice" type="button" data-tab-link="voice-rooms">
+                <span class="quick-action-number">05</span>
                 <span class="quick-action-icon voice"><i class="fa-solid fa-mug-hot" aria-hidden="true"></i></span>
                 <span class="quick-action-copy">
-                  <strong>Open the voice lounge</strong>
-                  <small>Manage join-to-create rooms and see who's hanging out</small>
+                  <strong>Enter the lounge</strong>
+                  <small>See who is talking and shape the voice rooms</small>
                 </span>
                 <i class="fa-solid fa-arrow-right quick-action-arrow" aria-hidden="true"></i>
               </button>
