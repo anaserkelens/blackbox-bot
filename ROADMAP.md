@@ -29,7 +29,7 @@
 - Dashboard Cases workspace
 - Case search, filtering, statistics, and member timelines
 - Audited reason corrections and case revocation
-- Persistent member XP and Level accounts
-- Components V2 profile cards, mission board, and leaderboard
-- Automatic Discord, voice, game, stream, and fireteam mission tracking
-- Dashboard Progression configuration and member oversight
+- Join-to-create temporary voice rooms
+- Public and permission-gated private room options
+- One-minute empty-room cleanup
+- Dashboard Voice Rooms configuration and active-room oversight

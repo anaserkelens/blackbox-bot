@@ -9,6 +9,7 @@ const passwordInput = document.querySelector('#password');
 const logoutButton = document.querySelector('#logout');
 const botStatus = document.querySelector('#bot-status');
 const overviewBotStatus = document.querySelector('#overview-bot-status');
+const overviewOpenCases = document.querySelector('#overview-open-cases');
 const guildNameElements = [...document.querySelectorAll('[data-guild-name]')];
 const dashboardApiStatus = document.querySelector('#dashboard-api-status');
 const savedMessagesContainer = document.querySelector('#saved-messages');
@@ -39,40 +40,18 @@ const saveCaseReasonButton = document.querySelector('#save-case-reason');
 const caseRevokeForm = document.querySelector('#case-revoke-form');
 const caseRevokeReason = document.querySelector('#case-revoke-reason');
 const revokeCaseButton = document.querySelector('#revoke-case');
-const progressionStorageStatus = document.querySelector('#progression-storage-status');
-const refreshProgressionButton = document.querySelector('#refresh-progression');
-const progressionProfileCount = document.querySelector('#progression-profile-count');
-const progressionXpTotal = document.querySelector('#progression-xp-total');
-const progressionCompletionTotal = document.querySelector('#progression-completion-total');
-const progressionActiveCount = document.querySelector('#progression-active-count');
-const progressionSettingsForm = document.querySelector('#progression-settings-form');
-const progressionIntentStatus = document.querySelector('#progression-intent-status');
-const progressionEnabledInput = document.querySelector('#progression-enabled');
-const progressionVoiceParticipantsInput = document.querySelector('#progression-voice-participants');
-const progressionMessageCooldownInput = document.querySelector('#progression-message-cooldown');
-const progressionMessageLengthInput = document.querySelector('#progression-message-length');
-const progressionWelcomeWindowInput = document.querySelector('#progression-welcome-window');
-const progressionExcludeAfkInput = document.querySelector('#progression-exclude-afk');
-const progressionExcludeDeafenedInput = document.querySelector('#progression-exclude-deafened');
-const saveProgressionSettingsButton = document.querySelector('#save-progression-settings');
-const progressionProfileSearch = document.querySelector('#progression-profile-search');
-const progressionProfileList = document.querySelector('#progression-profile-list');
-const progressionMissionCount = document.querySelector('#progression-mission-count');
-const progressionMissionList = document.querySelector('#progression-mission-list');
-const newProgressionMissionButton = document.querySelector('#new-progression-mission');
-const progressionMissionForm = document.querySelector('#progression-mission-form');
-const progressionMissionMode = document.querySelector('#progression-mission-mode');
-const deleteProgressionMissionButton = document.querySelector('#delete-progression-mission');
-const progressionMissionNameInput = document.querySelector('#progression-mission-name');
-const progressionMissionDescriptionInput = document.querySelector('#progression-mission-description');
-const progressionMissionMetricInput = document.querySelector('#progression-mission-metric');
-const progressionMissionCadenceInput = document.querySelector('#progression-mission-cadence');
-const progressionMissionTargetInput = document.querySelector('#progression-mission-target');
-const progressionMissionXpInput = document.querySelector('#progression-mission-xp');
-const progressionSpecificGameField = document.querySelector('#progression-specific-game-field');
-const progressionMissionGameInput = document.querySelector('#progression-mission-game');
-const progressionMissionEnabledInput = document.querySelector('#progression-mission-enabled');
-const saveProgressionMissionButton = document.querySelector('#save-progression-mission');
+const voiceRoomStatus = document.querySelector('#voice-room-status');
+const voiceRoomStorageStatus = document.querySelector('#voice-room-storage-status');
+const refreshVoiceRoomsButton = document.querySelector('#refresh-voice-rooms');
+const voiceRoomCount = document.querySelector('#voice-room-count');
+const voiceMemberCount = document.querySelector('#voice-member-count');
+const voicePrivateCount = document.querySelector('#voice-private-count');
+const voiceRoomSettingsForm = document.querySelector('#voice-room-settings-form');
+const voiceRoomEnabledInput = document.querySelector('#voice-room-enabled');
+const voiceRoomTriggerIdInput = document.querySelector('#voice-room-trigger-id');
+const saveVoiceRoomSettingsButton = document.querySelector('#save-voice-room-settings');
+const voiceRoomListCount = document.querySelector('#voice-room-list-count');
+const voiceRoomList = document.querySelector('#voice-room-list');
 const tabButtons = [...document.querySelectorAll('.tab-button')];
 const tabLinks = [...document.querySelectorAll('[data-tab-link]')];
 const tabPanels = [...document.querySelectorAll('.tab-panel')];
@@ -126,6 +105,24 @@ const previewImage = document.querySelector('#preview-image');
 const previewSections = document.querySelector('#preview-sections');
 const previewButtons = document.querySelector('#preview-buttons');
 const sectionCount = document.querySelector('#section-count');
+const mailboxForm = document.querySelector('#mailbox-form');
+const mailboxTypeInput = document.querySelector('#mailbox-type');
+const mailboxTitleInput = document.querySelector('#mailbox-title');
+const mailboxBodyInput = document.querySelector('#mailbox-body');
+const mailboxNoteInput = document.querySelector('#mailbox-note');
+const mailboxColorPicker = document.querySelector('#mailbox-color-picker');
+const mailboxColorInput = document.querySelector('#mailbox-color');
+const mailboxImageInput = document.querySelector('#mailbox-image-file');
+const mailboxAllowMentionsInput = document.querySelector('#mailbox-allow-mentions');
+const mailboxButtonsContainer = document.querySelector('#mailbox-buttons');
+const addMailboxButton = document.querySelector('#add-mailbox-button');
+const resetMailboxButton = document.querySelector('#reset-mailbox');
+const sendMailboxButton = document.querySelector('#send-mailbox');
+const mailboxDiscordPreview = document.querySelector('#mailbox-discord-preview');
+const mailboxPreviewImage = document.querySelector('#mailbox-preview-image');
+const mailboxPreviewSections = document.querySelector('#mailbox-preview-sections');
+const mailboxPreviewButtons = document.querySelector('#mailbox-preview-buttons');
+const mailboxPreviewType = document.querySelector('#mailbox-preview-type');
 const welcomeMessageForm = document.querySelector('#welcome-message-form');
 const welcomeMessageStorageStatus = document.querySelector('#welcome-message-storage-status');
 const refreshWelcomeMessageButton = document.querySelector('#refresh-welcome-message');
@@ -206,21 +203,18 @@ const state = {
   guildName: 'UNDR CTRL',
   currentMessageId: null,
   image: null,
+  mailboxImage: null,
   botAvatarImage: null,
   botBannerImage: null,
   savedMessages: [],
   moderationCases: [],
   moderationCaseStorage: null,
   selectedCaseNumber: null,
-  progression: {
+  voiceRooms: {
     settings: null,
-    challenges: [],
-    profiles: [],
-    metrics: [],
-    cadences: [],
+    channels: [],
+    totals: null,
     storage: null,
-    tracking: null,
-    selectedMissionId: null,
   },
   composerInitialized: false,
   welcomeImage: null,
@@ -234,6 +228,7 @@ const state = {
   presenceRestoreAttempted: false,
   savedMessagesRefreshTimer: null,
   savedMessagesRequest: null,
+  voiceRoomsRefreshTimer: null,
 };
 
 const welcomeStarter = `# WELCOME TO UNDR CTRL
@@ -256,7 +251,7 @@ init();
 
 async function init() {
   bindEvents();
-  bindPlayfulInteractions();
+  resetMailboxBuilder();
   renderSavedMessages();
 
   checkApiStatus();
@@ -269,58 +264,6 @@ async function init() {
     clearSessionToken();
     showLogin();
   }
-}
-
-function bindPlayfulInteractions() {
-  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
-    return;
-  }
-
-  const topbar = document.querySelector('.topbar');
-
-  topbar?.addEventListener('pointermove', (event) => {
-    const bounds = topbar.getBoundingClientRect();
-    const x = ((event.clientX - bounds.left) / bounds.width) * 100;
-    const y = ((event.clientY - bounds.top) / bounds.height) * 100;
-
-    topbar.style.setProperty('--pointer-x', `${x}%`);
-    topbar.style.setProperty('--pointer-y', `${y}%`);
-  });
-
-  topbar?.addEventListener('pointerleave', () => {
-    topbar.style.removeProperty('--pointer-x');
-    topbar.style.removeProperty('--pointer-y');
-  });
-
-  dashboardView.addEventListener('pointermove', (event) => {
-    const card = event.target.closest('.playful-card');
-
-    if (!card) {
-      return;
-    }
-
-    const bounds = card.getBoundingClientRect();
-    const horizontal = (event.clientX - bounds.left) / bounds.width - 0.5;
-    const vertical = (event.clientY - bounds.top) / bounds.height - 0.5;
-
-    card.style.setProperty('--tilt-x', `${vertical * -3.5}deg`);
-    card.style.setProperty('--tilt-y', `${horizontal * 3.5}deg`);
-    card.style.setProperty('--glow-x', `${(horizontal + 0.5) * 100}%`);
-    card.style.setProperty('--glow-y', `${(vertical + 0.5) * 100}%`);
-  });
-
-  dashboardView.addEventListener('pointerout', (event) => {
-    const card = event.target.closest('.playful-card');
-
-    if (!card || card.contains(event.relatedTarget)) {
-      return;
-    }
-
-    card.style.removeProperty('--tilt-x');
-    card.style.removeProperty('--tilt-y');
-    card.style.removeProperty('--glow-x');
-    card.style.removeProperty('--glow-y');
-  });
 }
 
 function bindEvents() {
@@ -355,16 +298,11 @@ function bindEvents() {
   caseList.addEventListener('click', handleCaseListClick);
   caseReasonForm.addEventListener('submit', handleCaseReasonSave);
   caseRevokeForm.addEventListener('submit', handleCaseRevocation);
-  refreshProgressionButton.addEventListener('click', () => {
-    loadProgressionDashboard(true).catch((error) => setSendStatus(error.message, 'error'));
+  refreshVoiceRoomsButton.addEventListener('click', () => {
+    loadVoiceRooms(true).catch((error) => setSendStatus(error.message, 'error'));
   });
-  progressionSettingsForm.addEventListener('submit', handleProgressionSettingsSave);
-  progressionProfileSearch.addEventListener('input', renderProgressionProfiles);
-  progressionMissionList.addEventListener('click', handleProgressionMissionListClick);
-  newProgressionMissionButton.addEventListener('click', resetProgressionMissionEditor);
-  progressionMissionForm.addEventListener('submit', handleProgressionMissionSave);
-  deleteProgressionMissionButton.addEventListener('click', handleProgressionMissionDelete);
-  progressionMissionMetricInput.addEventListener('change', updateProgressionGameField);
+  voiceRoomSettingsForm.addEventListener('submit', handleVoiceRoomSettingsSave);
+  voiceRoomList.addEventListener('click', handleVoiceRoomListClick);
   imageInput.addEventListener('change', handleImageChange);
   addSectionButton.addEventListener('click', () => addSection(''));
   addDividerButton.addEventListener('click', () => addDivider('small'));
@@ -383,6 +321,15 @@ function bindEvents() {
   sectionsContainer.addEventListener('input', updatePreview);
   sectionsContainer.addEventListener('change', updatePreview);
   buttonsContainer.addEventListener('input', updatePreview);
+  mailboxForm.addEventListener('submit', handleMailboxSend);
+  mailboxForm.addEventListener('input', updateMailboxPreview);
+  mailboxForm.addEventListener('change', updateMailboxPreview);
+  mailboxImageInput.addEventListener('change', handleMailboxImageChange);
+  mailboxColorPicker.addEventListener('input', handleMailboxColorPickerInput);
+  mailboxColorInput.addEventListener('input', handleMailboxColorInput);
+  addMailboxButton.addEventListener('click', () => addMailboxLinkButton({}, true));
+  resetMailboxButton.addEventListener('click', resetMailboxBuilder);
+  mailboxButtonsContainer.addEventListener('input', updateMailboxPreview);
   welcomeMessageForm.addEventListener('submit', handleSaveWelcomeMessage);
   welcomeMessageForm.addEventListener('input', updateWelcomePreview);
   welcomeMessageForm.addEventListener('change', updateWelcomePreview);
@@ -481,6 +428,7 @@ async function handleLogout() {
   await api('/api/logout', { method: 'POST', body: {} }).catch(() => null);
   clearSessionToken();
   stopSavedMessagesSync();
+  stopVoiceRoomSync();
   showLogin();
 }
 
@@ -502,6 +450,223 @@ async function handleSend(event) {
     setSendStatus(error.message, 'error');
   } finally {
     sendButton.disabled = false;
+  }
+}
+
+async function handleMailboxSend(event) {
+  event.preventDefault();
+  const payload = collectMailboxPayload();
+
+  if (!mailboxTitleInput.value.trim()) {
+    setSendStatus('Add a mailbox headline before sending.', 'error');
+    mailboxTitleInput.focus();
+    return;
+  }
+
+  if (!mailboxBodyInput.value.trim()) {
+    setSendStatus('Add a mailbox message before sending.', 'error');
+    mailboxBodyInput.focus();
+    return;
+  }
+
+  sendMailboxButton.disabled = true;
+
+  try {
+    const result = await api('/api/mailbox/send', {
+      method: 'POST',
+      body: payload,
+    });
+    const link = result.url ? ` Message: ${result.url}` : '';
+
+    setSendStatus(`Sent to #mailbox.${link}`, 'success');
+  } catch (error) {
+    setSendStatus(error.message, 'error');
+  } finally {
+    sendMailboxButton.disabled = false;
+  }
+}
+
+function resetMailboxBuilder() {
+  mailboxForm.reset();
+  mailboxTypeInput.value = 'Update';
+  mailboxColorPicker.value = '#8FA1BE';
+  mailboxColorInput.value = '#8FA1BE';
+  mailboxImageInput.value = '';
+  mailboxButtonsContainer.replaceChildren();
+  state.mailboxImage = null;
+  updateMailboxButtonLimit();
+  updateMailboxPreview();
+}
+
+async function handleMailboxImageChange() {
+  const file = mailboxImageInput.files[0];
+
+  if (!file) {
+    state.mailboxImage = null;
+    updateMailboxPreview();
+    return;
+  }
+
+  if (!file.type.startsWith('image/')) {
+    setSendStatus('Select a PNG, JPG, GIF, or WebP image.', 'error');
+    mailboxImageInput.value = '';
+    state.mailboxImage = null;
+    updateMailboxPreview();
+    return;
+  }
+
+  state.mailboxImage = {
+    name: file.name,
+    dataUrl: await readFileAsDataUrl(file),
+  };
+  updateMailboxPreview();
+}
+
+function handleMailboxColorPickerInput() {
+  mailboxColorInput.value = mailboxColorPicker.value.toUpperCase();
+  updateMailboxPreview();
+}
+
+function handleMailboxColorInput() {
+  const color = normalizeMessageColor(mailboxColorInput.value);
+
+  if (color) {
+    mailboxColorPicker.value = color;
+  }
+
+  updateMailboxPreview();
+}
+
+function addMailboxLinkButton(values = {}, focus = false) {
+  if (mailboxButtonsContainer.children.length >= 5) {
+    setSendStatus('Mailbox posts support up to five link buttons.', 'error');
+    return;
+  }
+
+  const block = document.createElement('section');
+
+  block.className = 'button-block mailbox-link-button';
+  block.innerHTML = `
+    <div class="block-header">
+      <h2>Link Button</h2>
+      <button class="secondary remove-mailbox-button" type="button">Remove</button>
+    </div>
+    <div class="button-fields button-fields-with-emoji">
+      <label class="field">
+        Label
+        <input class="mailbox-button-label" maxlength="80" placeholder="Read more" />
+      </label>
+      <label class="field">
+        Emoji
+        <input class="mailbox-button-emoji" maxlength="100" placeholder="Optional" />
+      </label>
+      <label class="field">
+        URL
+        <input class="mailbox-button-url" type="url" placeholder="https://..." />
+      </label>
+    </div>
+  `;
+
+  block.querySelector('.mailbox-button-label').value = values.label || '';
+  block.querySelector('.mailbox-button-emoji').value = values.emoji || '';
+  block.querySelector('.mailbox-button-url').value = values.url || '';
+  block.querySelector('.remove-mailbox-button').addEventListener('click', () => {
+    block.remove();
+    updateMailboxButtonLimit();
+    updateMailboxPreview();
+  });
+
+  mailboxButtonsContainer.append(block);
+  updateMailboxButtonLimit();
+  updateMailboxPreview();
+
+  if (focus) {
+    block.querySelector('.mailbox-button-label').focus();
+  }
+}
+
+function updateMailboxButtonLimit() {
+  const count = mailboxButtonsContainer.children.length;
+
+  addMailboxButton.disabled = count >= 5;
+  addMailboxButton.textContent = count >= 5 ? 'Button Limit Reached' : 'Add Button';
+}
+
+function collectMailboxPayload(options = {}) {
+  const preview = Boolean(options.preview);
+  const postType = mailboxTypeInput.value.trim();
+  const title = mailboxTitleInput.value.trim() || (preview ? 'Your headline will appear here' : '');
+  const body = mailboxBodyInput.value.trim() || (preview ? 'Write an update, a piece of news, or anything else for the mailbox.' : '');
+  const note = mailboxNoteInput.value.trim();
+  const heading = `# ${postType ? `${postType}: ` : ''}${title}`.trim();
+  const blocks = [
+    {
+      type: 'text',
+      content: [heading, body].filter(Boolean).join('\n\n'),
+    },
+  ];
+
+  if (note) {
+    blocks.push(
+      { type: 'divider', spacing: 'small' },
+      { type: 'text', content: note },
+    );
+  }
+
+  return {
+    color: mailboxColorInput.value.trim(),
+    image: state.mailboxImage,
+    blocks,
+    buttons: [...mailboxButtonsContainer.querySelectorAll('.mailbox-link-button')].map((block) => ({
+      label: block.querySelector('.mailbox-button-label').value,
+      emoji: block.querySelector('.mailbox-button-emoji').value,
+      url: block.querySelector('.mailbox-button-url').value,
+    })),
+    allowMentions: mailboxAllowMentionsInput.checked,
+  };
+}
+
+function updateMailboxPreview() {
+  const payload = collectMailboxPayload({ preview: true });
+  const color = normalizeMessageColor(payload.color) || '#8FA1BE';
+  const previewButtons = payload.buttons.filter((button) => button.label.trim() && button.url.trim());
+
+  mailboxPreviewType.textContent = mailboxTypeInput.value.trim() || 'Mailbox';
+  mailboxDiscordPreview.style.setProperty('--preview-accent', color);
+  mailboxPreviewImage.hidden = !state.mailboxImage;
+
+  if (state.mailboxImage) {
+    mailboxPreviewImage.src = state.mailboxImage.dataUrl;
+  } else {
+    mailboxPreviewImage.removeAttribute('src');
+  }
+
+  mailboxPreviewSections.replaceChildren();
+
+  for (const block of payload.blocks) {
+    if (block.type === 'text') {
+      mailboxPreviewSections.append(createTextPreviewBlock(block));
+      continue;
+    }
+
+    const layout = document.createElement('div');
+
+    layout.className = `preview-layout preview-layout-${block.type} preview-layout-${block.spacing}`;
+    layout.setAttribute('aria-hidden', 'true');
+    mailboxPreviewSections.append(layout);
+  }
+
+  mailboxPreviewButtons.replaceChildren();
+
+  for (const button of previewButtons) {
+    const anchor = document.createElement('a');
+
+    anchor.className = 'preview-button';
+    anchor.href = button.url;
+    anchor.target = '_blank';
+    anchor.rel = 'noreferrer';
+    appendPreviewButtonContent(anchor, button);
+    mailboxPreviewButtons.append(anchor);
   }
 }
 
@@ -870,6 +1035,9 @@ function showDashboard(session) {
   renderSavedMessages();
   loadSavedMessages().catch((error) => setSendStatus(error.message, 'error'));
   refreshBotSettings().catch((error) => setSendStatus(error.message, 'error'));
+  loadModerationCases(false).catch(() => {
+    overviewOpenCases.textContent = 'Unavailable';
+  });
 
   if (!state.composerInitialized) {
     resetComposer();
@@ -930,8 +1098,11 @@ function setActiveTab(tab) {
     loadModerationCases(false).catch((error) => setSendStatus(error.message, 'error'));
   }
 
-  if (nextTab === 'progression' && !dashboardView.hidden) {
-    loadProgressionDashboard(false).catch((error) => setSendStatus(error.message, 'error'));
+  if (nextTab === 'voice-rooms' && !dashboardView.hidden) {
+    startVoiceRoomSync();
+    loadVoiceRooms(false).catch((error) => setSendStatus(error.message, 'error'));
+  } else {
+    stopVoiceRoomSync();
   }
 
   if (nextTab === 'messages' && !dashboardView.hidden) {
@@ -965,406 +1136,191 @@ function stopSavedMessagesSync() {
   state.savedMessagesRefreshTimer = null;
 }
 
-async function loadProgressionDashboard(showNotification = false) {
-  const result = await api('/api/progression');
-  const previousMissionId = state.progression.selectedMissionId;
+async function loadVoiceRooms(showNotification = false) {
+  const result = await api('/api/temp-voice');
 
-  state.progression.settings = result.settings || {};
-  state.progression.challenges = Array.isArray(result.challenges) ? result.challenges : [];
-  state.progression.profiles = Array.isArray(result.profiles) ? result.profiles : [];
-  state.progression.metrics = Array.isArray(result.metrics) ? result.metrics : [];
-  state.progression.cadences = Array.isArray(result.cadences) ? result.cadences : [];
-  state.progression.storage = result.storage || null;
-  state.progression.tracking = result.tracking || null;
-  state.progression.selectedMissionId = state.progression.challenges.some(
-    (challenge) => challenge.id === previousMissionId,
-  )
-    ? previousMissionId
-    : state.progression.challenges[0]?.id || null;
+  state.voiceRooms.settings = result.settings || {};
+  state.voiceRooms.channels = Array.isArray(result.channels) ? result.channels : [];
+  state.voiceRooms.totals = result.totals || {};
+  state.voiceRooms.storage = result.storage || null;
 
-  applyProgressionSettings();
-  renderProgressionMetrics();
-  renderProgressionStorage();
-  renderProgressionIntentStatus();
-  renderProgressionProfiles();
-  renderProgressionMissionOptions();
-  renderProgressionMissions();
-  renderProgressionMissionEditor();
+  renderVoiceRooms();
 
   if (showNotification) {
-    setSendStatus('Progression data refreshed.', 'success');
+    setSendStatus('Voice rooms refreshed.', 'success');
   }
 }
 
-function applyProgressionSettings() {
-  const settings = state.progression.settings || {};
+function startVoiceRoomSync() {
+  if (state.voiceRoomsRefreshTimer) {
+    return;
+  }
 
-  progressionEnabledInput.checked = settings.enabled !== false;
-  progressionVoiceParticipantsInput.value = settings.minimumVoiceParticipants || 2;
-  progressionMessageCooldownInput.value = settings.messageCooldownSeconds ?? 60;
-  progressionMessageLengthInput.value = settings.minimumMessageLength || 5;
-  progressionWelcomeWindowInput.value = settings.welcomeWindowHours || 24;
-  progressionExcludeAfkInput.checked = settings.excludeAfkChannel !== false;
-  progressionExcludeDeafenedInput.checked = settings.excludeDeafened !== false;
+  state.voiceRoomsRefreshTimer = window.setInterval(() => {
+    if (document.hidden || dashboardView.hidden || getActiveTab() !== 'voice-rooms') {
+      return;
+    }
+
+    loadVoiceRooms(false).catch(() => null);
+  }, 10000);
 }
 
-function renderProgressionMetrics() {
-  const profiles = state.progression.profiles;
-  const challenges = state.progression.challenges;
+function stopVoiceRoomSync() {
+  if (!state.voiceRoomsRefreshTimer) {
+    return;
+  }
 
-  progressionProfileCount.textContent = profiles.length.toLocaleString();
-  progressionXpTotal.textContent = profiles
-    .reduce((total, profile) => total + (Number(profile.xp) || 0), 0)
-    .toLocaleString();
-  progressionCompletionTotal.textContent = profiles
-    .reduce((total, profile) => total + (Number(profile.completedMissions) || 0), 0)
-    .toLocaleString();
-  progressionActiveCount.textContent = challenges
-    .filter((challenge) => challenge.enabled)
-    .length
-    .toLocaleString();
+  window.clearInterval(state.voiceRoomsRefreshTimer);
+  state.voiceRoomsRefreshTimer = null;
 }
 
-function renderProgressionStorage() {
-  const storage = state.progression.storage;
+function renderVoiceRooms() {
+  const settings = state.voiceRooms.settings || {};
+  const totals = state.voiceRooms.totals || {};
 
-  progressionStorageStatus.classList.remove('ready', 'offline');
+  voiceRoomEnabledInput.checked = settings.enabled !== false;
+  voiceRoomTriggerIdInput.value = settings.triggerChannelId || '';
+  voiceRoomCount.textContent = Number(totals.rooms || 0).toLocaleString();
+  voiceMemberCount.textContent = Number(totals.members || 0).toLocaleString();
+  voicePrivateCount.textContent = Number(totals.privateRooms || 0).toLocaleString();
+
+  voiceRoomStatus.classList.remove('ready', 'offline');
+  voiceRoomStatus.textContent = settings.enabled === false ? 'Rooms paused' : 'Ready for guests';
+  voiceRoomStatus.classList.add(settings.enabled === false ? 'offline' : 'ready');
+
+  const storage = state.voiceRooms.storage;
+  voiceRoomStorageStatus.classList.remove('ready', 'offline');
 
   if (!storage) {
-    progressionStorageStatus.textContent = 'Storage unavailable';
-    progressionStorageStatus.classList.add('offline');
+    voiceRoomStorageStatus.textContent = 'Storage unavailable';
+    voiceRoomStorageStatus.classList.add('offline');
+  } else {
+    voiceRoomStorageStatus.textContent = storage.persistent ? 'Saved persistently' : 'Storage is temporary';
+    voiceRoomStorageStatus.classList.add(storage.persistent ? 'ready' : 'offline');
+    voiceRoomStorageStatus.title = storage.persistent
+      ? 'Voice room tracking survives restarts.'
+      : 'Attach a Railway volume so room tracking survives redeploys.';
+  }
+
+  renderVoiceRoomList();
+}
+
+function renderVoiceRoomList() {
+  const rooms = state.voiceRooms.channels;
+  voiceRoomList.replaceChildren();
+  voiceRoomListCount.textContent = rooms.length + ' room' + (rooms.length === 1 ? '' : 's');
+
+  if (rooms.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'voice-room-empty';
+    empty.innerHTML =
+      '<span><i class="fa-solid fa-mug-saucer" aria-hidden="true"></i></span>' +
+      '<div><strong>It is quiet in here</strong><p>New temporary rooms will appear as soon as someone creates one.</p></div>';
+    voiceRoomList.append(empty);
     return;
   }
 
-  progressionStorageStatus.textContent = storage.persistent ? 'Saved persistently' : 'Storage is temporary';
-  progressionStorageStatus.classList.add(storage.persistent ? 'ready' : 'offline');
-  progressionStorageStatus.title = storage.persistent
-    ? `Storage: ${storage.source}`
-    : 'Attach a Railway volume so progression survives redeploys.';
-}
+  for (const room of rooms) {
+    const card = document.createElement('article');
+    const icon = document.createElement('span');
+    const copy = document.createElement('div');
+    const heading = document.createElement('div');
+    const title = document.createElement('strong');
+    const badge = document.createElement('span');
+    const meta = document.createElement('p');
+    const members = document.createElement('div');
+    const remove = document.createElement('button');
 
-function renderProgressionIntentStatus() {
-  const tracking = state.progression.tracking;
+    card.className = 'voice-room-card';
+    icon.className = 'voice-room-card-icon ' + (room.private ? 'private' : 'public');
+    icon.innerHTML = '<i class="fa-solid ' + (room.private ? 'fa-lock' : 'fa-volume-high') + '" aria-hidden="true"></i>';
+    copy.className = 'voice-room-card-copy';
+    heading.className = 'voice-room-card-heading';
+    title.textContent = room.name;
+    badge.className = 'voice-room-visibility ' + (room.private ? 'private' : 'public');
+    badge.textContent = room.private ? 'Private' : 'Public';
+    meta.textContent =
+      'Hosted by ' + room.ownerName + ' · ' + room.memberCount + ' listening' +
+      (room.deleting ? ' · tidying up soon' : '');
+    members.className = 'voice-room-members';
 
-  progressionIntentStatus.classList.remove('ready', 'offline');
+    const memberNames = Array.isArray(room.memberNames) ? room.memberNames : [];
+    if (memberNames.length) {
+      for (const memberName of memberNames.slice(0, 6)) {
+        const chip = document.createElement('span');
+        chip.textContent = memberName;
+        members.append(chip);
+      }
+    } else {
+      const emptyChip = document.createElement('span');
+      emptyChip.className = 'empty';
+      emptyChip.textContent = 'Empty · one-minute grace period';
+      members.append(emptyChip);
+    }
 
-  if (state.progression.settings?.enabled === false) {
-    progressionIntentStatus.textContent = 'Progression disabled';
-    progressionIntentStatus.classList.add('offline');
-    progressionIntentStatus.title = 'Challenges, XP tracking, and member progression commands are paused.';
-    return;
-  }
+    remove.className = 'danger voice-room-delete';
+    remove.type = 'button';
+    remove.dataset.channelId = room.channelId;
+    remove.dataset.channelName = room.name;
+    remove.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i><span>Delete</span>';
 
-  if (!tracking) {
-    progressionIntentStatus.textContent = 'Intent status unavailable';
-    progressionIntentStatus.classList.add('offline');
-    return;
-  }
-
-  const missing = [];
-
-  if (!tracking.membersIntent) missing.push('Members');
-  if (!tracking.messageContentIntent) missing.push('Message Content');
-  if (!tracking.presenceIntent) missing.push('Presence');
-
-  progressionIntentStatus.textContent = missing.length
-    ? `Missing: ${missing.join(', ')}`
-    : 'All tracking intents ready';
-  progressionIntentStatus.classList.add(missing.length ? 'offline' : 'ready');
-  progressionIntentStatus.title = missing.length
-    ? 'Enable the matching privileged intents in Discord and Railway.'
-    : 'Welcome, message, game, and stream tracking are available.';
-}
-
-function renderProgressionProfiles() {
-  const query = progressionProfileSearch.value.trim().toLowerCase();
-  const profiles = state.progression.profiles.filter((profile) =>
-    !query ||
-    String(profile.userTag || '').toLowerCase().includes(query) ||
-    String(profile.userId || '').includes(query),
-  );
-
-  progressionProfileList.replaceChildren();
-
-  if (profiles.length === 0) {
-    const empty = document.createElement('p');
-
-    empty.className = 'progression-empty-state';
-    empty.textContent = state.progression.profiles.length
-      ? 'No member accounts match that search.'
-      : 'No member has earned progression XP yet.';
-    progressionProfileList.append(empty);
-    return;
-  }
-
-  for (const [index, profile] of profiles.entries()) {
-    const row = document.createElement('section');
-    const identity = document.createElement('div');
-    const name = document.createElement('strong');
-    const id = document.createElement('span');
-
-    row.className = 'progression-profile-row';
-    identity.className = 'progression-profile-identity';
-    name.textContent = `${index + 1}. ${profile.userTag}`;
-    id.textContent = profile.userId;
-    identity.append(name, id);
-    row.append(
-      identity,
-      createProgressionProfileStat(`Level ${profile.level?.level || 1}`, 'Level'),
-      createProgressionProfileStat((profile.xp || 0).toLocaleString(), 'XP'),
-      createProgressionProfileStat((profile.completedMissions || 0).toLocaleString(), 'Missions'),
-    );
-    progressionProfileList.append(row);
+    heading.append(title, badge);
+    copy.append(heading, meta, members);
+    card.append(icon, copy, remove);
+    voiceRoomList.append(card);
   }
 }
 
-function createProgressionProfileStat(value, label) {
-  const stat = document.createElement('div');
-  const strong = document.createElement('strong');
-  const span = document.createElement('span');
-
-  stat.className = 'progression-profile-stat';
-  strong.textContent = value;
-  span.textContent = label;
-  stat.append(strong, span);
-  return stat;
-}
-
-function renderProgressionMissionOptions() {
-  const selectedMetric = progressionMissionMetricInput.value;
-  const selectedCadence = progressionMissionCadenceInput.value;
-
-  progressionMissionMetricInput.replaceChildren(
-    ...state.progression.metrics.map((metric) => {
-      const option = document.createElement('option');
-
-      option.value = metric.value;
-      option.textContent = `${metric.label} (${metric.unit})`;
-      return option;
-    }),
-  );
-  progressionMissionCadenceInput.replaceChildren(
-    ...state.progression.cadences.map((cadence) => {
-      const option = document.createElement('option');
-
-      option.value = cadence;
-      option.textContent = capitalizeDashboardText(cadence);
-      return option;
-    }),
-  );
-
-  if (state.progression.metrics.some((metric) => metric.value === selectedMetric)) {
-    progressionMissionMetricInput.value = selectedMetric;
-  }
-
-  if (state.progression.cadences.includes(selectedCadence)) {
-    progressionMissionCadenceInput.value = selectedCadence;
-  }
-}
-
-function renderProgressionMissions() {
-  const challenges = [...state.progression.challenges].sort((left, right) =>
-    Number(right.enabled) - Number(left.enabled) || left.name.localeCompare(right.name),
-  );
-
-  progressionMissionCount.textContent = `${challenges.length} mission${challenges.length === 1 ? '' : 's'}`;
-  progressionMissionList.replaceChildren();
-
-  if (challenges.length === 0) {
-    const empty = document.createElement('p');
-
-    empty.className = 'progression-empty-state';
-    empty.textContent = 'Create the first mission for your members.';
-    progressionMissionList.append(empty);
-    return;
-  }
-
-  for (const challenge of challenges) {
-    const button = document.createElement('button');
-    const heading = document.createElement('span');
-    const name = document.createElement('strong');
-    const stateBadge = document.createElement('span');
-    const description = document.createElement('span');
-    const meta = document.createElement('span');
-    const category = document.createElement('span');
-    const reward = document.createElement('span');
-
-    button.type = 'button';
-    button.className =
-      `progression-mission-item${challenge.id === state.progression.selectedMissionId ? ' active' : ''}`;
-    button.dataset.missionId = challenge.id;
-    heading.className = 'progression-mission-heading';
-    name.textContent = challenge.name;
-    stateBadge.className = `progression-mission-state ${challenge.enabled ? 'enabled' : 'disabled'}`;
-    stateBadge.textContent = challenge.enabled ? 'Enabled' : 'Disabled';
-    heading.append(name, stateBadge);
-    description.className = 'progression-mission-description';
-    description.textContent = challenge.description;
-    meta.className = 'progression-mission-meta';
-    category.className = 'progression-mission-category';
-    category.textContent = `${challenge.category} · ${challenge.cadence}`;
-    reward.textContent = `${challenge.target.toLocaleString()} target · ${challenge.xp.toLocaleString()} XP`;
-    meta.append(category, reward);
-    button.append(heading, description, meta);
-    progressionMissionList.append(button);
-  }
-}
-
-function handleProgressionMissionListClick(event) {
-  const item = event.target.closest('.progression-mission-item');
-
-  if (!item) {
-    return;
-  }
-
-  state.progression.selectedMissionId = item.dataset.missionId;
-  renderProgressionMissions();
-  renderProgressionMissionEditor();
-}
-
-function renderProgressionMissionEditor() {
-  const challenge = state.progression.challenges.find(
-    (item) => item.id === state.progression.selectedMissionId,
-  );
-
-  if (!challenge) {
-    resetProgressionMissionEditor();
-    return;
-  }
-
-  progressionMissionMode.textContent = `EDIT · ${challenge.id}`;
-  progressionMissionNameInput.value = challenge.name;
-  progressionMissionDescriptionInput.value = challenge.description;
-  progressionMissionMetricInput.value = challenge.metric;
-  progressionMissionCadenceInput.value = challenge.cadence;
-  progressionMissionTargetInput.value = challenge.target;
-  progressionMissionXpInput.value = challenge.xp;
-  progressionMissionGameInput.value = challenge.specificGame || '';
-  progressionMissionEnabledInput.checked = challenge.enabled;
-  deleteProgressionMissionButton.hidden = false;
-  updateProgressionGameField();
-}
-
-function resetProgressionMissionEditor() {
-  state.progression.selectedMissionId = null;
-  progressionMissionMode.textContent = 'NEW MISSION';
-  progressionMissionNameInput.value = '';
-  progressionMissionDescriptionInput.value = '';
-  progressionMissionMetricInput.value = state.progression.metrics[0]?.value || '';
-  progressionMissionCadenceInput.value = 'daily';
-  progressionMissionTargetInput.value = 1;
-  progressionMissionXpInput.value = 100;
-  progressionMissionGameInput.value = '';
-  progressionMissionEnabledInput.checked = true;
-  deleteProgressionMissionButton.hidden = true;
-  renderProgressionMissions();
-  updateProgressionGameField();
-  progressionMissionNameInput.focus();
-}
-
-function updateProgressionGameField() {
-  progressionSpecificGameField.hidden = ![
-    'gaming_minutes',
-    'streaming_minutes',
-    'squad_gaming_minutes',
-  ].includes(progressionMissionMetricInput.value);
-}
-
-async function handleProgressionSettingsSave(event) {
+async function handleVoiceRoomSettingsSave(event) {
   event.preventDefault();
-  saveProgressionSettingsButton.disabled = true;
+  saveVoiceRoomSettingsButton.disabled = true;
 
   try {
-    const result = await api('/api/progression/settings', {
+    const result = await api('/api/temp-voice/settings', {
       method: 'PUT',
       body: {
         settings: {
-          enabled: progressionEnabledInput.checked,
-          minimumVoiceParticipants: Number(progressionVoiceParticipantsInput.value),
-          messageCooldownSeconds: Number(progressionMessageCooldownInput.value),
-          minimumMessageLength: Number(progressionMessageLengthInput.value),
-          welcomeWindowHours: Number(progressionWelcomeWindowInput.value),
-          excludeAfkChannel: progressionExcludeAfkInput.checked,
-          excludeDeafened: progressionExcludeDeafenedInput.checked,
+          enabled: voiceRoomEnabledInput.checked,
+          triggerChannelId: voiceRoomTriggerIdInput.value.trim(),
         },
       },
     });
 
-    state.progression.settings = result.settings;
-    applyProgressionSettings();
-    renderProgressionIntentStatus();
-    setSendStatus(
-      result.settings.enabled
-        ? 'Tracking rules saved. Challenges and progression are enabled.'
-        : 'Tracking rules saved. Challenges and progression are disabled.',
-      'success',
-    );
+    state.voiceRooms.settings = result.settings;
+    renderVoiceRooms();
+    setSendStatus('Voice room setup saved.', 'success');
   } catch (error) {
     setSendStatus(error.message, 'error');
   } finally {
-    saveProgressionSettingsButton.disabled = false;
+    saveVoiceRoomSettingsButton.disabled = false;
   }
 }
 
-async function handleProgressionMissionSave(event) {
-  event.preventDefault();
-  const missionId = state.progression.selectedMissionId;
-  const challenge = {
-    name: progressionMissionNameInput.value.trim(),
-    description: progressionMissionDescriptionInput.value.trim(),
-    metric: progressionMissionMetricInput.value,
-    cadence: progressionMissionCadenceInput.value,
-    target: Number(progressionMissionTargetInput.value),
-    xp: Number(progressionMissionXpInput.value),
-    specificGame: progressionMissionGameInput.value.trim(),
-    enabled: progressionMissionEnabledInput.checked,
-  };
+async function handleVoiceRoomListClick(event) {
+  const button = event.target.closest('[data-channel-id]');
 
-  saveProgressionMissionButton.disabled = true;
-
-  try {
-    const result = await api(
-      missionId
-        ? `/api/progression/challenges/${encodeURIComponent(missionId)}`
-        : '/api/progression/challenges',
-      {
-        method: missionId ? 'PUT' : 'POST',
-        body: { challenge },
-      },
-    );
-
-    state.progression.selectedMissionId = result.challenge.id;
-    await loadProgressionDashboard(false);
-    setSendStatus(`Mission "${result.challenge.name}" saved.`, 'success');
-  } catch (error) {
-    setSendStatus(error.message, 'error');
-  } finally {
-    saveProgressionMissionButton.disabled = false;
-  }
-}
-
-async function handleProgressionMissionDelete() {
-  const challenge = state.progression.challenges.find(
-    (item) => item.id === state.progression.selectedMissionId,
-  );
-
-  if (!challenge || !window.confirm(`Delete "${challenge.name}"? Member progress for this mission will also be removed.`)) {
+  if (!button) {
     return;
   }
 
-  deleteProgressionMissionButton.disabled = true;
+  const channelId = button.dataset.channelId;
+  const channelName = button.dataset.channelName || 'this room';
+
+  if (!window.confirm('Delete #' + channelName + ' now? Members inside will be disconnected.')) {
+    return;
+  }
+
+  button.disabled = true;
 
   try {
-    await api(`/api/progression/challenges/${encodeURIComponent(challenge.id)}`, {
+    await api('/api/temp-voice/channels/' + encodeURIComponent(channelId), {
       method: 'DELETE',
     });
-    state.progression.selectedMissionId = null;
-    await loadProgressionDashboard(false);
-    setSendStatus(`Mission "${challenge.name}" deleted.`, 'success');
+    await loadVoiceRooms(false);
+    setSendStatus('Voice room deleted.', 'success');
   } catch (error) {
+    button.disabled = false;
     setSendStatus(error.message, 'error');
-  } finally {
-    deleteProgressionMissionButton.disabled = false;
   }
 }
 
@@ -1476,6 +1432,9 @@ function getFilteredModerationCases() {
 function renderModerationCaseMetrics() {
   const cases = state.moderationCases;
   const recentCutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const openCases = cases.filter(
+    (moderationCase) => getModerationCaseEffectiveStatus(moderationCase) === 'active',
+  );
   const activeCases = cases.filter(
     (moderationCase) => getModerationCaseEffectiveStatus(moderationCase) !== 'revoked',
   );
@@ -1487,6 +1446,7 @@ function renderModerationCaseMetrics() {
   const commonAction = Object.entries(actionCounts).sort((left, right) => right[1] - left[1])[0];
 
   caseTotalCount.textContent = cases.length.toLocaleString();
+  overviewOpenCases.textContent = openCases.length.toLocaleString();
   caseRecentCount.textContent = cases
     .filter((moderationCase) => Date.parse(moderationCase.createdAt) >= recentCutoff)
     .length

@@ -19,14 +19,6 @@ const {
   savePresenceSettings,
 } = require('./presenceSettings');
 const {
-  createProgressionChallenge,
-  deleteProgressionChallenge,
-  getProgressionOverview,
-  getProgressionStorageInfo,
-  saveProgressionSettings,
-  updateProgressionChallenge,
-} = require('./progression');
-const {
   deleteSavedMessage,
   getSavedMessagesStorageInfo,
   loadSavedMessages,
@@ -38,6 +30,12 @@ const {
   loadStreamEmbedSettings,
   saveStreamEmbedSettings,
 } = require('./streamEmbedSettings');
+const {
+  deleteTempVoiceRoom,
+  getTempVoiceOverview,
+  getTempVoiceStorageInfo,
+  saveTempVoiceSettings,
+} = require('./tempVoiceRooms');
 const {
   getWelcomeEmbedStorageInfo,
   getWelcomeEmbedStorageStatus,
@@ -64,7 +62,7 @@ function startDashboard(client) {
   logStreamEmbedStorage();
   logWelcomeEmbedStorage();
   logModerationCasesStorage();
-  logProgressionStorage();
+  logTempVoiceStorage();
 
   const server = http.createServer((request, response) => {
     handleRequest(client, request, response).catch((error) => {
@@ -132,15 +130,15 @@ function logModerationCasesStorage() {
   }
 }
 
-function logProgressionStorage() {
-  const storage = getProgressionStorageInfo(config);
+function logTempVoiceStorage() {
+  const storage = getTempVoiceStorageInfo(config);
 
   console.log(
-    `Progression storage: ${storage.filePath} (${storage.persistent ? 'persistent' : 'ephemeral'}, ${storage.source}).`,
+    `Temporary voice storage: ${storage.filePath} (${storage.persistent ? 'persistent' : 'ephemeral'}, ${storage.source}).`,
   );
 
   if (!storage.persistent) {
-    console.warn('Progression profiles and missions will reset after redeploys unless a Railway volume is attached.');
+    console.warn('Temporary voice room tracking will reset after redeploys unless a Railway volume is attached.');
   }
 }
 
@@ -256,28 +254,18 @@ async function handleRequest(client, request, response) {
       return;
     }
 
-    if (request.method === 'GET' && url.pathname === '/api/progression') {
-      await handleGetProgression(response);
+    if (request.method === 'GET' && url.pathname === '/api/temp-voice') {
+      await handleGetTempVoice(client, response);
       return;
     }
 
-    if (request.method === 'PUT' && url.pathname === '/api/progression/settings') {
-      await handleSaveProgressionSettings(client, request, response);
+    if (request.method === 'PUT' && url.pathname === '/api/temp-voice/settings') {
+      await handleSaveTempVoiceSettings(client, request, response);
       return;
     }
 
-    if (request.method === 'POST' && url.pathname === '/api/progression/challenges') {
-      await handleCreateProgressionChallenge(client, request, response);
-      return;
-    }
-
-    if (request.method === 'PUT' && url.pathname.startsWith('/api/progression/challenges/')) {
-      await handleUpdateProgressionChallenge(client, request, url.pathname, response);
-      return;
-    }
-
-    if (request.method === 'DELETE' && url.pathname.startsWith('/api/progression/challenges/')) {
-      await handleDeleteProgressionChallenge(client, url.pathname, response);
+    if (request.method === 'DELETE' && url.pathname.startsWith('/api/temp-voice/channels/')) {
+      await handleDeleteTempVoiceRoom(client, url.pathname, response);
       return;
     }
 
@@ -308,6 +296,11 @@ async function handleRequest(client, request, response) {
 
     if (request.method === 'POST' && url.pathname === '/api/send-message') {
       await handleSendMessage(client, request, response);
+      return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/mailbox/send') {
+      await handleSendMessage(client, request, response, { channelId: config.channels.mailbox });
       return;
     }
 
@@ -362,14 +355,14 @@ async function handleClassicLogin(client, request, response) {
   redirect(response, '/');
 }
 
-async function handleSendMessage(client, request, response) {
+async function handleSendMessage(client, request, response, options = {}) {
   if (!client.isReady()) {
     sendJson(response, 503, { error: 'Bot is not ready yet.' });
     return;
   }
 
   const body = await readJsonBody(request, config.dashboard.maxBodyBytes);
-  const channelId = String(body.channelId || '').trim();
+  const channelId = String(options.channelId || body.channelId || '').trim();
 
   if (!/^\d{17,20}$/.test(channelId)) {
     sendJson(response, 400, { error: 'Channel ID must be a Discord snowflake.' });
@@ -625,123 +618,98 @@ function createDashboardCaseActor() {
   };
 }
 
-async function handleGetProgression(response) {
-  const overview = await getProgressionOverview(config, config.guildId);
+async function handleGetTempVoice(client, response) {
+  if (!client.isReady()) {
+    sendJson(response, 503, { error: 'Bot is not ready yet.' });
+    return;
+  }
 
-  sendJson(response, 200, {
-    ok: true,
-    ...overview,
-    storage: getProgressionStorageInfo(config),
-    tracking: {
-      membersIntent: config.intents.members,
-      messageContentIntent: config.intents.messageContent,
-      presenceIntent: config.intents.presences,
-    },
-  });
+  const overview = await getTempVoiceOverview(client, config);
+  sendJson(response, 200, { ok: true, ...overview });
 }
 
-async function handleSaveProgressionSettings(client, request, response) {
+async function handleSaveTempVoiceSettings(client, request, response) {
+  if (!client.isReady()) {
+    sendJson(response, 503, { error: 'Bot is not ready yet.' });
+    return;
+  }
+
   const body = await readJsonBody(request, 64 * 1024);
   let settings;
 
   try {
-    settings = await saveProgressionSettings(config, body.settings);
+    settings = await saveTempVoiceSettings(client, config, body.settings);
   } catch (error) {
     sendJson(response, 400, { error: error.message });
     return;
   }
 
-  await logProgressionDashboardAction(client, {
-    title: 'Progression Settings Updated',
-    summary: 'Automatic mission tracking settings were changed through the dashboard.',
-    referenceId: `PROGRESSION-SETTINGS-${Date.now()}`,
+  await logTempVoiceDashboardAction(client, {
+    title: 'Temporary Voice Settings Updated',
+    summary: 'Join-to-create voice room settings were changed through the dashboard.',
+    referenceId: `TEMP-VOICE-SETTINGS-${Date.now()}`,
     fields: [
       { name: 'System', value: settings.enabled ? 'Enabled' : 'Disabled' },
-      { name: 'Minimum Voice Participants', value: String(settings.minimumVoiceParticipants) },
-      { name: 'Message Cooldown', value: `${settings.messageCooldownSeconds} seconds` },
+      { name: 'Create Lobby', value: `<#${settings.triggerChannelId}>\n-# ID: \`${settings.triggerChannelId}\`` },
+      { name: 'Empty-room Cleanup', value: '1 minute' },
     ],
   });
   sendJson(response, 200, { ok: true, settings });
 }
 
-async function handleCreateProgressionChallenge(client, request, response) {
-  const body = await readJsonBody(request, 64 * 1024);
-  let challenge;
+async function handleDeleteTempVoiceRoom(client, pathname, response) {
+  if (!client.isReady()) {
+    sendJson(response, 503, { error: 'Bot is not ready yet.' });
+    return;
+  }
+
+  const channelId = parseTempVoiceChannelId(pathname);
+
+  if (!/^\d{17,20}$/.test(channelId)) {
+    sendJson(response, 400, { error: 'Invalid voice channel ID.' });
+    return;
+  }
+
+  let room;
 
   try {
-    challenge = await createProgressionChallenge(config, body.challenge);
+    room = await deleteTempVoiceRoom(client, config, channelId);
   } catch (error) {
     sendJson(response, 400, { error: error.message });
     return;
   }
 
-  await logProgressionChallengeChange(client, 'Mission Created', challenge);
-  sendJson(response, 201, { ok: true, challenge });
-}
-
-async function handleUpdateProgressionChallenge(client, request, pathname, response) {
-  const challengeId = parseProgressionChallengeId(pathname);
-  const body = await readJsonBody(request, 64 * 1024);
-  let challenge;
-
-  try {
-    challenge = await updateProgressionChallenge(config, challengeId, body.challenge);
-  } catch (error) {
-    sendJson(response, 400, { error: error.message });
+  if (!room) {
+    sendJson(response, 404, { error: 'Temporary voice room was not found.' });
     return;
   }
 
-  if (!challenge) {
-    sendJson(response, 404, { error: 'Mission was not found.' });
-    return;
-  }
-
-  await logProgressionChallengeChange(client, 'Mission Updated', challenge);
-  sendJson(response, 200, { ok: true, challenge });
-}
-
-async function handleDeleteProgressionChallenge(client, pathname, response) {
-  const challengeId = parseProgressionChallengeId(pathname);
-  const challenge = await deleteProgressionChallenge(config, challengeId);
-
-  if (!challenge) {
-    sendJson(response, 404, { error: 'Mission was not found.' });
-    return;
-  }
-
-  await logProgressionChallengeChange(client, 'Mission Deleted', challenge, colors.danger);
-  sendJson(response, 200, { ok: true, challenge });
-}
-
-async function logProgressionChallengeChange(client, title, challenge, color = colors.info) {
-  return logProgressionDashboardAction(client, {
-    title,
-    color,
-    summary: `**${challenge.name}** was changed through the dashboard.`,
-    referenceId: `MISSION-${challenge.id}-${Date.now()}`,
+  await logTempVoiceDashboardAction(client, {
+    title: 'Temporary Voice Room Deleted',
+    color: colors.danger,
+    summary: `Temporary room <#${channelId}> was deleted through the dashboard.`,
+    referenceId: `TEMP-VOICE-DELETE-${channelId}-${Date.now()}`,
     fields: [
-      { name: 'Metric', value: challenge.metric },
-      { name: 'Target', value: challenge.target.toLocaleString() },
-      { name: 'Reward', value: `${challenge.xp.toLocaleString()} XP` },
-      { name: 'Cadence', value: challenge.cadence },
-      { name: 'Enabled', value: challenge.enabled ? 'Yes' : 'No' },
+      { name: 'Owner', value: `<@${room.ownerId}>\n-# ID: \`${room.ownerId}\`` },
+      { name: 'Visibility', value: room.private ? 'Private' : 'Public' },
     ],
   });
+  sendJson(response, 200, { ok: true, room });
 }
 
-async function logProgressionDashboardAction(client, options) {
+async function logTempVoiceDashboardAction(client, options) {
   return sendStructuredLog(client, config.channels.operationLog, {
-    emoji: '🎯',
+    emoji: '☕',
     color: options.color ?? colors.info,
     ...options,
   }).catch((error) => {
-    console.error(`Failed to log progression dashboard action ${options.referenceId}:`, error);
+    console.error(`Failed to log temporary voice dashboard action ${options.referenceId}:`, error);
     return false;
   });
 }
 
-function parseProgressionChallengeId(pathname) {
-  const encodedId = pathname.slice('/api/progression/challenges/'.length);
+function parseTempVoiceChannelId(pathname) {
+  const encodedId = pathname.slice('/api/temp-voice/channels/'.length);
 
   try {
     return decodeURIComponent(encodedId).trim();

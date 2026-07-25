@@ -4,7 +4,7 @@ const { config } = require('../utils/config');
 const { getModerationCasesStorageInfo } = require('../utils/moderationCases');
 const { startPresenceRotation } = require('../utils/presenceManager');
 const { getPresenceSettingsStorageInfo, loadPresenceSettings } = require('../utils/presenceSettings');
-const { getProgressionStorageInfo } = require('../utils/progression');
+const { getTempVoiceStorageInfo } = require('../utils/tempVoiceRooms');
 const { colors, sendStructuredLog } = require('../utils/structuredLog');
 const { syncCommandsForClient } = require('../utils/syncCommands');
 
@@ -16,7 +16,7 @@ async function execute(client) {
 
   const presenceStorage = getPresenceSettingsStorageInfo(config);
   const moderationCasesStorage = getModerationCasesStorageInfo(config);
-  const progressionStorage = getProgressionStorageInfo(config);
+  const tempVoiceStorage = getTempVoiceStorageInfo(config);
   let presence;
 
   console.log(
@@ -25,14 +25,6 @@ async function execute(client) {
 
   if (!moderationCasesStorage.persistent) {
     console.warn('Moderation cases will reset after Railway redeploys unless a persistent volume is attached.');
-  }
-
-  console.log(
-    `Progression storage: ${progressionStorage.filePath} (${progressionStorage.persistent ? 'persistent' : 'ephemeral'}, ${progressionStorage.source}).`,
-  );
-
-  if (!progressionStorage.persistent) {
-    console.warn('Progression profiles and missions will reset after Railway redeploys unless a persistent volume is attached.');
   }
 
   try {
@@ -65,7 +57,7 @@ async function execute(client) {
       { name: 'Automatic Command Sync', value: config.autoRegisterCommands ? 'Enabled' : 'Disabled' },
       { name: 'Presence Storage', value: `${presenceStorage.persistent ? 'Persistent' : 'Ephemeral'} via ${presenceStorage.source}` },
       { name: 'Moderation Case Storage', value: `${moderationCasesStorage.persistent ? 'Persistent' : 'Ephemeral'} via ${moderationCasesStorage.source}` },
-      { name: 'Progression Storage', value: `${progressionStorage.persistent ? 'Persistent' : 'Ephemeral'} via ${progressionStorage.source}` },
+      { name: 'Temporary Voice Storage', value: `${tempVoiceStorage.persistent ? 'Persistent' : 'Ephemeral'} via ${tempVoiceStorage.source}` },
     ],
   }).catch((error) => console.error('Failed to send startup operation log:', error));
 

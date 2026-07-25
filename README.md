@@ -63,7 +63,7 @@ Detailed message edit/delete logs require the Message Content Intent and `ENABLE
 Invite the bot with both `bot` and `applications.commands` scopes. Detailed logging also needs View Audit Log, View Channels, Read Message History, and Send Messages in every log channel.
 
 ```text
-https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=412317273088&scope=bot%20applications.commands
+https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=412605631504&scope=bot%20applications.commands
 ```
 
 ## Railway Deployment
@@ -95,7 +95,8 @@ https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=412317
    DASHBOARD_STREAM_EMBED_PATH
    DASHBOARD_WELCOME_EMBED_PATH
    MODERATION_CASES_PATH
-   PROGRESSION_PATH
+   TEMP_VOICE_PATH
+   TEMP_VOICE_TRIGGER_CHANNEL_ID
    ENABLE_SERVER_MEMBERS_INTENT
    ENABLE_MESSAGE_CONTENT_INTENT
    ENABLE_PRESENCE_INTENT
@@ -132,15 +133,15 @@ The ledger is stored at `RAILWAY_VOLUME_MOUNT_PATH/moderation-cases.json` when a
 
 The dashboard Cases tab provides staff-facing search and filters for case number, member, moderator, reason, action, status, and date. It includes case totals, 30-day activity, repeat-member indicators, member timelines, full reason-correction history, and audited case revocation. Dashboard corrections and revocations update the same persistent ledger and post a Components V2 audit entry in `#case-files`.
 
-## Member Progression
+## Temporary Voice Rooms
 
-The progression system gives every member a bot-only Level and XP account without creating or changing Discord roles. Members can use `/profile [member]`, `/challenges`, and `/leaderboard` to view Components V2 profile cards, current mission progress, and server standings.
+Members who join the create lobby (`TEMP_VOICE_TRIGGER_CHANNEL_ID`, default `1520514900978307226`) receive a DM from Bean with public and private room options. Their choice opens a Discord modal for the room name. Bean creates the voice channel under the lobby's category, gives its creator room-management permission, and moves them inside.
 
-Missions automatically track meaningful messages, unique welcomes for newly joined members, eligible voice minutes, Discord game-presence minutes, streaming minutes, and same-game fireteam time in voice. Daily, weekly, monthly, and one-time reset cycles are supported. Completion awards XP automatically, sends the member a DM, and uses an increasing level curve where the next level costs `current level × 100 XP`.
+Private rooms stay visible to the server while denying Connect to everyone by default. The room owner, administrators, and any member or role with an explicit Connect permission can join. Public rooms follow the category's normal access rules.
 
-The dashboard Progression tab controls tracking eligibility, anti-spam cooldowns, voice participation requirements, AFK/deafened exclusions, and the welcome-credit window. Its master switch pauses all tracking and member progression commands without deleting existing XP. Server administrators and the owner can also use `/progression enable`, `/progression disable`, or `/progression status`; Discord hides this command from regular members by default. Admins can create, edit, enable, disable, and delete mil-sim-themed missions; select their automatic metric and reset cadence; optionally target a specific game; set goals and XP rewards; and review member levels, XP, and completion totals.
+Bean needs Manage Channels, Manage Roles, Move Members, View Channels, Connect, and Speak in the lobby's server/category. The invite link above includes those permissions.
 
-Progression data is stored at `RAILWAY_VOLUME_MOUNT_PATH/progression.json` when a Railway volume is attached, or at `PROGRESSION_PATH` when overridden. Message tracking requires the Message Content Intent, welcome tracking requires the Server Members Intent, and gaming/streaming tracking requires the Presence Intent. Voice tracking uses Discord voice-state events.
+Tracked rooms are deleted after they remain completely empty for one minute. Their IDs, owners, and privacy state are stored at `RAILWAY_VOLUME_MOUNT_PATH/temporary-voice.json` when a Railway volume is attached, or at `TEMP_VOICE_PATH` when overridden. The dashboard Voice Rooms tab can enable or pause creation, change the lobby, show active rooms and occupants, and delete a room immediately.
 
 Optional systems are controlled by environment variables. For example, tickets need `TICKET_CHANNEL_ID`, ticket logs need `TICKET_LOG_CHANNEL_ID`, and reaction roles need `REACTION_ROLE_MESSAGE_ID`, `REACTION_ROLE_EMOJI_ID`, and `VERIFIED_ROLE_ID`. See [.env.example](.env.example) for the full list.
 
@@ -167,6 +168,8 @@ https://your-service.up.railway.app/
 ```
 
 The dashboard sends messages through the running bot, so no restart or slash command is needed. The bot must already be online, and it must have permission to send messages and attach files in the target channel.
+
+The Mailbox tab builds one-off Components v2 posts for updates, news, announcements, and community notices. Its server-side route is locked to channel `1520519675543293972`; set `MAILBOX_CHANNEL_ID` to override that destination without changing the dashboard code.
 
 The dashboard Bot tab can update the bot's avatar, banner, bio, and presence. The Presence panel can add or remove activity texts and set the rotation interval. Saving restarts the rotation immediately and stores the complete presence configuration in `data/presence.json` locally. On Railway, it automatically uses `RAILWAY_VOLUME_MOUNT_PATH/presence.json` when a volume is attached; you can override the file with `DASHBOARD_PRESENCE_PATH`. The `PRESENCE_TEXTS`, `PRESENCE_ROTATION_SECONDS`, and legacy `PRESENCE_TEXT` variables provide defaults until dashboard settings have been saved.
 

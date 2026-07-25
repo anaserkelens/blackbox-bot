@@ -7,13 +7,13 @@ const data = new SlashCommandBuilder()
   .setDescription('Show available bot commands.');
 
 async function execute(interaction) {
-  const canManageProgression =
+  const canUseAdminCommands =
     interaction.user.id === config.ownerUserId ||
     interaction.guild?.ownerId === interaction.user.id ||
     interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
   const commandList = [...interaction.client.commands.values()]
     .filter((command) => !command.ownerOnly || interaction.user.id === config.ownerUserId)
-    .filter((command) => !command.adminOnly || canManageProgression)
+    .filter((command) => !command.adminOnly || canUseAdminCommands)
     .map((command) => `/${command.data.name} - ${command.data.description}`)
     .sort()
     .join('\n');

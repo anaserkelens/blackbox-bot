@@ -85,6 +85,8 @@ const config = {
     userLogs: loggingChannels.systemLog,
     voiceLogs: loggingChannels.lineLog,
     streamAnnouncements: readEnv('ANNOUNCEMENT_CHANNEL_ID') || '1520519675543293972',
+    mailbox: readEnv('MAILBOX_CHANNEL_ID') || '1520519675543293972',
+    tempVoiceTrigger: readEnv('TEMP_VOICE_TRIGGER_CHANNEL_ID') || '1520514900978307226',
   },
   roles: {
     founder: readEnv('FOUNDER_ROLE_ID') || '1520451840058064999',
@@ -118,7 +120,7 @@ const config = {
     streamEmbedPath: readEnv('DASHBOARD_STREAM_EMBED_PATH'),
     welcomeEmbedPath: readEnv('DASHBOARD_WELCOME_EMBED_PATH'),
     moderationCasesPath: readEnv('MODERATION_CASES_PATH'),
-    progressionPath: readEnv('PROGRESSION_PATH'),
+    tempVoicePath: readEnv('TEMP_VOICE_PATH'),
     railwayVolumeMountPath: readEnv('RAILWAY_VOLUME_MOUNT_PATH'),
   },
 };
