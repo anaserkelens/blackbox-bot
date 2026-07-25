@@ -1,5 +1,8 @@
 const { Events, MessageFlags } = require('discord.js');
 
+const { recordActivity } = require('../utils/activityFeed');
+const { config } = require('../utils/config');
+
 const name = Events.InteractionCreate;
 
 async function execute(interaction) {
@@ -15,6 +18,24 @@ async function execute(interaction) {
       flags: MessageFlags.Ephemeral,
     });
     return;
+  }
+
+  if (interaction.guildId && interaction.user && !interaction.user.bot) {
+    await recordActivity(config, {
+      type: 'interaction',
+      title: `/${interaction.commandName}`,
+      summary: `${interaction.member?.displayName || interaction.user.globalName || interaction.user.username} used a Bean command.`,
+      referenceId: `INTERACTION-${interaction.id}`,
+      memberId: interaction.user.id,
+      memberName: interaction.member?.displayName || interaction.user.globalName || interaction.user.username,
+      guildId: interaction.guildId,
+      action: 'command',
+      visibleInFeed: false,
+      metadata: {
+        commandName: interaction.commandName,
+        channelId: interaction.channelId || '',
+      },
+    }).catch((error) => console.error('Failed to record member interaction:', error));
   }
 
   try {

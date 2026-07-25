@@ -38,6 +38,13 @@ module.exports = {
       summary: `${member} joined **${member.guild.name}**.`,
       thumbnailUrl: member.user.displayAvatarURL({ size: 256 }),
       referenceId: `JOIN-${member.id}-${Date.now()}`,
+      activity: {
+        type: 'join',
+        memberId: member.id,
+        memberName: member.displayName,
+        guildId: member.guild.id,
+        action: 'joined',
+      },
       fields: [
         { name: 'Member', value: formatUser(member.user) },
         {

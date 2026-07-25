@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Bean Dashboard</title>
+    <link rel="icon" type="image/png" href="/assets/bean-icon.png" />
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/geist@5.3.0/index.css" />
     <link
@@ -76,6 +77,14 @@
             <button class="tab-button" type="button" data-tab="cases" aria-selected="false">
               <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
               Cases
+            </button>
+            <button class="tab-button" type="button" data-tab="members" aria-selected="false">
+              <i class="fa-solid fa-address-card" aria-hidden="true"></i>
+              Members
+            </button>
+            <button class="tab-button" type="button" data-tab="analytics" aria-selected="false">
+              <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
+              Analytics
             </button>
             <button class="tab-button" type="button" data-tab="voice-rooms" aria-selected="false">
               <i class="fa-solid fa-mug-hot" aria-hidden="true"></i>
@@ -251,7 +260,6 @@
                 <button class="activity-filter" type="button" data-activity-type="moderation">Cases</button>
                 <button class="activity-filter" type="button" data-activity-type="mailbox">Mailbox</button>
                 <button class="activity-filter" type="button" data-activity-type="voice">Voice</button>
-                <button class="activity-filter" type="button" data-activity-type="bot">Bot</button>
               </div>
               <div id="activity-feed" class="activity-feed"></div>
             </section>
@@ -647,6 +655,175 @@
                 </form>
               </div>
             </section>
+          </section>
+        </section>
+
+        <section class="tab-panel" data-panel="members" hidden>
+          <section class="dashboard-panel member-search-hero">
+            <div>
+              <p class="eyebrow">Member Profiles</p>
+              <h2>Find someone in the corner</h2>
+              <p class="muted">Search a display name, username, or Discord ID to gather their history in one place.</p>
+            </div>
+            <form id="member-search-form" class="member-search-form">
+              <label class="field">
+                Search members
+                <span class="member-search-input">
+                  <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                  <input id="member-search" type="search" maxlength="100" placeholder="Display name, username, or member ID" autocomplete="off" />
+                </span>
+              </label>
+              <button id="member-search-button" type="submit">Search</button>
+            </form>
+          </section>
+
+          <section class="member-profile-workspace">
+            <aside class="dashboard-panel member-results-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Results</p>
+                  <h2>Members</h2>
+                </div>
+                <span id="member-result-count" class="status-pill">Search to begin</span>
+              </div>
+              <div id="member-search-results" class="member-search-results">
+                <div class="member-empty-state">
+                  <i class="fa-solid fa-user-group" aria-hidden="true"></i>
+                  <span>Member matches will settle in here.</span>
+                </div>
+              </div>
+            </aside>
+
+            <section class="dashboard-panel member-profile-panel">
+              <div id="member-profile-empty" class="member-profile-empty">
+                <span><i class="fa-solid fa-seedling" aria-hidden="true"></i></span>
+                <strong>Choose a member</strong>
+                <p>Their joins, cases, warnings, rooms, and recent Bean interactions will appear here.</p>
+              </div>
+              <div id="member-profile-content" hidden>
+                <header class="member-profile-header">
+                  <div class="member-profile-identity">
+                    <span id="member-profile-avatar-fallback" class="member-profile-avatar-fallback">
+                      <i class="fa-solid fa-user" aria-hidden="true"></i>
+                    </span>
+                    <img id="member-profile-avatar" class="member-profile-avatar" alt="" hidden />
+                    <div>
+                      <p id="member-profile-status" class="eyebrow">Member profile</p>
+                      <h2 id="member-profile-name">Member</h2>
+                      <p id="member-profile-username" class="muted"></p>
+                    </div>
+                  </div>
+                  <span id="member-profile-presence" class="status-pill">Stored history</span>
+                </header>
+
+                <div id="member-profile-metrics" class="member-profile-metrics"></div>
+                <div id="member-profile-facts" class="member-profile-facts"></div>
+
+                <div class="member-profile-section-grid">
+                  <section class="member-history-card">
+                    <div class="mini-heading"><strong>Join history</strong><i class="fa-solid fa-door-open" aria-hidden="true"></i></div>
+                    <div id="member-join-history" class="member-history-list"></div>
+                  </section>
+                  <section class="member-history-card">
+                    <div class="mini-heading"><strong>Moderation and warnings</strong><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></div>
+                    <div id="member-moderation-history" class="member-history-list"></div>
+                  </section>
+                  <section class="member-history-card">
+                    <div class="mini-heading"><strong>Temporary rooms</strong><i class="fa-solid fa-headphones" aria-hidden="true"></i></div>
+                    <div id="member-room-history" class="member-history-list"></div>
+                  </section>
+                  <section class="member-history-card">
+                    <div class="mini-heading"><strong>Recent Bean interactions</strong><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i></div>
+                    <div id="member-interaction-history" class="member-history-list"></div>
+                  </section>
+                </div>
+              </div>
+            </section>
+          </section>
+        </section>
+
+        <section class="tab-panel" data-panel="analytics" hidden>
+          <section class="dashboard-panel analytics-hero">
+            <div>
+              <p class="eyebrow">Community Analytics</p>
+              <h2>The rhythm of the corner</h2>
+              <p class="muted">Growth, voice activity, Mailbox response, moderation patterns, and active members at a glance.</p>
+            </div>
+            <div class="toolbar-actions">
+              <label class="analytics-range-field">
+                Range
+                <select id="analytics-range">
+                  <option value="7">7 days</option>
+                  <option value="30" selected>30 days</option>
+                  <option value="90">90 days</option>
+                </select>
+              </label>
+              <button id="refresh-analytics" class="secondary icon-button" type="button" aria-label="Refresh analytics" title="Refresh analytics">
+                <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+              </button>
+            </div>
+          </section>
+
+          <div class="analytics-metric-grid">
+            <article class="analytics-metric-card">
+              <span><i class="fa-solid fa-user-group" aria-hidden="true"></i></span>
+              <div><small>Active members</small><strong id="analytics-active-members">—</strong><p id="analytics-active-caption">Loading activity</p></div>
+            </article>
+            <article class="analytics-metric-card">
+              <span class="sage"><i class="fa-solid fa-arrow-trend-up" aria-hidden="true"></i></span>
+              <div><small>Net growth</small><strong id="analytics-net-growth">—</strong><p id="analytics-growth-caption">Loading joins</p></div>
+            </article>
+            <article class="analytics-metric-card">
+              <span class="warm"><i class="fa-solid fa-headphones" aria-hidden="true"></i></span>
+              <div><small>Voice peak</small><strong id="analytics-voice-peak">—</strong><p id="analytics-voice-caption">Loading sessions</p></div>
+            </article>
+            <article class="analytics-metric-card">
+              <span><i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i></span>
+              <div><small>Mailbox reactions</small><strong id="analytics-mailbox-reactions">—</strong><p id="analytics-mailbox-caption">Loading posts</p></div>
+            </article>
+          </div>
+
+          <section class="analytics-grid">
+            <article class="dashboard-panel analytics-chart-panel analytics-growth-panel">
+              <div class="section-heading">
+                <div><p class="eyebrow">Growth</p><h2>Joins and leaves</h2></div>
+                <span id="analytics-growth-total" class="status-pill">Loading</span>
+              </div>
+              <div class="chart-legend"><span class="joins">Joins</span><span class="leaves">Leaves</span></div>
+              <div id="analytics-growth-chart" class="analytics-growth-chart"></div>
+            </article>
+
+            <article class="dashboard-panel analytics-chart-panel">
+              <div class="section-heading">
+                <div><p class="eyebrow">Voice</p><h2>Busiest hours</h2></div>
+                <span class="muted">Local dashboard time</span>
+              </div>
+              <div id="analytics-voice-chart" class="analytics-voice-chart"></div>
+            </article>
+
+            <article class="dashboard-panel analytics-detail-panel">
+              <div class="section-heading">
+                <div><p class="eyebrow">Moderation</p><h2>Patterns</h2></div>
+                <span id="analytics-moderation-total" class="status-pill">Loading</span>
+              </div>
+              <div id="analytics-moderation-patterns" class="analytics-pattern-list"></div>
+            </article>
+
+            <article class="dashboard-panel analytics-detail-panel">
+              <div class="section-heading">
+                <div><p class="eyebrow">Members</p><h2>Active right now</h2></div>
+                <span id="analytics-presence-status" class="status-pill">Checking</span>
+              </div>
+              <div id="analytics-member-breakdown" class="analytics-breakdown-grid"></div>
+            </article>
+
+            <article class="dashboard-panel analytics-detail-panel analytics-mailbox-panel">
+              <div class="section-heading">
+                <div><p class="eyebrow">Mailbox</p><h2>Publishing and engagement</h2></div>
+                <span id="analytics-mailbox-status" class="status-pill">Checking</span>
+              </div>
+              <div id="analytics-mailbox-breakdown" class="analytics-breakdown-grid"></div>
+            </article>
           </section>
         </section>
 

@@ -12,6 +12,12 @@ const {
   recordActivity,
 } = require('../utils/activityFeed');
 const { config } = require('../utils/config');
+const {
+  getDashboardAnalytics,
+  getDashboardNotifications,
+  getMemberProfile,
+  searchMemberProfiles,
+} = require('../utils/dashboardInsights');
 const { startDashboard } = require('../utils/dashboardServer');
 const {
   createScheduledMailboxPost,
@@ -19,6 +25,7 @@ const {
   listScheduledMailboxPosts,
   runMailboxSchedulerTick,
 } = require('../utils/mailboxScheduler');
+const { recordModerationCase } = require('../utils/moderationCases');
 const { recordBotError } = require('../utils/telemetry');
 const { createTempVoiceRoomName } = require('../utils/tempVoiceRooms');
 
@@ -34,13 +41,18 @@ after(async () => {
 
 function createFeatureConfig(name) {
   return {
+    guildId: '1520000000000000100',
+    intents: { presences: true },
     channels: {
       mailbox: '1520519675543293972',
       operationLog: '1520916058272170185',
+      tempVoiceTrigger: '1520514900978307226',
     },
     dashboard: {
       activityPath: path.join(temporaryDirectory, `${name}-activity.json`),
       mailboxSchedulePath: path.join(temporaryDirectory, `${name}-schedule.json`),
+      moderationCasesPath: path.join(temporaryDirectory, `${name}-cases.json`),
+      tempVoicePath: path.join(temporaryDirectory, `${name}-voice.json`),
       maxUploadBytes: 8 * 1024 * 1024,
       railwayVolumeMountPath: undefined,
       savedMessagesPath: undefined,
@@ -50,6 +62,17 @@ function createFeatureConfig(name) {
 
 function createClient() {
   const sent = [];
+  const guild = {
+    id: '1520000000000000100',
+    name: 'The Corner',
+    memberCount: 0,
+    members: {
+      cache: new Map(),
+      fetch: async () => null,
+      search: async () => new Map(),
+    },
+    voiceStates: { cache: new Map() },
+  };
   const channel = {
     isSendable: () => true,
     send: async (payload) => {
@@ -73,10 +96,10 @@ function createClient() {
       guilds: {
         cache: {
           size: 1,
-          first: () => ({ name: 'The Corner' }),
+          first: () => guild,
           get: () => null,
           values: function* values() {
-            yield { name: 'The Corner' };
+            yield guild;
           },
         },
       },
@@ -117,13 +140,184 @@ test('activity feed persists and filters dashboard events', async () => {
     title: 'Temporary Voice Room Created',
     summary: "A member's Room was created.",
   });
+  const hiddenInteraction = await recordActivity(featureConfig, {
+    type: 'interaction',
+    title: '/room',
+    summary: 'A member used a Bean command.',
+    memberId: '1520000000000000001',
+    visibleInFeed: false,
+  });
+  const rejectedBotActivity = await recordActivity(featureConfig, {
+    type: 'bot',
+    title: 'Bot Online',
+  });
 
   const allItems = await getActivityFeed(featureConfig);
   const voiceItems = await getActivityFeed(featureConfig, { type: 'voice' });
+  const botItems = await getActivityFeed(featureConfig, { type: 'bot' });
+  const allStoredItems = await getActivityFeed(featureConfig, { includeHidden: true });
 
   assert.equal(allItems.length, 2);
+  assert.equal(allStoredItems.length, 3);
   assert.equal(voiceItems.length, 1);
+  assert.equal(botItems.length, 0);
   assert.equal(voiceItems[0].title, 'Temporary Voice Room Created');
+  assert.equal(hiddenInteraction.visibleInFeed, false);
+  assert.equal(rejectedBotActivity, null);
+});
+
+test('member profiles combine Discord, cases, rooms, joins, and Bean interactions', async () => {
+  const featureConfig = createFeatureConfig('profiles');
+  const guildId = featureConfig.guildId;
+  const memberId = '1520000000000000001';
+  const member = {
+    id: memberId,
+    displayName: 'Cozy Bean',
+    joinedAt: new Date('2026-07-01T12:00:00.000Z'),
+    displayAvatarURL: () => 'https://cdn.discordapp.com/avatar.png',
+    user: {
+      id: memberId,
+      bot: false,
+      username: 'cozybean',
+      globalName: 'Cozy Bean',
+      createdAt: new Date('2025-01-01T12:00:00.000Z'),
+    },
+    roles: {
+      cache: new Map([
+        [guildId, { id: guildId, name: '@everyone' }],
+        ['1520000000000000002', { id: '1520000000000000002', name: 'Regular' }],
+      ]),
+    },
+    presence: { status: 'online' },
+    voice: { channel: null },
+  };
+  const guild = {
+    id: guildId,
+    name: 'The Corner',
+    memberCount: 10,
+    members: {
+      cache: new Map([[memberId, member]]),
+      fetch: async (id) => id === memberId ? member : null,
+      search: async () => new Map([[memberId, member]]),
+    },
+    voiceStates: { cache: new Map() },
+  };
+  const client = {
+    isReady: () => true,
+    ws: { ping: 42 },
+    user: { id: '1520000000000000999' },
+    guilds: { cache: new Map([[guildId, guild]]) },
+    channels: {
+      cache: new Map(),
+      fetch: async (id) => id === featureConfig.channels.mailbox
+        ? {
+            messages: {
+              fetch: async () => new Map([
+                ['message-1', {
+                  author: { id: '1520000000000000999' },
+                  reactions: { cache: new Map([['heart', { count: 4 }]]) },
+                }],
+              ]),
+            },
+          }
+        : null,
+    },
+  };
+  const notificationCursor = new Date(Date.now() - 1000).toISOString();
+
+  await recordActivity(featureConfig, {
+    type: 'join',
+    title: 'Member Joined',
+    summary: 'Cozy Bean joined The Corner.',
+    memberId,
+    memberName: 'Cozy Bean',
+    guildId,
+    action: 'joined',
+    createdAt: new Date().toISOString(),
+  });
+  await recordActivity(featureConfig, {
+    type: 'voice',
+    title: 'Temporary Voice Room Created',
+    summary: "— COZY BEAN'S ROOM was created.",
+    memberId,
+    memberName: 'Cozy Bean',
+    guildId,
+    action: 'room-created',
+    createdAt: new Date().toISOString(),
+  });
+  await recordActivity(featureConfig, {
+    type: 'voice',
+    title: 'Voice Channel Joined',
+    summary: 'Cozy Bean joined voice.',
+    memberId,
+    memberName: 'Cozy Bean',
+    guildId,
+    action: 'joined',
+    visibleInFeed: false,
+    createdAt: new Date().toISOString(),
+  });
+  await recordActivity(featureConfig, {
+    type: 'interaction',
+    title: '/room',
+    summary: 'Cozy Bean used a Bean command.',
+    memberId,
+    memberName: 'Cozy Bean',
+    guildId,
+    action: 'command',
+    visibleInFeed: false,
+    createdAt: new Date().toISOString(),
+  });
+  await recordModerationCase(featureConfig, {
+    number: 1,
+    guildId,
+    userId: memberId,
+    userTag: 'cozybean',
+    moderatorId: '1520000000000000003',
+    moderatorTag: 'moderator',
+    action: 'warn',
+    reason: 'Test warning',
+    status: 'active',
+    createdAt: new Date().toISOString(),
+  });
+
+  const search = await searchMemberProfiles(client, featureConfig, 'cozy');
+  const profile = await getMemberProfile(client, featureConfig, memberId);
+  const analytics = await getDashboardAnalytics(client, featureConfig, 30);
+  const notifications = await getDashboardNotifications(client, featureConfig, notificationCursor);
+
+  assert.equal(search.length, 1);
+  assert.equal(search[0].displayName, 'Cozy Bean');
+  assert.equal(profile.metrics.warnings, 1);
+  assert.equal(profile.metrics.roomsCreated, 1);
+  assert.equal(profile.metrics.interactions, 1);
+  assert.equal(profile.joins.length, 1);
+  assert.equal(analytics.joinLeave.joins, 1);
+  assert.equal(analytics.voice.sessions, 1);
+  assert.equal(analytics.mailbox.engagement.reactions, 4);
+  assert.equal(analytics.moderation.actions.find((item) => item.action === 'warn').count, 1);
+  assert.ok(notifications.notifications.some((item) => item.type === 'case'));
+});
+
+test('dashboard notifications detect unusual join activity', async () => {
+  const featureConfig = createFeatureConfig('join-notifications');
+  const { client } = createClient();
+  const cursor = new Date(Date.now() - 60000).toISOString();
+
+  for (let index = 0; index < 5; index += 1) {
+    await recordActivity(featureConfig, {
+      type: 'join',
+      title: 'Member Joined',
+      summary: `Member ${index + 1} joined The Corner.`,
+      memberId: String(1520000000000000101n + BigInt(index)),
+      memberName: `Member ${index + 1}`,
+      guildId: featureConfig.guildId,
+      action: 'joined',
+    });
+  }
+
+  const result = await getDashboardNotifications(client, featureConfig, cursor);
+
+  assert.ok(result.notifications.some((item) => item.type === 'joins'));
 });
 
 test('Scheduled Mailbox stores, publishes, and removes posts', async () => {
@@ -170,6 +364,7 @@ test('Scheduled Mailbox retries an unavailable channel three times', async () =>
     scheduledAt: scheduledAt.toISOString(),
     payload: mailboxPayload(),
   });
+  const notificationCursor = new Date(Date.now() - 1000).toISOString();
 
   let tickAt = new Date(scheduledAt.getTime() + 1_000);
 
@@ -186,6 +381,8 @@ test('Scheduled Mailbox retries an unavailable channel three times', async () =>
 
   assert.equal(exhausted.nextAttemptAt, null);
   assert.match(exhausted.lastError, /unavailable or not sendable/i);
+  const notifications = await getDashboardNotifications(client, featureConfig, notificationCursor);
+  assert.ok(notifications.notifications.some((item) => item.type === 'mailbox'));
   await deleteScheduledMailboxPost(featureConfig, job.id);
 });
 
@@ -237,6 +434,20 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
   assert.equal(health.data.api.healthy, true);
   assert.equal(health.data.storage.length, 8);
   assert.equal(health.data.errors[0].source, 'Dashboard test');
+
+  const analytics = await fetchJson(`${baseUrl}/api/analytics?days=30`, { headers });
+  const notifications = await fetchJson(
+    `${baseUrl}/api/dashboard-notifications?after=${encodeURIComponent(new Date().toISOString())}`,
+    { headers },
+  );
+  const memberSearch = await fetchJson(`${baseUrl}/api/member-profiles?query=nobody`, { headers });
+
+  assert.equal(analytics.response.status, 200);
+  assert.equal(analytics.data.analytics.days, 30);
+  assert.equal(notifications.response.status, 200);
+  assert.ok(Array.isArray(notifications.data.notifications));
+  assert.equal(memberSearch.response.status, 200);
+  assert.deepEqual(memberSearch.data.members, []);
 
   const scheduledAt = new Date(Date.now() + 60_000).toISOString();
   const created = await fetchJson(`${baseUrl}/api/mailbox/scheduled`, {

@@ -66,6 +66,18 @@ module.exports = {
       summary,
       thumbnailUrl: member.user.displayAvatarURL({ size: 256 }),
       referenceId: `VOICE-${member.id}-${Date.now()}`,
+      activity: {
+        type: 'voice',
+        memberId: member.id,
+        memberName: member.displayName,
+        guildId: member.guild.id,
+        action: getVoiceActivityAction(oldState, newState, channelChanged),
+        visibleInFeed: false,
+        metadata: {
+          previousChannelId: oldState.channelId || '',
+          currentChannelId: newState.channelId || '',
+        },
+      },
       fields: [
         { name: 'Member', value: formatUser(member.user) },
         { name: 'Previous Channel', value: oldState.channel ? formatChannel(oldState.channel) : 'Not connected' },
@@ -85,6 +97,18 @@ module.exports = {
     }
   },
 };
+
+function getVoiceActivityAction(oldState, newState, channelChanged) {
+  if (!oldState.channelId && newState.channelId) {
+    return 'joined';
+  }
+
+  if (oldState.channelId && !newState.channelId) {
+    return 'left';
+  }
+
+  return channelChanged ? 'moved' : 'state';
+}
 
 function collectStateChanges(oldState, newState) {
   const checks = [

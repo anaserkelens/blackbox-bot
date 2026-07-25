@@ -23,6 +23,44 @@ const activityStorageStatus = document.querySelector('#activity-storage-status')
 const refreshActivityButton = document.querySelector('#refresh-activity');
 const activityFilterButtons = [...document.querySelectorAll('.activity-filter')];
 const activityFeed = document.querySelector('#activity-feed');
+const memberSearchForm = document.querySelector('#member-search-form');
+const memberSearchInput = document.querySelector('#member-search');
+const memberSearchButton = document.querySelector('#member-search-button');
+const memberResultCount = document.querySelector('#member-result-count');
+const memberSearchResults = document.querySelector('#member-search-results');
+const memberProfileEmpty = document.querySelector('#member-profile-empty');
+const memberProfileContent = document.querySelector('#member-profile-content');
+const memberProfileAvatar = document.querySelector('#member-profile-avatar');
+const memberProfileAvatarFallback = document.querySelector('#member-profile-avatar-fallback');
+const memberProfileStatus = document.querySelector('#member-profile-status');
+const memberProfileName = document.querySelector('#member-profile-name');
+const memberProfileUsername = document.querySelector('#member-profile-username');
+const memberProfilePresence = document.querySelector('#member-profile-presence');
+const memberProfileMetrics = document.querySelector('#member-profile-metrics');
+const memberProfileFacts = document.querySelector('#member-profile-facts');
+const memberJoinHistory = document.querySelector('#member-join-history');
+const memberModerationHistory = document.querySelector('#member-moderation-history');
+const memberRoomHistory = document.querySelector('#member-room-history');
+const memberInteractionHistory = document.querySelector('#member-interaction-history');
+const analyticsRangeInput = document.querySelector('#analytics-range');
+const refreshAnalyticsButton = document.querySelector('#refresh-analytics');
+const analyticsActiveMembers = document.querySelector('#analytics-active-members');
+const analyticsActiveCaption = document.querySelector('#analytics-active-caption');
+const analyticsNetGrowth = document.querySelector('#analytics-net-growth');
+const analyticsGrowthCaption = document.querySelector('#analytics-growth-caption');
+const analyticsVoicePeak = document.querySelector('#analytics-voice-peak');
+const analyticsVoiceCaption = document.querySelector('#analytics-voice-caption');
+const analyticsMailboxReactions = document.querySelector('#analytics-mailbox-reactions');
+const analyticsMailboxCaption = document.querySelector('#analytics-mailbox-caption');
+const analyticsGrowthTotal = document.querySelector('#analytics-growth-total');
+const analyticsGrowthChart = document.querySelector('#analytics-growth-chart');
+const analyticsVoiceChart = document.querySelector('#analytics-voice-chart');
+const analyticsModerationTotal = document.querySelector('#analytics-moderation-total');
+const analyticsModerationPatterns = document.querySelector('#analytics-moderation-patterns');
+const analyticsPresenceStatus = document.querySelector('#analytics-presence-status');
+const analyticsMemberBreakdown = document.querySelector('#analytics-member-breakdown');
+const analyticsMailboxStatus = document.querySelector('#analytics-mailbox-status');
+const analyticsMailboxBreakdown = document.querySelector('#analytics-mailbox-breakdown');
 const guildNameElements = [...document.querySelectorAll('[data-guild-name]')];
 const dashboardApiStatus = document.querySelector('#dashboard-api-status');
 const savedMessagesContainer = document.querySelector('#saved-messages');
@@ -229,6 +267,13 @@ const state = {
   activityStorage: null,
   activityType: '',
   overviewRefreshTimer: null,
+  memberSearchResults: [],
+  selectedMemberId: null,
+  memberProfile: null,
+  analytics: null,
+  notificationTimer: null,
+  notificationCursor: null,
+  seenNotifications: new Set(),
   botAvatarImage: null,
   botBannerImage: null,
   savedMessages: [],
@@ -308,6 +353,14 @@ function bindEvents() {
       activityFilterButtons.forEach((item) => item.classList.toggle('active', item === button));
       loadActivityFeed(false).catch((error) => setSendStatus(error.message, 'error'));
     });
+  });
+  memberSearchForm.addEventListener('submit', handleMemberSearch);
+  memberSearchResults.addEventListener('click', handleMemberResultClick);
+  analyticsRangeInput.addEventListener('change', () => {
+    loadDashboardAnalytics(false).catch((error) => setSendStatus(error.message, 'error'));
+  });
+  refreshAnalyticsButton.addEventListener('click', () => {
+    loadDashboardAnalytics(true).catch((error) => setSendStatus(error.message, 'error'));
   });
   refreshBotButton.addEventListener('click', () => {
     refreshBotSettings(true).catch((error) => setSendStatus(error.message, 'error'));
@@ -474,6 +527,7 @@ async function handleLogout() {
   stopVoiceRoomSync();
   stopOverviewSync();
   stopMailboxScheduleSync();
+  stopDashboardNotifications();
   showLogin();
 }
 
@@ -1312,6 +1366,7 @@ function showDashboard(session) {
   });
   loadDashboardHealth(false).catch(() => null);
   loadActivityFeed(false).catch(() => null);
+  startDashboardNotifications();
 
   if (!state.composerInitialized) {
     resetComposer();
@@ -1476,10 +1531,10 @@ function renderActivityFeed() {
 function getActivityIcon(type) {
   return {
     join: 'fa-user-plus',
+    leave: 'fa-user-minus',
     moderation: 'fa-shield-halved',
     mailbox: 'fa-envelope-open-text',
     voice: 'fa-headphones',
-    bot: 'fa-robot',
   }[type] || 'fa-bolt';
 }
 
@@ -1505,6 +1560,545 @@ function stopOverviewSync() {
 
   window.clearInterval(state.overviewRefreshTimer);
   state.overviewRefreshTimer = null;
+}
+
+async function handleMemberSearch(event) {
+  event.preventDefault();
+  const query = memberSearchInput.value.trim();
+
+  if (query && query.length < 2 && !/^\d{17,20}$/.test(query)) {
+    setSendStatus('Use at least two characters when searching for a member.', 'error');
+    return;
+  }
+
+  memberSearchButton.disabled = true;
+  memberResultCount.textContent = 'Searching';
+
+  try {
+    const result = await api(`/api/member-profiles?query=${encodeURIComponent(query)}`);
+
+    state.memberSearchResults = Array.isArray(result.members) ? result.members : [];
+    renderMemberSearchResults();
+
+    if (state.memberSearchResults.length === 1) {
+      await loadMemberProfile(state.memberSearchResults[0].id);
+    }
+  } catch (error) {
+    memberResultCount.textContent = 'Unavailable';
+    setSendStatus(error.message, 'error');
+  } finally {
+    memberSearchButton.disabled = false;
+  }
+}
+
+function renderMemberSearchResults() {
+  memberSearchResults.replaceChildren();
+  memberResultCount.textContent = `${state.memberSearchResults.length} found`;
+
+  if (state.memberSearchResults.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'member-empty-state';
+    empty.innerHTML = '<i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><span>No matching members found.</span>';
+    memberSearchResults.append(empty);
+    return;
+  }
+
+  for (const member of state.memberSearchResults) {
+    const button = document.createElement('button');
+    const avatar = createMemberAvatar(member.avatarUrl, member.displayName);
+    const copy = document.createElement('span');
+    const name = document.createElement('strong');
+    const username = document.createElement('small');
+    const badges = document.createElement('span');
+
+    button.type = 'button';
+    button.className = 'member-result';
+    button.classList.toggle('active', member.id === state.selectedMemberId);
+    button.dataset.memberId = member.id;
+    copy.className = 'member-result-copy';
+    name.textContent = member.displayName;
+    username.textContent = `@${member.username} · ${member.id}`;
+    badges.className = 'member-result-badges';
+    badges.textContent = `${member.caseCount} cases · ${member.warningCount} warnings`;
+    copy.append(name, username, badges);
+    button.append(avatar, copy);
+    memberSearchResults.append(button);
+  }
+}
+
+function handleMemberResultClick(event) {
+  const button = event.target.closest('[data-member-id]');
+
+  if (!button) {
+    return;
+  }
+
+  loadMemberProfile(button.dataset.memberId).catch((error) => setSendStatus(error.message, 'error'));
+}
+
+async function loadMemberProfile(memberId) {
+  state.selectedMemberId = memberId;
+  renderMemberSearchResults();
+  memberProfileEmpty.hidden = true;
+  memberProfileContent.hidden = false;
+  memberProfileName.textContent = 'Gathering member history…';
+  memberProfileUsername.textContent = memberId;
+
+  const result = await api(`/api/member-profiles/${encodeURIComponent(memberId)}`);
+
+  state.memberProfile = result.profile;
+  renderMemberProfile();
+}
+
+function renderMemberProfile() {
+  const profile = state.memberProfile;
+
+  if (!profile) {
+    return;
+  }
+
+  memberProfileName.textContent = profile.displayName;
+  memberProfileUsername.textContent = `@${profile.username} · ${profile.id}`;
+  memberProfileStatus.textContent = profile.inServer ? 'Current server member' : 'Stored member history';
+  memberProfilePresence.textContent = profile.voiceChannel
+    ? `In ${profile.voiceChannel}`
+    : formatMemberPresence(profile.presence, profile.inServer);
+  memberProfilePresence.classList.toggle('ready', ['online', 'idle', 'dnd'].includes(profile.presence));
+  memberProfileAvatar.hidden = !profile.avatarUrl;
+  memberProfileAvatarFallback.hidden = Boolean(profile.avatarUrl);
+
+  if (profile.avatarUrl) {
+    memberProfileAvatar.src = profile.avatarUrl;
+    memberProfileAvatar.alt = `${profile.displayName}'s avatar`;
+  } else {
+    memberProfileAvatar.removeAttribute('src');
+  }
+
+  renderMemberProfileMetrics(profile);
+  renderMemberProfileFacts(profile);
+  renderMemberHistory(
+    memberJoinHistory,
+    profile.joins,
+    (item) => ({
+      icon: item.type === 'join' ? 'fa-right-to-bracket' : 'fa-right-from-bracket',
+      title: item.type === 'join' ? 'Joined the server' : 'Left the server',
+      detail: item.summary,
+      time: item.createdAt,
+    }),
+    'No recorded join history yet.',
+  );
+  renderMemberHistory(
+    memberModerationHistory,
+    profile.moderation,
+    (item) => ({
+      icon: getModerationActionIcon(item.action),
+      title: `${item.reference} · ${capitalizeDashboardText(item.action)}`,
+      detail: `${item.reason} · ${capitalizeDashboardText(item.status)}`,
+      time: item.createdAt,
+    }),
+    'No moderation cases or warnings.',
+  );
+  const currentRooms = (profile.currentRooms || []).map((room) => ({
+    current: true,
+    title: room.name,
+    summary: `${room.memberCount} listening now`,
+    createdAt: room.createdAt,
+  }));
+  renderMemberHistory(
+    memberRoomHistory,
+    [...currentRooms, ...(profile.roomHistory || [])],
+    (item) => ({
+      icon: item.current ? 'fa-volume-high' : getActivityIcon('voice'),
+      title: item.current ? item.title : item.title,
+      detail: item.current ? item.summary : item.summary,
+      time: item.createdAt,
+      badge: item.current ? 'Active' : '',
+    }),
+    'No temporary rooms recorded.',
+  );
+  renderMemberHistory(
+    memberInteractionHistory,
+    profile.interactions,
+    (item) => ({
+      icon: 'fa-terminal',
+      title: item.title,
+      detail: item.summary,
+      time: item.createdAt,
+    }),
+    'No recent Bean command interactions.',
+  );
+}
+
+function renderMemberProfileMetrics(profile) {
+  const metrics = [
+    ['fa-shield-halved', 'Cases', profile.metrics.cases],
+    ['fa-triangle-exclamation', 'Warnings', profile.metrics.warnings],
+    ['fa-headphones', 'Rooms', profile.metrics.roomsCreated],
+    ['fa-wand-magic-sparkles', 'Interactions', profile.metrics.interactions],
+  ];
+
+  memberProfileMetrics.replaceChildren();
+
+  for (const [icon, label, value] of metrics) {
+    const card = document.createElement('article');
+    card.innerHTML = `<i class="fa-solid ${icon}" aria-hidden="true"></i>`;
+    const copy = document.createElement('span');
+    const strong = document.createElement('strong');
+    const small = document.createElement('small');
+    strong.textContent = Number(value || 0).toLocaleString();
+    small.textContent = label;
+    copy.append(strong, small);
+    card.append(copy);
+    memberProfileMetrics.append(card);
+  }
+}
+
+function renderMemberProfileFacts(profile) {
+  const facts = [
+    ['Joined', profile.joinedAt ? formatDashboardCaseDateTime(profile.joinedAt) : 'Unknown'],
+    ['Account created', profile.accountCreatedAt ? formatDashboardCaseDateTime(profile.accountCreatedAt) : 'Unknown'],
+    ['Roles', profile.roles?.length ? profile.roles.join(', ') : 'No assigned roles'],
+    ['Voice', profile.voiceChannel || 'Not connected'],
+  ];
+
+  memberProfileFacts.replaceChildren();
+
+  for (const [label, value] of facts) {
+    const item = document.createElement('div');
+    const strong = document.createElement('strong');
+    const span = document.createElement('span');
+    strong.textContent = label;
+    span.textContent = value;
+    item.append(strong, span);
+    memberProfileFacts.append(item);
+  }
+}
+
+function renderMemberHistory(container, items, transform, emptyMessage) {
+  container.replaceChildren();
+
+  if (!items?.length) {
+    const empty = document.createElement('p');
+    empty.className = 'member-history-empty';
+    empty.textContent = emptyMessage;
+    container.append(empty);
+    return;
+  }
+
+  for (const source of items.slice(0, 12)) {
+    const data = transform(source);
+    const item = document.createElement('article');
+    const icon = document.createElement('span');
+    const copy = document.createElement('div');
+    const heading = document.createElement('div');
+    const title = document.createElement('strong');
+    const detail = document.createElement('p');
+    const time = document.createElement('time');
+
+    item.className = 'member-history-item';
+    icon.innerHTML = `<i class="fa-solid ${data.icon}" aria-hidden="true"></i>`;
+    title.textContent = data.title;
+    detail.textContent = data.detail || 'Bean recorded this activity.';
+    time.textContent = data.time ? formatDashboardCaseDateTime(data.time) : '';
+    heading.append(title);
+
+    if (data.badge) {
+      const badge = document.createElement('small');
+      badge.textContent = data.badge;
+      heading.append(badge);
+    }
+
+    copy.append(heading, detail, time);
+    item.append(icon, copy);
+    container.append(item);
+  }
+}
+
+function createMemberAvatar(url, displayName) {
+  if (url) {
+    const image = document.createElement('img');
+    image.className = 'member-result-avatar';
+    image.src = url;
+    image.alt = '';
+    return image;
+  }
+
+  const fallback = document.createElement('span');
+  fallback.className = 'member-result-avatar member-result-avatar-fallback';
+  fallback.textContent = String(displayName || '?').slice(0, 1).toUpperCase();
+  return fallback;
+}
+
+function formatMemberPresence(presence, inServer) {
+  if (!inServer) return 'No longer in server';
+  return {
+    online: 'Online',
+    idle: 'Idle',
+    dnd: 'Do not disturb',
+    offline: 'Offline',
+  }[presence] || 'Presence unavailable';
+}
+
+function getModerationActionIcon(action) {
+  return {
+    warn: 'fa-triangle-exclamation',
+    timeout: 'fa-clock',
+    kick: 'fa-person-walking-arrow-right',
+    ban: 'fa-ban',
+  }[action] || 'fa-shield-halved';
+}
+
+async function loadDashboardAnalytics(showNotification = false) {
+  refreshAnalyticsButton.disabled = true;
+
+  try {
+    const query = new URLSearchParams({
+      days: analyticsRangeInput.value,
+      timezoneOffset: String(new Date().getTimezoneOffset()),
+    });
+    const result = await api(`/api/analytics?${query}`);
+    state.analytics = result.analytics;
+    renderDashboardAnalytics();
+
+    if (showNotification) {
+      setSendStatus('Community analytics refreshed.', 'success');
+    }
+  } finally {
+    refreshAnalyticsButton.disabled = false;
+  }
+}
+
+function renderDashboardAnalytics() {
+  const analytics = state.analytics;
+
+  if (!analytics) return;
+
+  const netGrowth = analytics.joinLeave.joins - analytics.joinLeave.leaves;
+  analyticsActiveMembers.textContent = analytics.members.activeInRange.toLocaleString();
+  analyticsActiveCaption.textContent = `of ${analytics.members.total.toLocaleString()} members active in ${analytics.days} days`;
+  analyticsNetGrowth.textContent = `${netGrowth >= 0 ? '+' : ''}${netGrowth.toLocaleString()}`;
+  analyticsGrowthCaption.textContent = `${analytics.joinLeave.joins} joined · ${analytics.joinLeave.leaves} left`;
+  analyticsVoicePeak.textContent = analytics.voice.sessions
+    ? formatAnalyticsHour(analytics.voice.busiest.hour)
+    : 'No data';
+  analyticsVoiceCaption.textContent = `${analytics.voice.sessions.toLocaleString()} voice joins recorded`;
+  analyticsMailboxReactions.textContent = analytics.mailbox.engagement.available
+    ? analytics.mailbox.engagement.reactions.toLocaleString()
+    : 'Unavailable';
+  analyticsMailboxCaption.textContent = `${analytics.mailbox.published} published · ${analytics.mailbox.failed} failed`;
+  analyticsGrowthTotal.textContent = `${netGrowth >= 0 ? '+' : ''}${netGrowth} net`;
+  analyticsModerationTotal.textContent = `${analytics.moderation.total} cases`;
+  analyticsPresenceStatus.textContent = analytics.members.presenceAvailable ? 'Presence connected' : 'Presence intent off';
+  analyticsPresenceStatus.classList.toggle('ready', analytics.members.presenceAvailable);
+  analyticsMailboxStatus.textContent = analytics.mailbox.engagement.available ? 'Reactions connected' : 'History unavailable';
+  analyticsMailboxStatus.classList.toggle('ready', analytics.mailbox.engagement.available);
+
+  renderAnalyticsGrowthChart(analytics.joinLeave.daily);
+  renderAnalyticsVoiceChart(analytics.voice.hours);
+  renderAnalyticsModeration(analytics.moderation);
+  renderAnalyticsBreakdown(analyticsMemberBreakdown, [
+    ['fa-users', 'Total members', analytics.members.total],
+    ['fa-circle', 'Online now', analytics.members.presenceAvailable ? analytics.members.online : 'Intent off'],
+    ['fa-headphones', 'In voice now', analytics.members.inVoice],
+    ['fa-bolt', `Active in ${analytics.days} days`, analytics.members.activeInRange],
+  ]);
+  renderAnalyticsBreakdown(analyticsMailboxBreakdown, [
+    ['fa-paper-plane', 'Published', analytics.mailbox.published],
+    ['fa-calendar-check', 'Scheduled', analytics.mailbox.scheduled],
+    ['fa-triangle-exclamation', 'Failed', analytics.mailbox.failed],
+    ['fa-heart', 'Reacted posts', analytics.mailbox.engagement.available
+      ? analytics.mailbox.engagement.reactedMessages
+      : 'Unavailable'],
+  ]);
+}
+
+function renderAnalyticsGrowthChart(daily) {
+  analyticsGrowthChart.replaceChildren();
+  const maximum = Math.max(1, ...daily.flatMap((item) => [item.joins, item.leaves]));
+  const labelInterval = Math.max(1, Math.ceil(daily.length / 8));
+
+  daily.forEach((day, index) => {
+    const group = document.createElement('div');
+    const bars = document.createElement('div');
+    const join = document.createElement('span');
+    const leave = document.createElement('span');
+    const label = document.createElement('small');
+
+    group.className = 'analytics-day-group';
+    bars.className = 'analytics-day-bars';
+    join.className = 'join-bar';
+    leave.className = 'leave-bar';
+    join.style.height = `${day.joins ? Math.max(7, day.joins / maximum * 100) : 2}%`;
+    leave.style.height = `${day.leaves ? Math.max(7, day.leaves / maximum * 100) : 2}%`;
+    join.title = `${day.date}: ${day.joins} joins`;
+    leave.title = `${day.date}: ${day.leaves} leaves`;
+    label.textContent = index % labelInterval === 0 || index === daily.length - 1
+      ? new Date(`${day.date}T12:00:00`).toLocaleDateString([], { month: 'short', day: 'numeric' })
+      : '';
+    bars.append(join, leave);
+    group.append(bars, label);
+    analyticsGrowthChart.append(group);
+  });
+}
+
+function renderAnalyticsVoiceChart(hours) {
+  analyticsVoiceChart.replaceChildren();
+  const maximum = Math.max(1, ...hours.map((item) => item.count));
+
+  for (const hour of hours) {
+    const group = document.createElement('div');
+    const bar = document.createElement('span');
+    const label = document.createElement('small');
+
+    group.className = 'analytics-hour-group';
+    bar.style.height = `${hour.count ? Math.max(6, hour.count / maximum * 100) : 2}%`;
+    bar.title = `${formatAnalyticsHour(hour.hour)}: ${hour.count} joins`;
+    label.textContent = hour.hour % 3 === 0 ? String(hour.hour).padStart(2, '0') : '';
+    group.append(bar, label);
+    analyticsVoiceChart.append(group);
+  }
+}
+
+function renderAnalyticsModeration(moderation) {
+  analyticsModerationPatterns.replaceChildren();
+  const maximum = Math.max(1, ...moderation.actions.map((item) => item.count));
+
+  for (const item of moderation.actions) {
+    const row = document.createElement('div');
+    const heading = document.createElement('div');
+    const label = document.createElement('span');
+    const count = document.createElement('strong');
+    const track = document.createElement('span');
+    const bar = document.createElement('span');
+
+    row.className = 'analytics-pattern-row';
+    label.textContent = capitalizeDashboardText(item.action);
+    count.textContent = item.count.toLocaleString();
+    track.className = 'analytics-pattern-track';
+    bar.style.width = `${item.count / maximum * 100}%`;
+    heading.append(label, count);
+    track.append(bar);
+    row.append(heading, track);
+    analyticsModerationPatterns.append(row);
+  }
+
+  const note = document.createElement('p');
+  note.className = 'analytics-pattern-note';
+  note.textContent = `${moderation.repeatMembers} repeat members · ${moderation.activeCases} active cases overall`;
+  analyticsModerationPatterns.append(note);
+}
+
+function renderAnalyticsBreakdown(container, values) {
+  container.replaceChildren();
+
+  for (const [iconName, label, value] of values) {
+    const card = document.createElement('article');
+    card.innerHTML = `<i class="fa-solid ${iconName}" aria-hidden="true"></i>`;
+    const copy = document.createElement('span');
+    const small = document.createElement('small');
+    const strong = document.createElement('strong');
+    small.textContent = label;
+    strong.textContent = typeof value === 'number' ? value.toLocaleString() : value;
+    copy.append(small, strong);
+    card.append(copy);
+    container.append(card);
+  }
+}
+
+function formatAnalyticsHour(hour) {
+  return new Date(2026, 0, 1, Number(hour) || 0).toLocaleTimeString([], {
+    hour: 'numeric',
+  });
+}
+
+function startDashboardNotifications() {
+  if (state.notificationTimer) {
+    return;
+  }
+
+  state.notificationCursor = new Date().toISOString();
+  state.seenNotifications.clear();
+  window.setTimeout(() => pollDashboardNotifications().catch(() => null), 1500);
+  state.notificationTimer = window.setInterval(() => {
+    if (!document.hidden && !dashboardView.hidden) {
+      pollDashboardNotifications().catch(() => null);
+    }
+  }, 10000);
+}
+
+function stopDashboardNotifications() {
+  if (state.notificationTimer) {
+    window.clearInterval(state.notificationTimer);
+  }
+
+  state.notificationTimer = null;
+  state.notificationCursor = null;
+  state.seenNotifications.clear();
+}
+
+async function pollDashboardNotifications() {
+  if (!state.notificationCursor) {
+    return;
+  }
+
+  const result = await api(
+    `/api/dashboard-notifications?after=${encodeURIComponent(state.notificationCursor)}`,
+  );
+  state.notificationCursor = result.generatedAt || new Date().toISOString();
+
+  for (const notification of result.notifications || []) {
+    if (state.seenNotifications.has(notification.id)) {
+      continue;
+    }
+
+    state.seenNotifications.add(notification.id);
+    showDashboardNotification(notification);
+  }
+}
+
+function showDashboardNotification(notification) {
+  const toast = document.createElement('section');
+  const icon = document.createElement('span');
+  const copy = document.createElement('div');
+  const title = document.createElement('strong');
+  const message = document.createElement('p');
+  const actions = document.createElement('div');
+  const open = document.createElement('button');
+  const close = document.createElement('button');
+
+  toast.className = `toast live-notification ${notification.type || 'info'}`;
+  toast.setAttribute('role', 'status');
+  icon.className = 'live-notification-icon';
+  icon.innerHTML = `<i class="fa-solid ${getNotificationIcon(notification.type)}" aria-hidden="true"></i>`;
+  title.textContent = notification.title;
+  message.textContent = notification.message;
+  copy.append(title, message);
+  actions.className = 'live-notification-actions';
+  open.type = 'button';
+  open.className = 'secondary';
+  open.textContent = 'Take a look';
+  open.addEventListener('click', () => {
+    setActiveTab(notification.tab || 'overview');
+    dismissToast(toast);
+  });
+  close.type = 'button';
+  close.className = 'toast-close';
+  close.setAttribute('aria-label', 'Dismiss notification');
+  close.textContent = 'Close';
+  close.addEventListener('click', () => dismissToast(toast));
+  actions.append(open);
+  toast.append(icon, copy, actions, close);
+  toastRegion.append(toast);
+  window.setTimeout(() => dismissToast(toast), notification.type === 'error' ? 12000 : 9000);
+}
+
+function getNotificationIcon(type) {
+  return {
+    case: 'fa-shield-halved',
+    mailbox: 'fa-envelope-open-text',
+    error: 'fa-triangle-exclamation',
+    joins: 'fa-user-group',
+  }[type] || 'fa-bell';
 }
 
 function setGuildName(guildName) {
@@ -1559,6 +2153,14 @@ function setActiveTab(tab) {
     ]).catch((error) => setSendStatus(error.message, 'error'));
   } else {
     stopOverviewSync();
+  }
+
+  if (nextTab === 'members' && !dashboardView.hidden) {
+    window.setTimeout(() => memberSearchInput.focus(), 0);
+  }
+
+  if (nextTab === 'analytics' && !dashboardView.hidden) {
+    loadDashboardAnalytics(false).catch((error) => setSendStatus(error.message, 'error'));
   }
 
   if (nextTab === 'mailbox' && !dashboardView.hidden) {

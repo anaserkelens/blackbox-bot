@@ -3,7 +3,9 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 
 const defaultActivityFeedPath = path.join(__dirname, '..', 'data', 'activity-feed.json');
-const allowedTypes = new Set(['join', 'moderation', 'mailbox', 'voice', 'bot']);
+const maximumActivityItems = 2000;
+const allowedTypes = new Set(['join', 'leave', 'moderation', 'mailbox', 'voice', 'interaction']);
+const visibleTypes = new Set(['join', 'leave', 'moderation', 'mailbox', 'voice']);
 let mutationQueue = Promise.resolve();
 
 function getActivityFeedStorageInfo(config) {
@@ -47,18 +49,33 @@ async function recordActivity(config, input) {
     }
 
     store.items.unshift(item);
-    store.items = store.items.slice(0, 250);
+    store.items = store.items.slice(0, maximumActivityItems);
     return item;
   });
 }
 
 async function getActivityFeed(config, options = {}) {
   const store = await readActivityFeed(config);
-  const type = allowedTypes.has(options.type) ? options.type : null;
-  const limit = clampInteger(options.limit, 1, 250, 100);
-  const items = type
-    ? store.items.filter((item) => item.type === type)
-    : store.items;
+  const requestedType = String(options.type || '').trim();
+  const type = allowedTypes.has(requestedType) ? requestedType : null;
+  const memberId = normalizeSnowflake(options.memberId);
+  const limit = clampInteger(options.limit, 1, maximumActivityItems, 100);
+
+  if (requestedType && !type) {
+    return [];
+  }
+
+  const items = store.items.filter((item) => {
+    if (!options.includeHidden && !item.visibleInFeed) {
+      return false;
+    }
+
+    if (type && item.type !== type) {
+      return false;
+    }
+
+    return !memberId || item.memberId === memberId;
+  });
 
   return items.slice(0, limit);
 }
@@ -91,7 +108,7 @@ async function readActivityFeed(config) {
   return {
     version: 1,
     items: Array.isArray(parsed?.items)
-      ? parsed.items.map(normalizeStoredActivity).filter(Boolean).slice(0, 250)
+      ? parsed.items.map(normalizeStoredActivity).filter(Boolean).slice(0, maximumActivityItems)
       : [],
   };
 }
@@ -108,18 +125,25 @@ async function writeActivityFeed(config, store) {
 function normalizeActivity(input) {
   const source = input && typeof input === 'object' ? input : {};
   const title = normalizeText(source.title, 160);
+  const type = allowedTypes.has(source.type) ? source.type : null;
 
-  if (!title) {
+  if (!title || !type) {
     return null;
   }
 
   return {
     id: crypto.randomUUID(),
-    type: allowedTypes.has(source.type) ? source.type : 'bot',
+    type,
     title,
     summary: normalizeText(source.summary, 500),
     referenceId: normalizeText(source.referenceId, 160),
     createdAt: normalizeDate(source.createdAt) || new Date().toISOString(),
+    memberId: normalizeSnowflake(source.memberId),
+    memberName: normalizeText(source.memberName, 120),
+    guildId: normalizeSnowflake(source.guildId),
+    action: normalizeText(source.action, 80).toLowerCase(),
+    visibleInFeed: source.visibleInFeed !== false && visibleTypes.has(type),
+    metadata: normalizeMetadata(source.metadata),
     details: Array.isArray(source.details)
       ? source.details
         .slice(0, 4)
@@ -148,6 +172,10 @@ function inferActivityType(options = {}) {
     return 'join';
   }
 
+  if (reference.startsWith('LEAVE-') || title.includes('member left')) {
+    return 'leave';
+  }
+
   if (
     reference.startsWith('CASE-')
     || title.includes('moderation')
@@ -164,16 +192,35 @@ function inferActivityType(options = {}) {
     return 'voice';
   }
 
-  return 'bot';
+  return null;
 }
 
 function activityFromStructuredLog(options = {}) {
+  if (options.activity === false) {
+    return null;
+  }
+
+  const overrides = options.activity && typeof options.activity === 'object'
+    ? options.activity
+    : {};
+  const type = overrides.type || inferActivityType(options);
+
+  if (!type) {
+    return null;
+  }
+
   return {
-    type: inferActivityType(options),
+    type,
     title: options.title,
     summary: stripDiscordFormatting(options.summary),
     referenceId: options.referenceId,
     createdAt: options.timestamp instanceof Date ? options.timestamp.toISOString() : undefined,
+    memberId: overrides.memberId || options.memberId,
+    memberName: overrides.memberName || options.memberName,
+    guildId: overrides.guildId || options.guildId,
+    action: overrides.action,
+    visibleInFeed: overrides.visibleInFeed,
+    metadata: overrides.metadata,
     details: (options.fields || []).slice(0, 3).map((field) =>
       `${field.name}: ${stripDiscordFormatting(field.value)}`),
   };
@@ -197,6 +244,29 @@ function normalizeText(value, maximumLength) {
 function normalizeDate(value) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function normalizeSnowflake(value) {
+  const snowflake = String(value || '').trim();
+  return /^\d{17,20}$/.test(snowflake) ? snowflake : null;
+}
+
+function normalizeMetadata(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(value)
+      .slice(0, 12)
+      .map(([key, item]) => [
+        normalizeText(key, 60),
+        ['string', 'number', 'boolean'].includes(typeof item)
+          ? (typeof item === 'string' ? normalizeText(item, 300) : item)
+          : normalizeText(item, 300),
+      ])
+      .filter(([key]) => key),
+  );
 }
 
 function clampInteger(value, minimum, maximum, fallback) {

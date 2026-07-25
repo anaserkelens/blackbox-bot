@@ -36,4 +36,8 @@
 - Dashboard Voice Rooms configuration and active-room oversight
 - Dashboard-only Scheduled Mailbox queue with automatic publishing and retries
 - Dashboard Bot Health panel for uptime, Discord latency, API, storage, and recent errors
-- Unified Dashboard Activity Feed for joins, cases, Mailbox posts, temporary rooms, and bot actions
+- Unified Dashboard Activity Feed for joins, departures, cases, Mailbox posts, and temporary rooms
+- Searchable Dashboard Member Profiles with cases, warnings, rooms, joins, and Bean interactions
+- Live Dashboard notifications for cases, Mailbox failures, bot errors, and unusual join activity
+- Dashboard Analytics for growth, voice hours, Mailbox engagement, moderation patterns, and active members
+- Member-aware Activity Feed with general bot-operation entries removed

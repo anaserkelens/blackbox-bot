@@ -7,6 +7,12 @@ const { getActivityFeed, getActivityFeedStorageInfo } = require('./activityFeed'
 const { config } = require('./config');
 const { createDashboardMessagePayload } = require('./dashboardMessage');
 const {
+  getDashboardAnalytics,
+  getDashboardNotifications,
+  getMemberProfile,
+  searchMemberProfiles,
+} = require('./dashboardInsights');
+const {
   getModerationCase,
   getModerationCasesStorageInfo,
   listModerationCases,
@@ -260,6 +266,26 @@ async function handleRequest(client, request, response) {
 
     if (request.method === 'GET' && url.pathname === '/api/activity-feed') {
       await handleGetActivityFeed(url, response);
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/member-profiles') {
+      await handleSearchMemberProfiles(client, url, response);
+      return;
+    }
+
+    if (request.method === 'GET' && /^\/api\/member-profiles\/\d{17,20}$/.test(url.pathname)) {
+      await handleGetMemberProfile(client, url.pathname, response);
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/analytics') {
+      await handleGetAnalytics(client, url, response);
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/dashboard-notifications') {
+      await handleGetDashboardNotifications(client, url, response);
       return;
     }
 
@@ -544,6 +570,45 @@ async function handleGetActivityFeed(url, response) {
     items,
     storage: getActivityFeedStorageInfo(config),
   });
+}
+
+async function handleSearchMemberProfiles(client, url, response) {
+  const query = String(url.searchParams.get('query') || '').trim();
+
+  if (query.length > 100) {
+    sendJson(response, 400, { error: 'Member searches must be 100 characters or fewer.' });
+    return;
+  }
+
+  const members = await searchMemberProfiles(client, config, query);
+  sendJson(response, 200, { ok: true, members, query });
+}
+
+async function handleGetMemberProfile(client, pathname, response) {
+  const memberId = pathname.slice('/api/member-profiles/'.length);
+  const profile = await getMemberProfile(client, config, memberId);
+
+  if (!profile) {
+    sendJson(response, 404, { error: 'No member profile or stored history was found.' });
+    return;
+  }
+
+  sendJson(response, 200, { ok: true, profile });
+}
+
+async function handleGetAnalytics(client, url, response) {
+  const days = Number.parseInt(url.searchParams.get('days'), 10);
+  const timezoneOffset = Number.parseInt(url.searchParams.get('timezoneOffset'), 10);
+  const analytics = await getDashboardAnalytics(client, config, days, timezoneOffset);
+
+  sendJson(response, 200, { ok: true, analytics });
+}
+
+async function handleGetDashboardNotifications(client, url, response) {
+  const after = String(url.searchParams.get('after') || '');
+  const result = await getDashboardNotifications(client, config, after);
+
+  sendJson(response, 200, { ok: true, ...result });
 }
 
 async function getDashboardStorageHealth() {

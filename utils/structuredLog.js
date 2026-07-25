@@ -123,9 +123,13 @@ function createStructuredLogPayload(options) {
 }
 
 async function sendStructuredLog(client, channelId, options, runtimeConfig = config) {
-  await recordActivity(runtimeConfig, activityFromStructuredLog(options)).catch((error) => {
-    console.error('Failed to record dashboard activity:', error);
-  });
+  const activity = activityFromStructuredLog(options);
+
+  if (activity) {
+    await recordActivity(runtimeConfig, activity).catch((error) => {
+      console.error('Failed to record dashboard activity:', error);
+    });
+  }
 
   const channel = await fetchSendableChannel(client, channelId);
 

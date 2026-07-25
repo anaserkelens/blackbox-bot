@@ -127,8 +127,9 @@ async function handleTempVoiceStateUpdate(oldState, newState, client, config) {
 
 async function handleTrackedChannelDelete(channel, config) {
   const state = await loadState(config);
+  const trackedRoom = state.channels.find((room) => room.channelId === channel.id);
 
-  if (!isTrackedRoom(state, channel.id)) {
+  if (!trackedRoom) {
     return false;
   }
 
@@ -140,6 +141,10 @@ async function handleTrackedChannelDelete(channel, config) {
     title: 'Temporary Voice Room Removed',
     summary: `${channel.name || 'A temporary room'} was deleted.`,
     referenceId: `TEMP-VOICE-REMOVED-${channel.id}-${Date.now()}`,
+    memberId: trackedRoom.ownerId,
+    guildId: trackedRoom.guildId,
+    action: 'room-removed',
+    metadata: { channelId: channel.id },
   }).catch((error) => console.error('Failed to record temporary voice deletion:', error));
   return true;
 }
@@ -273,6 +278,10 @@ async function setTempVoiceRoomLimit(client, config, guildId, userId, channelId,
     title: 'Temporary Voice Room Limit Updated',
     summary: `${channel.name} is now ${limit === 0 ? 'unlimited' : `limited to ${limit} members`}.`,
     referenceId: `TEMP-VOICE-LIMIT-${channelId}-${Date.now()}`,
+    memberId: userId,
+    guildId,
+    action: 'room-limit',
+    metadata: { channelId, limit },
   }).catch((error) => console.error('Failed to record temporary voice limit update:', error));
   return { status: 'updated', room, limit };
 }
@@ -340,6 +349,11 @@ async function createRoom(config, options) {
       title: 'Temporary Voice Room Created',
       summary: `${channel.name} was created for ${member.displayName}.`,
       referenceId: `TEMP-VOICE-CREATED-${channel.id}-${Date.now()}`,
+      memberId: member.id,
+      memberName: member.displayName,
+      guildId: guild.id,
+      action: 'room-created',
+      metadata: { channelId: channel.id },
     }).catch((error) => console.error('Failed to record temporary voice creation:', error));
     return room;
   } catch (error) {

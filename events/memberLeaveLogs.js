@@ -47,6 +47,13 @@ module.exports = {
           : `${member.user} left **${member.guild.name}**.`,
         thumbnailUrl: member.user.displayAvatarURL({ size: 256 }),
         referenceId: `${wasKicked ? 'KICK' : 'LEAVE'}-${member.id}-${Date.now()}`,
+        activity: {
+          type: wasKicked ? 'moderation' : 'leave',
+          memberId: member.id,
+          memberName: member.displayName || member.user.globalName || member.user.username,
+          guildId: member.guild.id,
+          action: wasKicked ? 'kick' : 'left',
+        },
         fields: [
           { name: 'Member', value: formatUser(member.user) },
           ...(wasKicked
