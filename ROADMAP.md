@@ -31,5 +31,5 @@
 - Audited reason corrections and case revocation
 - Join-to-create temporary voice rooms
 - Instant public rooms named after their creators
-- One-minute empty-room cleanup
+- 10-second empty-room cleanup
 - Dashboard Voice Rooms configuration and active-room oversight

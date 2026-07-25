@@ -15,7 +15,7 @@ function createDefaultState(config) {
     settings: {
       enabled: true,
       triggerChannelId: config.channels.tempVoiceTrigger,
-      emptyDelaySeconds: 60,
+      emptyDelaySeconds: 10,
     },
     channels: [],
   };
@@ -206,7 +206,7 @@ async function saveTempVoiceSettings(client, config, input) {
     state.settings = {
       enabled: source.enabled === undefined ? state.settings.enabled : Boolean(source.enabled),
       triggerChannelId,
-      emptyDelaySeconds: 60,
+      emptyDelaySeconds: 10,
     };
 
     return { ...state.settings };
@@ -244,8 +244,8 @@ async function createMemberRoom(member, trigger, config) {
   creationLocks.add(lockKey);
 
   try {
-    const username = member.user.username || member.user.globalName || member.displayName || 'Guest';
-    const name = normalizeRoomName(`${username}'s Room`) || "Guest's Room";
+    const displayName = member.displayName || member.user.globalName || member.user.username || 'Guest';
+    const name = normalizeRoomName(`${displayName}'s Room`) || "Guest's Room";
 
     return await createRoom(config, {
       guild: member.guild,
@@ -336,13 +336,13 @@ function scheduleRoomDeletion(client, config, channelId) {
       return;
     }
 
-    await channel.delete('Temporary voice room remained empty for one minute').catch((error) => {
+    await channel.delete('Temporary voice room remained empty for 10 seconds').catch((error) => {
       console.error(`Failed to delete empty temporary voice room ${channelId}:`, error);
     });
 
     state.channels = state.channels.filter((item) => item.channelId !== channelId);
     await saveState(config, state);
-  }, 60000);
+  }, 10000);
 
   timer.unref?.();
   roomTimers.set(channelId, timer);
@@ -428,7 +428,7 @@ function normalizeState(input, defaults) {
       triggerChannelId: /^\d{17,20}$/.test(String(settings.triggerChannelId || ''))
         ? String(settings.triggerChannelId)
         : defaults.settings.triggerChannelId,
-      emptyDelaySeconds: 60,
+      emptyDelaySeconds: 10,
     },
     channels: Array.isArray(source.channels)
       ? source.channels

@@ -651,7 +651,7 @@ async function handleSaveTempVoiceSettings(client, request, response) {
     fields: [
       { name: 'System', value: settings.enabled ? 'Enabled' : 'Disabled' },
       { name: 'Create Lobby', value: `<#${settings.triggerChannelId}>\n-# ID: \`${settings.triggerChannelId}\`` },
-      { name: 'Empty-room Cleanup', value: '1 minute' },
+      { name: 'Empty-room Cleanup', value: '10 seconds' },
     ],
   });
   sendJson(response, 200, { ok: true, settings });

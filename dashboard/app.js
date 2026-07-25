@@ -1252,7 +1252,7 @@ function renderVoiceRoomList() {
     } else {
       const emptyChip = document.createElement('span');
       emptyChip.className = 'empty';
-      emptyChip.textContent = 'Empty · one-minute grace period';
+      emptyChip.textContent = 'Empty · 10-second grace period';
       members.append(emptyChip);
     }
 
