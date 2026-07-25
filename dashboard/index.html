@@ -10,10 +10,14 @@
     <main class="shell">
       <section id="login-view" class="login-panel" hidden>
         <form id="login-form" class="login-form" method="post" action="/login">
-          <div>
-            <p class="eyebrow" data-guild-name>UNDR CTRL</p>
-            <h1>Bean Dashboard</h1>
+          <div class="brand-lockup">
+            <span class="bean-mark" aria-hidden="true"></span>
+            <div>
+              <p class="eyebrow" data-guild-name>UNDR CTRL</p>
+              <h1>Bean Dashboard</h1>
+            </div>
           </div>
+          <p class="login-welcome">Come on in. Your community control room is warm and ready.</p>
           <label>
             Dashboard password
             <input id="password" name="password" type="password" autocomplete="current-password" required />
@@ -31,9 +35,12 @@
 
       <section id="dashboard-view" class="dashboard" hidden>
         <header class="topbar">
-          <div>
-            <p class="eyebrow" data-guild-name>UNDR CTRL</p>
-            <h1>Bean Dashboard</h1>
+          <div class="brand-lockup">
+            <span class="bean-mark" aria-hidden="true"></span>
+            <div>
+              <p class="eyebrow" data-guild-name>UNDR CTRL</p>
+              <h1>Bean Dashboard</h1>
+            </div>
           </div>
           <div class="status-cluster">
             <span id="bot-status" class="status-pill">Checking</span>
@@ -41,18 +48,24 @@
           </div>
         </header>
 
-        <nav class="dashboard-tabs" aria-label="Dashboard tabs">
-          <button class="tab-button" type="button" data-tab="overview" aria-selected="true">Overview</button>
-          <button class="tab-button" type="button" data-tab="messages" aria-selected="false">Messages</button>
-          <button class="tab-button" type="button" data-tab="cases" aria-selected="false">Cases</button>
-          <button class="tab-button" type="button" data-tab="progression" aria-selected="false">Progression</button>
-          <button class="tab-button" type="button" data-tab="live-embed" aria-selected="false">Live Embed</button>
-          <button class="tab-button" type="button" data-tab="welcome-embed" aria-selected="false">Welcome Message</button>
-          <button class="tab-button" type="button" data-tab="bot" aria-selected="false">Bot</button>
-          <button class="tab-button" type="button" data-tab="settings" aria-selected="false">Settings</button>
-        </nav>
+        <div class="dashboard-layout">
+          <nav class="dashboard-tabs" aria-label="Dashboard tabs">
+            <div class="nav-intro" aria-hidden="true">
+              <span>Bean's nook</span>
+              <small>Pick a corner</small>
+            </div>
+            <button class="tab-button" type="button" data-tab="overview" aria-selected="true">Overview</button>
+            <button class="tab-button" type="button" data-tab="messages" aria-selected="false">Messages</button>
+            <button class="tab-button" type="button" data-tab="cases" aria-selected="false">Cases</button>
+            <button class="tab-button" type="button" data-tab="progression" aria-selected="false">Progression</button>
+            <button class="tab-button" type="button" data-tab="live-embed" aria-selected="false">Live Embed</button>
+            <button class="tab-button" type="button" data-tab="welcome-embed" aria-selected="false">Welcome Message</button>
+            <button class="tab-button" type="button" data-tab="bot" aria-selected="false">Bot</button>
+            <button class="tab-button" type="button" data-tab="settings" aria-selected="false">Settings</button>
+          </nav>
 
-        <section class="tab-panel" data-panel="overview">
+          <div class="dashboard-content">
+            <section class="tab-panel" data-panel="overview">
           <div class="metric-grid">
             <section class="metric-panel">
               <p class="metric-label">Bot</p>
@@ -909,7 +922,7 @@
           </div>
         </section>
 
-        <section class="tab-panel" data-panel="settings" hidden>
+            <section class="tab-panel" data-panel="settings" hidden>
           <section class="dashboard-panel">
             <div class="toolbar-row">
               <h2>Session</h2>
@@ -926,7 +939,9 @@
               </section>
             </div>
           </section>
-        </section>
+            </section>
+          </div>
+        </div>
       </section>
     </main>
     <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
