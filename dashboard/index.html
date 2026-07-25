@@ -4,6 +4,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Bean Dashboard</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/geist@5.3.0/index.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.3.1/css/all.min.css"
+    />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -54,14 +60,38 @@
               <span>Bean's nook</span>
               <small>Pick a corner</small>
             </div>
-            <button class="tab-button" type="button" data-tab="overview" aria-selected="true">Overview</button>
-            <button class="tab-button" type="button" data-tab="messages" aria-selected="false">Messages</button>
-            <button class="tab-button" type="button" data-tab="cases" aria-selected="false">Cases</button>
-            <button class="tab-button" type="button" data-tab="progression" aria-selected="false">Progression</button>
-            <button class="tab-button" type="button" data-tab="live-embed" aria-selected="false">Live Embed</button>
-            <button class="tab-button" type="button" data-tab="welcome-embed" aria-selected="false">Welcome Message</button>
-            <button class="tab-button" type="button" data-tab="bot" aria-selected="false">Bot</button>
-            <button class="tab-button" type="button" data-tab="settings" aria-selected="false">Settings</button>
+            <button class="tab-button" type="button" data-tab="overview" aria-selected="true">
+              <i class="fa-solid fa-house" aria-hidden="true"></i>
+              Overview
+            </button>
+            <button class="tab-button" type="button" data-tab="messages" aria-selected="false">
+              <i class="fa-solid fa-message" aria-hidden="true"></i>
+              Messages
+            </button>
+            <button class="tab-button" type="button" data-tab="cases" aria-selected="false">
+              <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+              Cases
+            </button>
+            <button class="tab-button" type="button" data-tab="progression" aria-selected="false">
+              <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
+              Progression
+            </button>
+            <button class="tab-button" type="button" data-tab="live-embed" aria-selected="false">
+              <i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
+              Live Embed
+            </button>
+            <button class="tab-button" type="button" data-tab="welcome-embed" aria-selected="false">
+              <i class="fa-solid fa-hand-sparkles" aria-hidden="true"></i>
+              Welcome Message
+            </button>
+            <button class="tab-button" type="button" data-tab="bot" aria-selected="false">
+              <i class="fa-solid fa-robot" aria-hidden="true"></i>
+              Bot
+            </button>
+            <button class="tab-button" type="button" data-tab="settings" aria-selected="false">
+              <i class="fa-solid fa-gear" aria-hidden="true"></i>
+              Settings
+            </button>
           </nav>
 
           <div class="dashboard-content">
@@ -104,7 +134,7 @@
                   aria-label="Refresh saved messages"
                   title="Refresh saved messages"
                 >
-                  <span aria-hidden="true">&#8635;</span>
+                  <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
                 </button>
                 <button id="import-message" class="secondary" type="button">Import</button>
                 <button id="new-message" class="secondary" type="button">New</button>

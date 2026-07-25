@@ -39,8 +39,7 @@ body {
     linear-gradient(180deg, rgba(0, 122, 255, 0.08), rgba(0, 122, 255, 0) 26rem),
     linear-gradient(180deg, #fbfcff 0%, #eef3f8 100%);
   color: var(--text);
-  font-family:
-    Inter, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  font-family: "Geist Variable", "Geist", "Segoe UI", system-ui, sans-serif;
   font-feature-settings: "ss01", "cv11";
   -webkit-font-smoothing: antialiased;
 }
@@ -1662,7 +1661,7 @@ body {
     radial-gradient(circle at 58% 100%, rgba(157, 175, 157, 0.18), transparent 34rem),
     #eee9e1;
   color: var(--text);
-  font-family: "Aptos", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  font-family: "Geist Variable", "Geist", "Segoe UI", system-ui, sans-serif;
 }
 
 body::before {
@@ -1708,17 +1707,15 @@ h3 {
 }
 
 h1 {
-  font-family: Georgia, "Times New Roman", serif;
   font-size: clamp(30px, 3vw, 42px);
-  font-weight: 600;
-  letter-spacing: -0.035em;
+  font-weight: 680;
+  letter-spacing: -0.045em;
   line-height: 0.98;
 }
 
 h2 {
-  font-family: Georgia, "Times New Roman", serif;
   font-size: 19px;
-  font-weight: 600;
+  font-weight: 680;
   letter-spacing: -0.015em;
 }
 
@@ -1780,7 +1777,6 @@ h3 {
 .topbar,
 .login-form,
 .dashboard-tabs,
-.workspace,
 .composer,
 .preview-panel,
 .saved-messages-panel,
@@ -1844,9 +1840,8 @@ h3 {
 
 .nav-intro span {
   color: #4a5060;
-  font-family: Georgia, "Times New Roman", serif;
   font-size: 17px;
-  font-weight: 600;
+  font-weight: 680;
 }
 
 .nav-intro small {
@@ -1870,52 +1865,17 @@ h3 {
   text-align: left;
 }
 
-.tab-button::before {
+.tab-button > i {
   width: 27px;
   height: 27px;
   border-radius: 9px;
   background: #eee9e2;
   color: #788397;
-  content: "•";
   display: grid;
   flex: 0 0 auto;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 12px;
   line-height: 1;
   place-items: center;
-}
-
-.tab-button[data-tab="overview"]::before {
-  content: "⌂";
-}
-
-.tab-button[data-tab="messages"]::before {
-  content: "✦";
-}
-
-.tab-button[data-tab="cases"]::before {
-  content: "◎";
-}
-
-.tab-button[data-tab="progression"]::before {
-  content: "↗";
-}
-
-.tab-button[data-tab="live-embed"]::before {
-  content: "◉";
-}
-
-.tab-button[data-tab="welcome-embed"]::before {
-  content: "♡";
-}
-
-.tab-button[data-tab="bot"]::before {
-  content: "●";
-}
-
-.tab-button[data-tab="settings"]::before {
-  content: "⚙";
 }
 
 .tab-button:hover {
@@ -1931,7 +1891,7 @@ h3 {
   color: #fff;
 }
 
-.tab-button[aria-selected="true"]::before {
+.tab-button[aria-selected="true"] > i {
   background: rgba(255, 255, 255, 0.2);
   color: #fff;
 }
@@ -1987,9 +1947,8 @@ h3 {
 
 .metric-panel strong {
   color: #424958;
-  font-family: Georgia, "Times New Roman", serif;
   font-size: 21px;
-  font-weight: 600;
+  font-weight: 680;
 }
 
 .metric-label {
@@ -2213,7 +2172,6 @@ code {
 .login-welcome {
   max-width: 34ch;
   color: var(--muted);
-  font-family: Georgia, "Times New Roman", serif;
   font-size: 15px;
   line-height: 1.55;
   margin: -2px 0 1px;
@@ -2258,11 +2216,11 @@ code {
     padding: 0 13px;
   }
 
-  .tab-button::before {
+  .tab-button > i {
     width: 24px;
     height: 24px;
     border-radius: 8px;
-    font-size: 15px;
+    font-size: 11px;
   }
 
   .topbar {
@@ -2317,8 +2275,10 @@ code {
     padding: 0 11px;
   }
 
-  .tab-button::before {
-    display: none;
+  .tab-button > i {
+    width: 22px;
+    height: 22px;
+    font-size: 10px;
   }
 
   .metric-panel {
@@ -2349,4 +2309,56 @@ code {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Keep message previews faithful to Discord and independent from panel sizing. */
+.preview-panel {
+  align-content: start;
+  align-self: start;
+  grid-auto-rows: max-content;
+}
+
+.preview-panel .discord-preview {
+  min-height: 0;
+  height: auto;
+  align-content: start;
+  align-self: start;
+  border-color: rgba(255, 255, 255, 0.12);
+  background: #313338;
+  box-shadow:
+    0 18px 42px rgba(20, 24, 32, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+#preview-image,
+#welcome-preview-image {
+  width: 100%;
+  max-height: 320px;
+  border-radius: 12px;
+  display: block;
+  object-fit: cover;
+}
+
+#preview-sections,
+#welcome-preview-sections {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.preview-section {
+  min-width: 0;
+  border-left-color: var(--preview-accent, var(--blue));
+  color: #f2f3f5;
+  font-family: "Geist Variable", "Geist", "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+}
+
+.preview-layout-divider {
+  border-top-color: rgba(242, 243, 245, 0.3);
+}
+
+.preview-panel .preview-button {
+  color: #fff;
 }
