@@ -47,7 +47,7 @@ const {
 const { colors, sendStructuredLog } = require('./structuredLog');
 
 const dashboardDirectory = path.join(__dirname, '..', 'dashboard');
-const sessionCookieName = 'blackbox_dashboard';
+const sessionCookieName = 'bean_dashboard';
 
 function startDashboard(client) {
   if (!config.dashboard.enabled) {
@@ -1318,7 +1318,7 @@ function isAuthenticated(request) {
 }
 
 function createSessionValue() {
-  return crypto.createHmac('sha256', config.dashboard.password).update('blackbox-dashboard-session').digest('hex');
+  return crypto.createHmac('sha256', config.dashboard.password).update('bean-dashboard-session').digest('hex');
 }
 
 function matchesSessionValue(value, expected) {

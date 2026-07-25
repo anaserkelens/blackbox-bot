@@ -1,4 +1,4 @@
-# Blackbox Bot Roadmap
+# Bean Bot Roadmap
 
 ## Saved for later
 

@@ -187,11 +187,11 @@ const livePreviewFooterIcon = document.querySelector('#live-preview-footer-icon'
 const livePreviewFooterText = document.querySelector('#live-preview-footer-text');
 const livePreviewTimestamp = document.querySelector('#live-preview-timestamp');
 const livePreviewButtons = document.querySelector('#live-preview-buttons');
-const sessionStorageKey = 'blackbox_dashboard_session';
-const savedMessagesStorageKey = 'blackbox_dashboard_saved_messages';
-const presenceStorageKey = 'blackbox_dashboard_presence';
-const liveEmbedStorageKey = 'blackbox_dashboard_live_embed';
-const welcomeEmbedStorageKey = 'blackbox_dashboard_welcome_embed';
+const sessionStorageKey = 'bean_dashboard_session';
+const savedMessagesStorageKey = 'bean_dashboard_saved_messages';
+const presenceStorageKey = 'bean_dashboard_presence';
+const liveEmbedStorageKey = 'bean_dashboard_live_embed';
+const welcomeEmbedStorageKey = 'bean_dashboard_welcome_embed';
 const welcomeMessageId = 'welcome-message';
 
 const embedBuilderDefinitions = {
@@ -471,7 +471,7 @@ function renderBotSettings(bot) {
 
   setBotStatus(Boolean(bot.botReady), bot.tag);
   botProfileTag.textContent = bot.tag || 'Bot not ready';
-  botProfileName.textContent = bot.username || bot.tag || 'Blackbox';
+  botProfileName.textContent = bot.username || bot.tag || 'Bean';
   botProfileId.textContent = bot.id ? `ID ${bot.id}` : 'Waiting for Discord';
 
   if (bot.avatarUrl) {

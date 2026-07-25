@@ -58,7 +58,7 @@ process.on('unhandledRejection', (error) => {
   console.error('Unhandled promise rejection:', error);
 });
 
-console.log(`Starting ${config.communityName} Blackbox bot...`);
+console.log(`Starting ${config.communityName} Bean bot...`);
 
 if (!config.intents.members) {
   console.warn(

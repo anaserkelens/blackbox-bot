@@ -1,4 +1,4 @@
-# UNDR CTRL Blackbox Bot
+# UNDR CTRL Bean Bot
 
 A Discord.js bot for the UNDR CTRL community, ready to run locally and deploy to Railway.
 
