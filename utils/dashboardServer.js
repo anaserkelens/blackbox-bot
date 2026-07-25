@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
 
+const { getActivityFeed, getActivityFeedStorageInfo } = require('./activityFeed');
 const { config } = require('./config');
 const { createDashboardMessagePayload } = require('./dashboardMessage');
 const {
@@ -18,6 +19,12 @@ const {
   normalizePresenceSettings,
   savePresenceSettings,
 } = require('./presenceSettings');
+const {
+  createScheduledMailboxPost,
+  deleteScheduledMailboxPost,
+  getMailboxScheduleStorageInfo,
+  listScheduledMailboxPosts,
+} = require('./mailboxScheduler');
 const {
   deleteSavedMessage,
   getSavedMessagesStorageInfo,
@@ -43,6 +50,7 @@ const {
   saveWelcomeEmbedSettings,
 } = require('./welcomeEmbedSettings');
 const { colors, sendStructuredLog } = require('./structuredLog');
+const { getTelemetrySnapshot, recordApiRequest } = require('./telemetry');
 
 const dashboardDirectory = path.join(__dirname, '..', 'dashboard');
 const sessionCookieName = 'bean_dashboard';
@@ -143,6 +151,7 @@ function logTempVoiceStorage() {
 }
 
 async function handleRequest(client, request, response) {
+  recordApiRequest();
   const url = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
 
   if (shouldLogDashboardRequest(request.method, url.pathname)) {
@@ -244,6 +253,31 @@ async function handleRequest(client, request, response) {
       return;
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/dashboard-health') {
+      await handleGetDashboardHealth(client, response);
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/activity-feed') {
+      await handleGetActivityFeed(url, response);
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/mailbox/scheduled') {
+      await handleGetScheduledMailbox(response);
+      return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/mailbox/scheduled') {
+      await handleCreateScheduledMailbox(client, request, response);
+      return;
+    }
+
+    if (request.method === 'DELETE' && url.pathname.startsWith('/api/mailbox/scheduled/')) {
+      await handleDeleteScheduledMailbox(client, url.pathname, response);
+      return;
+    }
+
     if (request.method === 'PATCH' && /^\/api\/moderation-cases\/\d+\/reason$/.test(url.pathname)) {
       await handleUpdateModerationCaseReason(client, request, url.pathname, response);
       return;
@@ -300,7 +334,10 @@ async function handleRequest(client, request, response) {
     }
 
     if (request.method === 'POST' && url.pathname === '/api/mailbox/send') {
-      await handleSendMessage(client, request, response, { channelId: config.channels.mailbox });
+      await handleSendMessage(client, request, response, {
+        channelId: config.channels.mailbox,
+        source: 'mailbox',
+      });
       return;
     }
 
@@ -387,12 +424,167 @@ async function handleSendMessage(client, request, response, options = {}) {
 
   const message = await channel.send(payload);
 
+  if (options.source === 'mailbox') {
+    await sendStructuredLog(client, config.channels.operationLog, {
+      title: 'Mailbox Post Published',
+      emoji: '📬',
+      color: colors.success,
+      summary: `**${String(body.mailboxTitle || 'Mailbox post').slice(0, 240)}** was published through the dashboard.`,
+      referenceId: `MAILBOX-MANUAL-${message.id}`,
+      links: message.url ? [{ label: 'Open Message', url: message.url }] : [],
+      fields: [
+        { name: 'Destination', value: `<#${channelId}>` },
+        { name: 'Message ID', value: message.id },
+      ],
+    }).catch((error) => console.error('Failed to log Mailbox publication:', error));
+  }
+
   sendJson(response, 200, {
     ok: true,
     channelId,
     messageId: message.id,
     url: message.url,
   });
+}
+
+async function handleGetScheduledMailbox(response) {
+  const jobs = await listScheduledMailboxPosts(config);
+
+  sendJson(response, 200, {
+    ok: true,
+    jobs,
+    storage: getMailboxScheduleStorageInfo(config),
+  });
+}
+
+async function handleCreateScheduledMailbox(client, request, response) {
+  const body = await readJsonBody(request, config.dashboard.maxBodyBytes);
+  let job;
+
+  try {
+    job = await createScheduledMailboxPost(config, body);
+  } catch (error) {
+    sendJson(response, 400, { error: error.message });
+    return;
+  }
+
+  await sendStructuredLog(client, config.channels.operationLog, {
+    title: 'Mailbox Post Scheduled',
+    emoji: '🗓️',
+    color: colors.info,
+    summary: `**${job.title}** was added to Bean's automatic publishing queue.`,
+    referenceId: `MAILBOX-SCHEDULE-${job.id}`,
+    fields: [
+      { name: 'Publish At', value: `<t:${Math.floor(new Date(job.scheduledAt).getTime() / 1000)}:F>` },
+      { name: 'Destination', value: `<#${config.channels.mailbox}>` },
+    ],
+  }).catch((error) => console.error('Failed to log scheduled Mailbox post:', error));
+
+  sendJson(response, 201, { ok: true, job });
+}
+
+async function handleDeleteScheduledMailbox(client, pathname, response) {
+  const encodedId = pathname.slice('/api/mailbox/scheduled/'.length);
+  let jobId;
+
+  try {
+    jobId = decodeURIComponent(encodedId).trim();
+  } catch {
+    sendJson(response, 400, { error: 'Scheduled post ID is invalid.' });
+    return;
+  }
+
+  const result = await deleteScheduledMailboxPost(config, jobId);
+
+  if (result.status === 'not_found') {
+    sendJson(response, 404, { error: 'Scheduled Mailbox post was not found.' });
+    return;
+  }
+
+  if (result.status === 'publishing') {
+    sendJson(response, 409, { error: 'That post is being published right now.' });
+    return;
+  }
+
+  await sendStructuredLog(client, config.channels.operationLog, {
+    title: result.job.status === 'sent' ? 'Mailbox Schedule History Removed' : 'Mailbox Post Canceled',
+    emoji: '🗑️',
+    color: colors.warning,
+    summary: `**${result.job.title}** was removed from the dashboard queue.`,
+    referenceId: `MAILBOX-SCHEDULE-DELETE-${result.job.id}`,
+  }).catch((error) => console.error('Failed to log Mailbox schedule deletion:', error));
+
+  sendJson(response, 200, { ok: true, job: result.job });
+}
+
+async function handleGetDashboardHealth(client, response) {
+  const telemetry = getTelemetrySnapshot(client);
+  const storage = await getDashboardStorageHealth();
+
+  sendJson(response, 200, {
+    ok: true,
+    ...telemetry,
+    storage,
+    summary: {
+      persistentStores: storage.filter((item) => item.persistent).length,
+      totalStores: storage.length,
+      availableStores: storage.filter((item) => item.available).length,
+      recentErrors: telemetry.errors.length,
+    },
+  });
+}
+
+async function handleGetActivityFeed(url, response) {
+  const type = String(url.searchParams.get('type') || '').trim();
+  const limit = Number.parseInt(url.searchParams.get('limit'), 10) || 100;
+  const items = await getActivityFeed(config, { type, limit });
+
+  sendJson(response, 200, {
+    ok: true,
+    items,
+    storage: getActivityFeedStorageInfo(config),
+  });
+}
+
+async function getDashboardStorageHealth() {
+  const presence = await getPresenceSettingsStorageStatus(config).catch(() => null);
+  const stores = [
+    ['Saved Messages', getSavedMessagesStorageInfo(config)],
+    ['Scheduled Mailbox', getMailboxScheduleStorageInfo(config)],
+    ['Activity Feed', getActivityFeedStorageInfo(config)],
+    ['Moderation Cases', getModerationCasesStorageInfo(config)],
+    ['Temporary Voice', getTempVoiceStorageInfo(config)],
+    ['Live Embed', getStreamEmbedStorageInfo(config)],
+    ['Welcome Message', getWelcomeEmbedStorageInfo(config)],
+    ['Presence', presence],
+  ];
+
+  return Promise.all(stores.map(async ([name, storage]) => {
+    if (!storage) {
+      return {
+        name,
+        persistent: false,
+        available: false,
+        source: 'Unavailable',
+      };
+    }
+
+    let available = true;
+
+    try {
+      await fs.promises.access(path.dirname(storage.filePath));
+    } catch {
+      available = false;
+    }
+
+    return {
+      name,
+      persistent: Boolean(storage.persistent),
+      available,
+      source: storage.source,
+      filePath: storage.filePath,
+    };
+  }));
 }
 
 async function handleGetSavedMessages(response) {

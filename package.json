@@ -7,7 +7,8 @@
     "start": "node bot.js",
     "dev": "node bot.js",
     "deploy:commands": "node deploy-commands.js",
-    "check": "node scripts/check-syntax.js"
+    "check": "node scripts/check-syntax.js",
+    "test": "node --test tests/dashboard-features.test.js"
   },
   "engines": {
     "node": ">=20.0.0"

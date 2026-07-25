@@ -94,6 +94,8 @@ https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=412605
    DASHBOARD_PRESENCE_PATH
    DASHBOARD_STREAM_EMBED_PATH
    DASHBOARD_WELCOME_EMBED_PATH
+   MAILBOX_SCHEDULE_PATH
+   DASHBOARD_ACTIVITY_PATH
    MODERATION_CASES_PATH
    TEMP_VOICE_PATH
    TEMP_VOICE_TRIGGER_CHANNEL_ID
@@ -135,11 +137,13 @@ The dashboard Cases tab provides staff-facing search and filters for case number
 
 ## Temporary Voice Rooms
 
-When a member joins the create lobby (`TEMP_VOICE_TRIGGER_CHANNEL_ID`, default `1520514900978307226`), Bean immediately creates a public voice channel named `display name's Room` under the lobby's category, gives its creator room-management permission, and moves them inside. The server-specific display name is preferred, with the global name and username used only as fallbacks. There is no DM, button, or naming form.
+When a member joins the create lobby (`TEMP_VOICE_TRIGGER_CHANNEL_ID`, default `1520514900978307226`), Bean immediately creates a public voice channel named `— DISPLAY NAME'S ROOM` under the lobby's category, gives its creator room-management permission, and moves them inside. The server-specific display name is preferred, with the global name and username used only as fallbacks. There is no DM, button, or naming form.
 
 Bean needs Manage Channels, Manage Roles, Move Members, View Channels, Connect, and Speak in the lobby's server/category. The invite link above includes those permissions.
 
 Tracked rooms are deleted after they remain completely empty for 10 seconds. Their IDs and owners are stored at `RAILWAY_VOLUME_MOUNT_PATH/temporary-voice.json` when a Railway volume is attached, or at `TEMP_VOICE_PATH` when overridden. The dashboard Voice Rooms tab can enable or pause creation, change the lobby, show active rooms and occupants, and delete a room immediately.
+
+The room creator can use `/room limit members:<0-99>` while connected to their temporary room. A value of `0` removes the limit. Other members cannot change the room's capacity, and no additional room controls are exposed.
 
 Optional systems are controlled by environment variables. For example, tickets need `TICKET_CHANNEL_ID`, ticket logs need `TICKET_LOG_CHANNEL_ID`, and reaction roles need `REACTION_ROLE_MESSAGE_ID`, `REACTION_ROLE_EMOJI_ID`, and `VERIFIED_ROLE_ID`. See [.env.example](.env.example) for the full list.
 
@@ -167,7 +171,11 @@ https://your-service.up.railway.app/
 
 The dashboard sends messages through the running bot, so no restart or slash command is needed. The bot must already be online, and it must have permission to send messages and attach files in the target channel.
 
-The Mailbox tab builds one-off Components v2 posts for updates, news, announcements, and community notices. Its server-side route is locked to channel `1520519675543293972`; set `MAILBOX_CHANNEL_ID` to override that destination without changing the dashboard code.
+The Mailbox tab builds Components v2 posts for updates, news, announcements, and community notices. Posts can be sent immediately or scheduled for a future date and time; Bean checks the queue every five seconds and retries failed publications up to three times. Both immediate and scheduled routes are server-locked to channel `1520519675543293972`; set `MAILBOX_CHANNEL_ID` to override that destination without changing the dashboard code.
+
+The Scheduled Mailbox queue is stored at `RAILWAY_VOLUME_MOUNT_PATH/scheduled-mailbox.json` when a Railway volume is attached. Set `MAILBOX_SCHEDULE_PATH` to override its location. The queue and its controls exist only in the dashboard; no scheduling slash command is registered.
+
+The Overview tab includes a Bot Health panel for deployment uptime, Discord gateway latency, API availability, persistent-storage state, and errors captured during the current deployment. Beside it, the Activity Feed combines recent joins, moderation activity, Mailbox publications, temporary-room changes, and general Bean actions. Its newest 250 entries use `RAILWAY_VOLUME_MOUNT_PATH/activity-feed.json` when a Railway volume is attached, or `DASHBOARD_ACTIVITY_PATH` when overridden. These views are authenticated dashboard features and do not add public Discord commands.
 
 The dashboard Bot tab can update the bot's avatar, banner, bio, and presence. The Presence panel can add or remove activity texts and set the rotation interval. Saving restarts the rotation immediately and stores the complete presence configuration in `data/presence.json` locally. On Railway, it automatically uses `RAILWAY_VOLUME_MOUNT_PATH/presence.json` when a volume is attached; you can override the file with `DASHBOARD_PRESENCE_PATH`. The `PRESENCE_TEXTS`, `PRESENCE_ROTATION_SECONDS`, and legacy `PRESENCE_TEXT` variables provide defaults until dashboard settings have been saved.
 

@@ -13,6 +13,8 @@ const {
 } = require('discord.js');
 
 const { fetchSendableChannel } = require('./channels');
+const { activityFromStructuredLog, recordActivity } = require('./activityFeed');
+const { config } = require('./config');
 
 const colors = {
   danger: 0xed4245,
@@ -120,7 +122,11 @@ function createStructuredLogPayload(options) {
   };
 }
 
-async function sendStructuredLog(client, channelId, options) {
+async function sendStructuredLog(client, channelId, options, runtimeConfig = config) {
+  await recordActivity(runtimeConfig, activityFromStructuredLog(options)).catch((error) => {
+    console.error('Failed to record dashboard activity:', error);
+  });
+
   const channel = await fetchSendableChannel(client, channelId);
 
   if (!channel) {

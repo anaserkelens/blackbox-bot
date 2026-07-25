@@ -4,6 +4,9 @@ const { config } = require('./utils/config');
 const { loadCommands } = require('./utils/loadCommands');
 const { loadEvents } = require('./utils/loadEvents');
 const { startDashboard } = require('./utils/dashboardServer');
+const { installConsoleErrorCapture } = require('./utils/telemetry');
+
+installConsoleErrorCapture();
 
 function buildIntents() {
   const intents = [

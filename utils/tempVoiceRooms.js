@@ -2,6 +2,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 
 const { ChannelType } = require('discord.js');
+const { recordActivity } = require('./activityFeed');
 
 const defaultTempVoicePath = path.join(__dirname, '..', 'data', 'temporary-voice.json');
 const roomTimers = new Map();
@@ -134,6 +135,12 @@ async function handleTrackedChannelDelete(channel, config) {
   cancelRoomDeletion(channel.id);
   state.channels = state.channels.filter((room) => room.channelId !== channel.id);
   await saveState(config, state);
+  await recordActivity(config, {
+    type: 'voice',
+    title: 'Temporary Voice Room Removed',
+    summary: `${channel.name || 'A temporary room'} was deleted.`,
+    referenceId: `TEMP-VOICE-REMOVED-${channel.id}-${Date.now()}`,
+  }).catch((error) => console.error('Failed to record temporary voice deletion:', error));
   return true;
 }
 
@@ -159,6 +166,7 @@ async function getTempVoiceOverview(client, config) {
       name: channel.name,
       ownerName: owner?.displayName || owner?.user?.globalName || owner?.user?.username || 'Unknown member',
       memberCount: channel.members.size,
+      userLimit: channel.userLimit || 0,
       memberNames: [...channel.members.values()]
         .filter((member) => !member.user.bot)
         .map((member) => member.displayName),
@@ -234,6 +242,41 @@ async function deleteTempVoiceRoom(client, config, channelId, reason = 'Deleted 
   return room;
 }
 
+async function setTempVoiceRoomLimit(client, config, guildId, userId, channelId, limit) {
+  if (!Number.isInteger(limit) || limit < 0 || limit > 99) {
+    throw new Error('Voice room limits must be between 0 and 99.');
+  }
+
+  const state = await loadState(config);
+  const room = state.channels.find(
+    (item) => item.guildId === guildId && item.channelId === channelId,
+  );
+
+  if (!room) {
+    return { status: 'not_tracked' };
+  }
+
+  if (room.ownerId !== userId) {
+    return { status: 'not_owner' };
+  }
+
+  const channel = client.channels.cache.get(channelId)
+    || await client.channels.fetch(channelId).catch(() => null);
+
+  if (!channel || channel.type !== ChannelType.GuildVoice) {
+    return { status: 'unavailable' };
+  }
+
+  await channel.setUserLimit(limit, `Temporary room limit changed by ${userId}`);
+  await recordActivity(config, {
+    type: 'voice',
+    title: 'Temporary Voice Room Limit Updated',
+    summary: `${channel.name} is now ${limit === 0 ? 'unlimited' : `limited to ${limit} members`}.`,
+    referenceId: `TEMP-VOICE-LIMIT-${channelId}-${Date.now()}`,
+  }).catch((error) => console.error('Failed to record temporary voice limit update:', error));
+  return { status: 'updated', room, limit };
+}
+
 async function createMemberRoom(member, trigger, config) {
   const lockKey = `${member.guild.id}:${member.id}`;
 
@@ -245,7 +288,7 @@ async function createMemberRoom(member, trigger, config) {
 
   try {
     const displayName = member.displayName || member.user.globalName || member.user.username || 'Guest';
-    const name = normalizeRoomName(`${displayName}'s Room`) || "Guest's Room";
+    const name = createTempVoiceRoomName(displayName);
 
     return await createRoom(config, {
       guild: member.guild,
@@ -292,6 +335,12 @@ async function createRoom(config, options) {
     });
 
     await member.voice.setChannel(channel, 'Moved into newly created temporary voice room');
+    await recordActivity(config, {
+      type: 'voice',
+      title: 'Temporary Voice Room Created',
+      summary: `${channel.name} was created for ${member.displayName}.`,
+      referenceId: `TEMP-VOICE-CREATED-${channel.id}-${Date.now()}`,
+    }).catch((error) => console.error('Failed to record temporary voice creation:', error));
     return room;
   } catch (error) {
     if (channel) {
@@ -363,6 +412,19 @@ function normalizeRoomName(value) {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 100);
+}
+
+function createTempVoiceRoomName(value) {
+  const prefix = '— ';
+  const suffix = "'S ROOM";
+  const displayName = normalizeRoomName(value).toUpperCase() || 'GUEST';
+  const maximumDisplayLength = 100 - Array.from(prefix + suffix).length;
+  const truncatedDisplayName = Array.from(displayName)
+    .slice(0, maximumDisplayLength)
+    .join('')
+    .trim() || 'GUEST';
+
+  return `${prefix}${truncatedDisplayName}${suffix}`;
 }
 
 function isTrackedRoom(state, channelId) {
@@ -449,6 +511,7 @@ function normalizeState(input, defaults) {
 }
 
 module.exports = {
+  createTempVoiceRoomName,
   deleteTempVoiceRoom,
   getTempVoiceOverview,
   getTempVoiceStorageInfo,
@@ -457,4 +520,5 @@ module.exports = {
   initializeTempVoiceRooms,
   normalizeRoomName,
   saveTempVoiceSettings,
+  setTempVoiceRoomLimit,
 };

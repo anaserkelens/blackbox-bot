@@ -121,6 +121,8 @@ const config = {
     welcomeEmbedPath: readEnv('DASHBOARD_WELCOME_EMBED_PATH'),
     moderationCasesPath: readEnv('MODERATION_CASES_PATH'),
     tempVoicePath: readEnv('TEMP_VOICE_PATH'),
+    mailboxSchedulePath: readEnv('MAILBOX_SCHEDULE_PATH'),
+    activityPath: readEnv('DASHBOARD_ACTIVITY_PATH'),
     railwayVolumeMountPath: readEnv('RAILWAY_VOLUME_MOUNT_PATH'),
   },
 };

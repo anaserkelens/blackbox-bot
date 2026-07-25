@@ -10,6 +10,19 @@ const logoutButton = document.querySelector('#logout');
 const botStatus = document.querySelector('#bot-status');
 const overviewBotStatus = document.querySelector('#overview-bot-status');
 const overviewOpenCases = document.querySelector('#overview-open-cases');
+const healthStatus = document.querySelector('#health-status');
+const refreshHealthButton = document.querySelector('#refresh-health');
+const healthUptime = document.querySelector('#health-uptime');
+const healthLatency = document.querySelector('#health-latency');
+const healthApi = document.querySelector('#health-api');
+const healthErrorCount = document.querySelector('#health-error-count');
+const healthStorageSummary = document.querySelector('#health-storage-summary');
+const healthStorageList = document.querySelector('#health-storage-list');
+const healthErrorList = document.querySelector('#health-error-list');
+const activityStorageStatus = document.querySelector('#activity-storage-status');
+const refreshActivityButton = document.querySelector('#refresh-activity');
+const activityFilterButtons = [...document.querySelectorAll('.activity-filter')];
+const activityFeed = document.querySelector('#activity-feed');
 const guildNameElements = [...document.querySelectorAll('[data-guild-name]')];
 const dashboardApiStatus = document.querySelector('#dashboard-api-status');
 const savedMessagesContainer = document.querySelector('#saved-messages');
@@ -117,6 +130,11 @@ const mailboxButtonsContainer = document.querySelector('#mailbox-buttons');
 const addMailboxButton = document.querySelector('#add-mailbox-button');
 const resetMailboxButton = document.querySelector('#reset-mailbox');
 const sendMailboxButton = document.querySelector('#send-mailbox');
+const mailboxScheduleAtInput = document.querySelector('#mailbox-schedule-at');
+const scheduleMailboxButton = document.querySelector('#schedule-mailbox');
+const mailboxScheduleStorage = document.querySelector('#mailbox-schedule-storage');
+const refreshMailboxScheduleButton = document.querySelector('#refresh-mailbox-schedule');
+const scheduledMailboxList = document.querySelector('#scheduled-mailbox-list');
 const mailboxDiscordPreview = document.querySelector('#mailbox-discord-preview');
 const mailboxPreviewImage = document.querySelector('#mailbox-preview-image');
 const mailboxPreviewSections = document.querySelector('#mailbox-preview-sections');
@@ -203,6 +221,14 @@ const state = {
   currentMessageId: null,
   image: null,
   mailboxImage: null,
+  scheduledMailboxPosts: [],
+  mailboxScheduleStorage: null,
+  mailboxScheduleRefreshTimer: null,
+  health: null,
+  activityItems: [],
+  activityStorage: null,
+  activityType: '',
+  overviewRefreshTimer: null,
   botAvatarImage: null,
   botBannerImage: null,
   savedMessages: [],
@@ -270,6 +296,19 @@ function bindEvents() {
   logoutButton.addEventListener('click', handleLogout);
   tabButtons.forEach((button) => button.addEventListener('click', () => setActiveTab(button.dataset.tab)));
   tabLinks.forEach((button) => button.addEventListener('click', () => setActiveTab(button.dataset.tabLink)));
+  refreshHealthButton.addEventListener('click', () => {
+    loadDashboardHealth(true).catch((error) => setSendStatus(error.message, 'error'));
+  });
+  refreshActivityButton.addEventListener('click', () => {
+    loadActivityFeed(true).catch((error) => setSendStatus(error.message, 'error'));
+  });
+  activityFilterButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      state.activityType = button.dataset.activityType;
+      activityFilterButtons.forEach((item) => item.classList.toggle('active', item === button));
+      loadActivityFeed(false).catch((error) => setSendStatus(error.message, 'error'));
+    });
+  });
   refreshBotButton.addEventListener('click', () => {
     refreshBotSettings(true).catch((error) => setSendStatus(error.message, 'error'));
   });
@@ -328,6 +367,11 @@ function bindEvents() {
   mailboxColorInput.addEventListener('input', handleMailboxColorInput);
   addMailboxButton.addEventListener('click', () => addMailboxLinkButton({}, true));
   resetMailboxButton.addEventListener('click', resetMailboxBuilder);
+  scheduleMailboxButton.addEventListener('click', handleMailboxSchedule);
+  refreshMailboxScheduleButton.addEventListener('click', () => {
+    loadScheduledMailboxPosts(true).catch((error) => setSendStatus(error.message, 'error'));
+  });
+  scheduledMailboxList.addEventListener('click', handleScheduledMailboxClick);
   mailboxButtonsContainer.addEventListener('input', updateMailboxPreview);
   welcomeMessageForm.addEventListener('submit', handleSaveWelcomeMessage);
   welcomeMessageForm.addEventListener('input', updateWelcomePreview);
@@ -428,6 +472,8 @@ async function handleLogout() {
   clearSessionToken();
   stopSavedMessagesSync();
   stopVoiceRoomSync();
+  stopOverviewSync();
+  stopMailboxScheduleSync();
   showLogin();
 }
 
@@ -456,15 +502,7 @@ async function handleMailboxSend(event) {
   event.preventDefault();
   const payload = collectMailboxPayload();
 
-  if (!mailboxTitleInput.value.trim()) {
-    setSendStatus('Add a mailbox headline before sending.', 'error');
-    mailboxTitleInput.focus();
-    return;
-  }
-
-  if (!mailboxBodyInput.value.trim()) {
-    setSendStatus('Add a mailbox message before sending.', 'error');
-    mailboxBodyInput.focus();
+  if (!validateMailboxPost()) {
     return;
   }
 
@@ -485,6 +523,65 @@ async function handleMailboxSend(event) {
   }
 }
 
+async function handleMailboxSchedule() {
+  if (!validateMailboxPost()) {
+    return;
+  }
+
+  if (!mailboxScheduleAtInput.value) {
+    setSendStatus('Choose when Bean should publish this Mailbox post.', 'error');
+    mailboxScheduleAtInput.focus();
+    return;
+  }
+
+  const scheduledAt = new Date(mailboxScheduleAtInput.value);
+
+  if (Number.isNaN(scheduledAt.getTime()) || scheduledAt.getTime() < Date.now() + 5000) {
+    setSendStatus('Choose a publish time at least five seconds from now.', 'error');
+    mailboxScheduleAtInput.focus();
+    return;
+  }
+
+  scheduleMailboxButton.disabled = true;
+
+  try {
+    const result = await api('/api/mailbox/scheduled', {
+      method: 'POST',
+      body: {
+        title: mailboxTitleInput.value.trim(),
+        scheduledAt: scheduledAt.toISOString(),
+        payload: collectMailboxPayload(),
+      },
+    });
+
+    await loadScheduledMailboxPosts(false);
+    setSendStatus(
+      `Scheduled "${result.job.title}" for ${formatDashboardCaseDateTime(result.job.scheduledAt)}.`,
+      'success',
+    );
+  } catch (error) {
+    setSendStatus(error.message, 'error');
+  } finally {
+    scheduleMailboxButton.disabled = false;
+  }
+}
+
+function validateMailboxPost() {
+  if (!mailboxTitleInput.value.trim()) {
+    setSendStatus('Add a mailbox headline before publishing.', 'error');
+    mailboxTitleInput.focus();
+    return false;
+  }
+
+  if (!mailboxBodyInput.value.trim()) {
+    setSendStatus('Add a mailbox message before publishing.', 'error');
+    mailboxBodyInput.focus();
+    return false;
+  }
+
+  return true;
+}
+
 function resetMailboxBuilder() {
   mailboxForm.reset();
   mailboxTypeInput.value = 'Update';
@@ -493,8 +590,183 @@ function resetMailboxBuilder() {
   mailboxImageInput.value = '';
   mailboxButtonsContainer.replaceChildren();
   state.mailboxImage = null;
+  setDefaultMailboxScheduleTime();
   updateMailboxButtonLimit();
   updateMailboxPreview();
+}
+
+function setDefaultMailboxScheduleTime() {
+  const minimum = new Date(Date.now() + 10000);
+  const suggested = new Date(Date.now() + 60 * 60 * 1000);
+
+  mailboxScheduleAtInput.min = toLocalDateTimeValue(minimum);
+  mailboxScheduleAtInput.value = toLocalDateTimeValue(suggested);
+}
+
+function toLocalDateTimeValue(date) {
+  const localTime = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return localTime.toISOString().slice(0, 16);
+}
+
+async function loadScheduledMailboxPosts(showNotification = false) {
+  const result = await api('/api/mailbox/scheduled');
+
+  state.scheduledMailboxPosts = Array.isArray(result.jobs) ? result.jobs : [];
+  state.mailboxScheduleStorage = result.storage || null;
+  renderScheduledMailboxPosts();
+
+  if (showNotification) {
+    setSendStatus('Scheduled Mailbox queue refreshed.', 'success');
+  }
+}
+
+function renderScheduledMailboxPosts() {
+  const jobs = state.scheduledMailboxPosts;
+  const storage = state.mailboxScheduleStorage;
+
+  mailboxScheduleStorage.classList.remove('ready', 'offline');
+  mailboxScheduleStorage.textContent = storage?.persistent ? 'Queue saved persistently' : 'Queue storage is temporary';
+  mailboxScheduleStorage.classList.add(storage?.persistent ? 'ready' : 'offline');
+  scheduledMailboxList.replaceChildren();
+
+  if (jobs.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'schedule-empty';
+    empty.innerHTML = '<i class="fa-regular fa-calendar-check" aria-hidden="true"></i><span>No scheduled posts yet.</span>';
+    scheduledMailboxList.append(empty);
+    return;
+  }
+
+  for (const job of jobs) {
+    const item = document.createElement('article');
+    const icon = document.createElement('span');
+    const copy = document.createElement('div');
+    const heading = document.createElement('div');
+    const title = document.createElement('strong');
+    const badge = document.createElement('span');
+    const meta = document.createElement('p');
+    const actions = document.createElement('div');
+    const remove = document.createElement('button');
+
+    item.className = 'scheduled-mailbox-item';
+    icon.className = 'scheduled-mailbox-icon';
+    icon.innerHTML = `<i class="fa-solid ${getScheduleIcon(job.status)}" aria-hidden="true"></i>`;
+    copy.className = 'scheduled-mailbox-copy';
+    heading.className = 'scheduled-mailbox-heading';
+    title.textContent = job.title;
+    badge.className = `schedule-status ${job.status}`;
+    badge.textContent = capitalizeDashboardText(job.status);
+    meta.textContent = getScheduledMailboxMeta(job);
+    actions.className = 'scheduled-mailbox-actions';
+    remove.type = 'button';
+    remove.className = job.status === 'scheduled' || job.status === 'failed' ? 'danger' : 'secondary';
+    remove.dataset.scheduledMailboxId = job.id;
+    remove.dataset.scheduledMailboxTitle = job.title;
+    remove.disabled = job.status === 'publishing';
+    remove.textContent = job.status === 'scheduled' ? 'Cancel' : 'Remove';
+
+    if (job.url) {
+      const open = document.createElement('a');
+      open.className = 'button-link secondary';
+      open.href = job.url;
+      open.target = '_blank';
+      open.rel = 'noopener noreferrer';
+      open.textContent = 'Open';
+      actions.append(open);
+    }
+
+    actions.append(remove);
+    heading.append(title, badge);
+    copy.append(heading, meta);
+
+    if (job.lastError) {
+      const error = document.createElement('p');
+      error.textContent = job.lastError;
+      error.title = job.lastError;
+      copy.append(error);
+    }
+
+    item.append(icon, copy, actions);
+    scheduledMailboxList.append(item);
+  }
+}
+
+function getScheduleIcon(status) {
+  return {
+    scheduled: 'fa-clock',
+    publishing: 'fa-paper-plane',
+    sent: 'fa-circle-check',
+    failed: 'fa-triangle-exclamation',
+  }[status] || 'fa-envelope';
+}
+
+function getScheduledMailboxMeta(job) {
+  if (job.status === 'sent') {
+    return `Published ${formatDashboardCaseDateTime(job.sentAt || job.updatedAt)}`;
+  }
+
+  if (job.status === 'failed') {
+    const retry = job.nextAttemptAt
+      ? ` · retrying ${formatDashboardCaseDateTime(job.nextAttemptAt)}`
+      : ' · retry limit reached';
+    return `Publish failed (${job.attempts}/3)${retry}`;
+  }
+
+  if (job.status === 'publishing') {
+    return 'Bean is publishing this post now.';
+  }
+
+  return `Publishes ${formatDashboardCaseDateTime(job.scheduledAt)}`;
+}
+
+async function handleScheduledMailboxClick(event) {
+  const button = event.target.closest('[data-scheduled-mailbox-id]');
+
+  if (!button) {
+    return;
+  }
+
+  const title = button.dataset.scheduledMailboxTitle || 'this post';
+
+  if (!window.confirm(`Remove "${title}" from the Mailbox queue?`)) {
+    return;
+  }
+
+  button.disabled = true;
+
+  try {
+    await api(`/api/mailbox/scheduled/${encodeURIComponent(button.dataset.scheduledMailboxId)}`, {
+      method: 'DELETE',
+    });
+    await loadScheduledMailboxPosts(false);
+    setSendStatus(`Removed "${title}" from the Mailbox queue.`, 'success');
+  } catch (error) {
+    button.disabled = false;
+    setSendStatus(error.message, 'error');
+  }
+}
+
+function startMailboxScheduleSync() {
+  if (state.mailboxScheduleRefreshTimer) {
+    return;
+  }
+
+  state.mailboxScheduleRefreshTimer = window.setInterval(() => {
+    if (document.hidden || dashboardView.hidden || getActiveTab() !== 'mailbox') {
+      return;
+    }
+
+    loadScheduledMailboxPosts(false).catch(() => null);
+  }, 10000);
+}
+
+function stopMailboxScheduleSync() {
+  if (!state.mailboxScheduleRefreshTimer) {
+    return;
+  }
+
+  window.clearInterval(state.mailboxScheduleRefreshTimer);
+  state.mailboxScheduleRefreshTimer = null;
 }
 
 async function handleMailboxImageChange() {
@@ -613,6 +885,7 @@ function collectMailboxPayload(options = {}) {
   }
 
   return {
+    mailboxTitle: title,
     color: mailboxColorInput.value.trim(),
     image: state.mailboxImage,
     blocks,
@@ -1037,6 +1310,8 @@ function showDashboard(session) {
   loadModerationCases(false).catch(() => {
     overviewOpenCases.textContent = 'Unavailable';
   });
+  loadDashboardHealth(false).catch(() => null);
+  loadActivityFeed(false).catch(() => null);
 
   if (!state.composerInitialized) {
     resetComposer();
@@ -1051,6 +1326,185 @@ function setBotStatus(isReady, tag) {
   overviewBotStatus.textContent = text;
   botStatus.classList.toggle('ready', isReady);
   botStatus.classList.toggle('offline', !isReady);
+}
+
+async function loadDashboardHealth(showNotification = false) {
+  const result = await api('/api/dashboard-health');
+
+  state.health = result;
+  renderDashboardHealth();
+
+  if (showNotification) {
+    setSendStatus('Bot health refreshed.', 'success');
+  }
+}
+
+function renderDashboardHealth() {
+  const health = state.health;
+
+  if (!health) {
+    return;
+  }
+
+  const healthy = health.discord?.ready && health.api?.healthy;
+  healthStatus.classList.remove('ready', 'offline');
+  healthStatus.classList.add(healthy ? 'ready' : 'offline');
+  healthStatus.textContent = healthy ? 'All systems cozy' : 'Needs attention';
+  healthUptime.textContent = formatHealthUptime(health.runtime?.uptimeSeconds || 0);
+  healthLatency.textContent = Number.isFinite(health.discord?.latencyMs)
+    ? `${health.discord.latencyMs} ms`
+    : 'Unavailable';
+  healthApi.textContent = health.api?.healthy ? 'Healthy' : 'Unavailable';
+  healthErrorCount.textContent = Number(health.summary?.recentErrors || 0).toLocaleString();
+  renderHealthStorage(health.storage || []);
+  renderHealthErrors(health.errors || []);
+}
+
+function renderHealthStorage(stores) {
+  const persistent = stores.filter((store) => store.persistent).length;
+  const available = stores.filter((store) => store.available).length;
+
+  healthStorageSummary.textContent = `${persistent}/${stores.length} persistent · ${available} available`;
+  healthStorageList.replaceChildren();
+
+  for (const store of stores) {
+    const item = document.createElement('div');
+    const name = document.createElement('span');
+    const stateBadge = document.createElement('span');
+
+    item.className = 'health-storage-item';
+    name.textContent = store.name;
+    stateBadge.className = `storage-state ${store.persistent ? 'persistent' : 'ephemeral'}`;
+    stateBadge.textContent = store.available
+      ? (store.persistent ? 'Persistent' : 'Temporary')
+      : 'Unavailable';
+    stateBadge.title = `${store.source || 'Unknown source'}${store.filePath ? ` · ${store.filePath}` : ''}`;
+    item.append(name, stateBadge);
+    healthStorageList.append(item);
+  }
+}
+
+function renderHealthErrors(errors) {
+  healthErrorList.replaceChildren();
+
+  if (errors.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'health-empty';
+    empty.innerHTML = '<i class="fa-solid fa-mug-hot" aria-hidden="true"></i><span>No recent errors. Bean is doing just fine.</span>';
+    healthErrorList.append(empty);
+    return;
+  }
+
+  for (const error of errors.slice(0, 10)) {
+    const item = document.createElement('article');
+    const title = document.createElement('strong');
+    const message = document.createElement('p');
+    const time = document.createElement('p');
+
+    item.className = 'health-error-item';
+    title.textContent = error.source;
+    message.textContent = error.message;
+    time.textContent = formatDashboardCaseDateTime(error.createdAt);
+    item.append(title, message, time);
+    healthErrorList.append(item);
+  }
+}
+
+function formatHealthUptime(seconds) {
+  const total = Math.max(0, Number(seconds) || 0);
+  const days = Math.floor(total / 86400);
+  const hours = Math.floor((total % 86400) / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+
+  if (days) return `${days}d ${hours}h`;
+  if (hours) return `${hours}h ${minutes}m`;
+  if (minutes) return `${minutes}m`;
+  return `${Math.floor(total)}s`;
+}
+
+async function loadActivityFeed(showNotification = false) {
+  const query = state.activityType ? `?type=${encodeURIComponent(state.activityType)}&limit=100` : '?limit=100';
+  const result = await api(`/api/activity-feed${query}`);
+
+  state.activityItems = Array.isArray(result.items) ? result.items : [];
+  state.activityStorage = result.storage || null;
+  renderActivityFeed();
+
+  if (showNotification) {
+    setSendStatus('Activity feed refreshed.', 'success');
+  }
+}
+
+function renderActivityFeed() {
+  const storage = state.activityStorage;
+
+  activityStorageStatus.classList.remove('ready', 'offline');
+  activityStorageStatus.textContent = storage?.persistent ? 'Activity saved' : 'Activity is temporary';
+  activityStorageStatus.classList.add(storage?.persistent ? 'ready' : 'offline');
+  activityFeed.replaceChildren();
+
+  if (state.activityItems.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'activity-empty';
+    empty.innerHTML = '<i class="fa-solid fa-seedling" aria-hidden="true"></i><span>No activity in this category yet.</span>';
+    activityFeed.append(empty);
+    return;
+  }
+
+  for (const activity of state.activityItems) {
+    const item = document.createElement('article');
+    const icon = document.createElement('span');
+    const copy = document.createElement('div');
+    const title = document.createElement('strong');
+    const summary = document.createElement('p');
+    const time = document.createElement('time');
+
+    item.className = 'activity-item';
+    icon.className = `activity-icon ${activity.type}`;
+    icon.innerHTML = `<i class="fa-solid ${getActivityIcon(activity.type)}" aria-hidden="true"></i>`;
+    copy.className = 'activity-copy';
+    title.textContent = activity.title;
+    summary.textContent = activity.summary || activity.details?.[0] || 'Bean recorded this action.';
+    time.dateTime = activity.createdAt;
+    time.textContent = formatDashboardCaseDateTime(activity.createdAt);
+    copy.append(title, summary, time);
+    item.append(icon, copy);
+    activityFeed.append(item);
+  }
+}
+
+function getActivityIcon(type) {
+  return {
+    join: 'fa-user-plus',
+    moderation: 'fa-shield-halved',
+    mailbox: 'fa-envelope-open-text',
+    voice: 'fa-headphones',
+    bot: 'fa-robot',
+  }[type] || 'fa-bolt';
+}
+
+function startOverviewSync() {
+  if (state.overviewRefreshTimer) {
+    return;
+  }
+
+  state.overviewRefreshTimer = window.setInterval(() => {
+    if (document.hidden || dashboardView.hidden || getActiveTab() !== 'overview') {
+      return;
+    }
+
+    loadDashboardHealth(false).catch(() => null);
+    loadActivityFeed(false).catch(() => null);
+  }, 15000);
+}
+
+function stopOverviewSync() {
+  if (!state.overviewRefreshTimer) {
+    return;
+  }
+
+  window.clearInterval(state.overviewRefreshTimer);
+  state.overviewRefreshTimer = null;
 }
 
 function setGuildName(guildName) {
@@ -1095,6 +1549,23 @@ function setActiveTab(tab) {
 
   if (nextTab === 'cases' && !dashboardView.hidden) {
     loadModerationCases(false).catch((error) => setSendStatus(error.message, 'error'));
+  }
+
+  if (nextTab === 'overview' && !dashboardView.hidden) {
+    startOverviewSync();
+    Promise.all([
+      loadDashboardHealth(false),
+      loadActivityFeed(false),
+    ]).catch((error) => setSendStatus(error.message, 'error'));
+  } else {
+    stopOverviewSync();
+  }
+
+  if (nextTab === 'mailbox' && !dashboardView.hidden) {
+    startMailboxScheduleSync();
+    loadScheduledMailboxPosts(false).catch((error) => setSendStatus(error.message, 'error'));
+  } else {
+    stopMailboxScheduleSync();
   }
 
   if (nextTab === 'voice-rooms' && !dashboardView.hidden) {
@@ -1237,8 +1708,11 @@ function renderVoiceRoomList() {
     title.textContent = room.name;
     badge.className = 'voice-room-visibility ' + (room.private ? 'private' : 'public');
     badge.textContent = room.private ? 'Private' : 'Public';
+    const occupancy = room.userLimit
+      ? room.memberCount + ' / ' + room.userLimit
+      : String(room.memberCount);
     meta.textContent =
-      'Hosted by ' + room.ownerName + ' · ' + room.memberCount + ' listening' +
+      'Hosted by ' + room.ownerName + ' · ' + occupancy + ' listening' +
       (room.deleting ? ' · tidying up soon' : '');
     members.className = 'voice-room-members';
 

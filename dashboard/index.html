@@ -179,6 +179,83 @@
               </button>
             </div>
           </section>
+
+          <section class="overview-insight-grid">
+            <section class="dashboard-panel health-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Bean's pulse</p>
+                  <h2>Bot Health</h2>
+                </div>
+                <div class="toolbar-actions">
+                  <span id="health-status" class="status-pill">Checking health</span>
+                  <button id="refresh-health" class="secondary icon-button" type="button" aria-label="Refresh bot health" title="Refresh bot health">
+                    <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="health-metric-grid">
+                <article class="health-metric">
+                  <span><i class="fa-solid fa-train" aria-hidden="true"></i></span>
+                  <div><small>Railway uptime</small><strong id="health-uptime">—</strong></div>
+                </article>
+                <article class="health-metric">
+                  <span><i class="fa-brands fa-discord" aria-hidden="true"></i></span>
+                  <div><small>Discord latency</small><strong id="health-latency">—</strong></div>
+                </article>
+                <article class="health-metric">
+                  <span><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i></span>
+                  <div><small>Dashboard API</small><strong id="health-api">—</strong></div>
+                </article>
+                <article class="health-metric">
+                  <span><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span>
+                  <div><small>Recent errors</small><strong id="health-error-count">0</strong></div>
+                </article>
+              </div>
+
+              <div class="health-details-grid">
+                <div>
+                  <div class="mini-heading">
+                    <strong>Storage</strong>
+                    <span id="health-storage-summary" class="muted">Checking</span>
+                  </div>
+                  <div id="health-storage-list" class="health-storage-list"></div>
+                </div>
+                <div>
+                  <div class="mini-heading">
+                    <strong>Recent errors</strong>
+                    <span class="muted">Since this deployment started</span>
+                  </div>
+                  <div id="health-error-list" class="health-error-list"></div>
+                </div>
+              </div>
+            </section>
+
+            <section class="dashboard-panel activity-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Around the corner</p>
+                  <h2>Activity Feed</h2>
+                </div>
+                <div class="toolbar-actions">
+                  <span id="activity-storage-status" class="status-pill">Checking activity</span>
+                  <button id="refresh-activity" class="secondary icon-button" type="button" aria-label="Refresh activity feed" title="Refresh activity feed">
+                    <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="activity-filter-row" role="group" aria-label="Filter activity">
+                <button class="activity-filter active" type="button" data-activity-type="">All</button>
+                <button class="activity-filter" type="button" data-activity-type="join">Joins</button>
+                <button class="activity-filter" type="button" data-activity-type="moderation">Cases</button>
+                <button class="activity-filter" type="button" data-activity-type="mailbox">Mailbox</button>
+                <button class="activity-filter" type="button" data-activity-type="voice">Voice</button>
+                <button class="activity-filter" type="button" data-activity-type="bot">Bot</button>
+              </div>
+              <div id="activity-feed" class="activity-feed"></div>
+            </section>
+          </section>
         </section>
 
         <section class="tab-panel" data-panel="mailbox" hidden>
@@ -280,6 +357,18 @@
               </div>
               <div id="mailbox-buttons" class="stack mailbox-button-list"></div>
 
+              <section class="mailbox-schedule-controls">
+                <span class="mailbox-schedule-icon"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i></span>
+                <label class="field">
+                  Publish later
+                  <input id="mailbox-schedule-at" type="datetime-local" />
+                </label>
+                <button id="schedule-mailbox" class="secondary" type="button">
+                  <i class="fa-solid fa-clock" aria-hidden="true"></i>
+                  Schedule Post
+                </button>
+              </section>
+
               <div class="action-row">
                 <button id="reset-mailbox" class="secondary" type="button">Reset</button>
                 <button id="send-mailbox" type="submit">
@@ -307,6 +396,23 @@
                 The destination is enforced by the server.
               </p>
             </aside>
+          </section>
+
+          <section class="dashboard-panel scheduled-mailbox-panel">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Coming up</p>
+                <h2>Scheduled Mailbox Posts</h2>
+                <span class="muted">Bean checks the queue every five seconds and retries failed posts automatically.</span>
+              </div>
+              <div class="toolbar-actions">
+                <span id="mailbox-schedule-storage" class="status-pill">Checking queue</span>
+                <button id="refresh-mailbox-schedule" class="secondary icon-button" type="button" aria-label="Refresh scheduled posts" title="Refresh scheduled posts">
+                  <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+            <div id="scheduled-mailbox-list" class="scheduled-mailbox-list"></div>
           </section>
         </section>
 
@@ -630,7 +736,7 @@
                 </li>
                 <li>
                   <span>2</span>
-                  <div><strong>Room appears</strong><small>Bean creates “display name's Room”.</small></div>
+                  <div><strong>Room appears</strong><small>Bean creates “— DISPLAY NAME'S ROOM”.</small></div>
                 </li>
                 <li>
                   <span>3</span>

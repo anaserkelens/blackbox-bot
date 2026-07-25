@@ -14,7 +14,7 @@
   - Required close reasons
   - Staff response-time statistics
   - Transcript delivery by DM
-- Scheduled messages and recurring announcements
+- Recurring announcements
 - Member verification and guided onboarding
 - Suggestions and polls with staff-controlled statuses
 - Server health and configuration diagnostics
@@ -31,5 +31,9 @@
 - Audited reason corrections and case revocation
 - Join-to-create temporary voice rooms
 - Instant public rooms named after their creators
+- Owner-only `/room limit` capacity control
 - 10-second empty-room cleanup
 - Dashboard Voice Rooms configuration and active-room oversight
+- Dashboard-only Scheduled Mailbox queue with automatic publishing and retries
+- Dashboard Bot Health panel for uptime, Discord latency, API, storage, and recent errors
+- Unified Dashboard Activity Feed for joins, cases, Mailbox posts, temporary rooms, and bot actions
