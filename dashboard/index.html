@@ -12,6 +12,7 @@
       href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.3.1/css/all.min.css"
     />
     <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/redesign.css" />
   </head>
   <body>
     <main class="shell">
@@ -47,24 +48,32 @@
               <img class="bean-mark" src="/assets/bean-icon.png" alt="" />
             </span>
             <div>
-              <p class="home-brand-name">Bean's place</p>
+              <p class="home-brand-name">BEAN / CTRL</p>
               <p class="home-brand-community" data-guild-name>UNDR CTRL</p>
             </div>
           </div>
 
-          <div class="home-greeting">
-            <span id="dashboard-daypart">On shift</span>
-            <strong>Make yourself at home.</strong>
+          <div class="workspace-route" aria-live="polite">
+            <span class="route-pulse" aria-hidden="true"><i></i></span>
+            <div>
+              <span id="dashboard-daypart">On shift</span>
+              <strong id="active-workspace-title">Room overview</strong>
+            </div>
           </div>
 
           <div class="status-cluster">
             <div class="shift-clock" aria-label="Local dashboard time">
-              <span>Local time</span>
+              <span>Local</span>
               <strong id="dashboard-clock">--:--</strong>
             </div>
             <span id="bot-status" class="status-pill">Checking</span>
+            <button id="command-trigger" class="secondary command-trigger" type="button" aria-haspopup="dialog">
+              <i class="fa-solid fa-bolt" aria-hidden="true"></i>
+              <span>Jump</span>
+              <kbd>Ctrl K</kbd>
+            </button>
             <button id="logout" class="secondary topbar-logout" type="button">
-              <span>Leave Bean's place</span>
+              <span>Exit</span>
               <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
             </button>
           </div>
@@ -72,25 +81,14 @@
 
         <div class="dashboard-layout">
           <nav class="dashboard-tabs" aria-label="Dashboard spaces">
-            <div class="nav-intro" aria-hidden="true">
-              <span>Room map</span>
-              <small>Pick a space</small>
+            <div class="nav-intro">
+              <span>CONTROL MAP</span>
+              <small>11 connected spaces</small>
             </div>
+            <p class="nav-section-label">Observe</p>
             <button class="tab-button" type="button" data-tab="overview" aria-selected="true">
               <i class="fa-solid fa-house" aria-hidden="true"></i>
-              <span class="tab-label">Room</span>
-            </button>
-            <button class="tab-button" type="button" data-tab="mailbox" aria-selected="false">
-              <i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i>
-              <span class="tab-label">Mailbox</span>
-            </button>
-            <button class="tab-button" type="button" data-tab="messages" aria-selected="false">
-              <i class="fa-solid fa-message" aria-hidden="true"></i>
-              <span class="tab-label">Messages</span>
-            </button>
-            <button class="tab-button" type="button" data-tab="cases" aria-selected="false">
-              <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
-              <span class="tab-label">Cases</span>
+              <span class="tab-label">Overview</span>
             </button>
             <button class="tab-button" type="button" data-tab="members" aria-selected="false">
               <i class="fa-solid fa-address-card" aria-hidden="true"></i>
@@ -100,9 +98,18 @@
               <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
               <span class="tab-label">Signals</span>
             </button>
-            <button class="tab-button" type="button" data-tab="voice-rooms" aria-selected="false">
-              <i class="fa-solid fa-mug-hot" aria-hidden="true"></i>
-              <span class="tab-label">Voice</span>
+            <button class="tab-button" type="button" data-tab="cases" aria-selected="false">
+              <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+              <span class="tab-label">Cases</span>
+            </button>
+            <p class="nav-section-label">Create</p>
+            <button class="tab-button" type="button" data-tab="mailbox" aria-selected="false">
+              <i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i>
+              <span class="tab-label">Mailbox</span>
+            </button>
+            <button class="tab-button" type="button" data-tab="messages" aria-selected="false">
+              <i class="fa-solid fa-message" aria-hidden="true"></i>
+              <span class="tab-label">Messages</span>
             </button>
             <button class="tab-button" type="button" data-tab="live-embed" aria-selected="false">
               <i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
@@ -112,6 +119,11 @@
               <i class="fa-solid fa-hand-sparkles" aria-hidden="true"></i>
               <span class="tab-label">Welcome</span>
             </button>
+            <p class="nav-section-label">Operate</p>
+            <button class="tab-button" type="button" data-tab="voice-rooms" aria-selected="false">
+              <i class="fa-solid fa-headphones" aria-hidden="true"></i>
+              <span class="tab-label">Voice</span>
+            </button>
             <button class="tab-button" type="button" data-tab="bot" aria-selected="false">
               <i class="fa-solid fa-robot" aria-hidden="true"></i>
               <span class="tab-label">Bean</span>
@@ -120,6 +132,10 @@
               <i class="fa-solid fa-gear" aria-hidden="true"></i>
               <span class="tab-label">Settings</span>
             </button>
+            <div class="nav-foot" aria-hidden="true">
+              <span><i></i> SYSTEM LINK</span>
+              <small>Encrypted · Private</small>
+            </div>
           </nav>
 
           <div class="dashboard-content">
@@ -134,70 +150,78 @@
               </div>
 
               <div class="journal-welcome">
-                <p class="eyebrow">Welcome back</p>
-                <h1 id="room-heading">What shall we make today?</h1>
-                <p>Bean kept your place warm. Pick something up, or take a quiet look around.</p>
+                <p class="eyebrow">Community control surface</p>
+                <h1 id="room-heading">Everything<br />in orbit.</h1>
+                <p>One living view of your community. Follow a signal, make a move, or let Bean keep watch.</p>
               </div>
 
               <div class="journal-actions" aria-label="Quick actions">
                 <button type="button" data-tab-link="messages">
                   <span><i class="fa-solid fa-pen-nib" aria-hidden="true"></i></span>
-                  <strong>Write a message</strong>
-                  <small>Messages</small>
+                  <strong>Compose</strong>
+                  <small>Message studio</small>
                   <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                 </button>
                 <button type="button" data-tab-link="live-embed">
                   <span><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i></span>
-                  <strong>Prepare the next stream</strong>
-                  <small>Live</small>
+                  <strong>Go live</strong>
+                  <small>Broadcast studio</small>
                   <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                 </button>
                 <button type="button" data-tab-link="welcome-embed">
                   <span><i class="fa-solid fa-hand-sparkles" aria-hidden="true"></i></span>
-                  <strong>Welcome someone new</strong>
-                  <small>Welcome</small>
+                  <strong>First hello</strong>
+                  <small>Welcome flow</small>
                   <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                 </button>
                 <button type="button" data-tab-link="voice-rooms">
                   <span><i class="fa-solid fa-headphones" aria-hidden="true"></i></span>
-                  <strong>Visit the voice lounge</strong>
-                  <small>Voice</small>
+                  <strong>Voice rooms</strong>
+                  <small>Live spaces</small>
                   <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                 </button>
               </div>
 
               <div class="journal-signoff">
                 <span><img src="/assets/bean-icon.png" alt="" /></span>
-                <p>Everything is right where you left it.</p>
+                <p>Bean is standing by.</p>
               </div>
             </section>
 
             <section class="journal-page journal-page-right">
               <div class="journal-tabs" role="tablist" aria-label="Overview pages">
-                <button class="journal-tab active" type="button" role="tab" data-journal-tab="summary" aria-selected="true">Today</button>
-                <button class="journal-tab" type="button" role="tab" data-journal-tab="pulse" aria-selected="false">Bean's pulse</button>
-                <button class="journal-tab" type="button" role="tab" data-journal-tab="activity" aria-selected="false">Around the room</button>
+                <button class="journal-tab active" type="button" role="tab" data-journal-tab="summary" aria-selected="true">Now</button>
+                <button class="journal-tab" type="button" role="tab" data-journal-tab="pulse" aria-selected="false">System</button>
+                <button class="journal-tab" type="button" role="tab" data-journal-tab="activity" aria-selected="false">Activity</button>
               </div>
 
               <div class="journal-panel journal-summary" data-journal-panel="summary">
                 <div class="journal-note">
                   <span><i class="fa-solid fa-thumbtack" aria-hidden="true"></i></span>
                   <div>
-                    <p class="eyebrow">A note from Bean</p>
-                    <h2>The room feels peaceful.</h2>
-                    <p>Nothing needs your attention right away. You can take your time.</p>
+                    <p class="eyebrow">Live readout</p>
+                    <h2>All signals look clear.</h2>
+                    <p>No urgent interventions detected. The community is moving at a steady rhythm.</p>
                   </div>
+                </div>
+                <div class="signal-orbit" aria-hidden="true">
+                  <span class="signal-core"><img src="/assets/bean-icon.png" alt="" /></span>
+                  <i class="orbit orbit-one"></i>
+                  <i class="orbit orbit-two"></i>
+                  <b class="orbit-node node-one"></b>
+                  <b class="orbit-node node-two"></b>
+                  <b class="orbit-node node-three"></b>
                 </div>
 
                 <div class="journal-status-list">
                   <div>
                     <span><i class="fa-solid fa-robot" aria-hidden="true"></i></span>
-                    <small>Bean</small>
+                    <small>Bean status</small>
                     <strong id="overview-bot-status">Checking</strong>
                   </div>
                   <div>
                     <span><i class="fa-solid fa-people-group" aria-hidden="true"></i></span>
-                    <small>Community</small>
+                    <small>Linked community</small>
                     <strong data-guild-name>UNDR CTRL</strong>
                   </div>
                   <div>
@@ -208,7 +232,7 @@
                 </div>
 
                 <button class="journal-suggestion" type="button" data-tab-link="members">
-                  <span><small>Looking for someone?</small><strong>Open the member directory</strong></span>
+                  <span><small>Find a signal</small><strong>Open member intelligence</strong></span>
                   <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                 </button>
               </div>
@@ -1499,6 +1523,28 @@
         </div>
       </section>
     </main>
+    <div id="command-palette" class="command-palette" hidden>
+      <button class="command-backdrop" type="button" data-command-close aria-label="Close workspace switcher"></button>
+      <section class="command-dialog" role="dialog" aria-modal="true" aria-labelledby="command-title">
+        <div class="command-dialog-head">
+          <span><i class="fa-solid fa-bolt" aria-hidden="true"></i></span>
+          <div>
+            <p>BEAN QUICK SWITCH</p>
+            <h2 id="command-title">Where do you want to go?</h2>
+          </div>
+          <button class="command-close" type="button" data-command-close aria-label="Close workspace switcher">
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+        <label class="command-search">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          <input id="command-search" type="search" placeholder="Search spaces, e.g. messages" autocomplete="off" />
+          <kbd>ESC</kbd>
+        </label>
+        <div id="command-results" class="command-results" role="listbox" aria-label="Dashboard spaces"></div>
+        <footer><span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span><span><kbd>↵</kbd> Open</span></footer>
+      </section>
+    </div>
     <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
 
     <script src="/app.js"></script>

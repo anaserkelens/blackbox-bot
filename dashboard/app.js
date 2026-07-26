@@ -32,6 +32,12 @@ const journalRightPage = document.querySelector('.journal-page-right');
 const overviewInsightGrid = document.querySelector('.overview-insight-grid');
 const overviewHealthPanel = overviewInsightGrid?.querySelector('.health-panel');
 const overviewActivityPanel = overviewInsightGrid?.querySelector('.activity-panel');
+const activeWorkspaceTitle = document.querySelector('#active-workspace-title');
+const commandTrigger = document.querySelector('#command-trigger');
+const commandPalette = document.querySelector('#command-palette');
+const commandSearch = document.querySelector('#command-search');
+const commandResults = document.querySelector('#command-results');
+const commandCloseButtons = [...document.querySelectorAll('[data-command-close]')];
 const memberSearchForm = document.querySelector('#member-search-form');
 const memberSearchInput = document.querySelector('#member-search');
 const memberSearchButton = document.querySelector('#member-search-button');
@@ -255,6 +261,21 @@ const presenceStorageKey = 'bean_dashboard_presence';
 const liveEmbedStorageKey = 'bean_dashboard_live_embed';
 const welcomeEmbedStorageKey = 'bean_dashboard_welcome_embed';
 const welcomeMessageId = 'welcome-message';
+const workspaceMeta = {
+  overview: { title: 'Room overview', hint: 'The full community signal', key: '01' },
+  members: { title: 'Member intelligence', hint: 'Find people and context', key: '02' },
+  analytics: { title: 'Community signals', hint: 'Patterns, momentum, rhythm', key: '03' },
+  cases: { title: 'Case desk', hint: 'Moderation history and actions', key: '04' },
+  mailbox: { title: 'Mailbox studio', hint: 'Publish updates and notices', key: '05' },
+  messages: { title: 'Message studio', hint: 'Compose reusable Discord posts', key: '06' },
+  'live-embed': { title: 'Live broadcast', hint: 'Shape the next stream alert', key: '07' },
+  'welcome-embed': { title: 'Welcome flow', hint: 'Design the first hello', key: '08' },
+  'voice-rooms': { title: 'Voice spaces', hint: 'Manage temporary rooms', key: '09' },
+  bot: { title: 'Bean identity', hint: 'Profile, voice, and presence', key: '10' },
+  settings: { title: 'System settings', hint: 'Session and connection details', key: '11' },
+};
+let commandMatches = [];
+let commandSelectionIndex = 0;
 
 const embedBuilderDefinitions = {
   live: {
@@ -352,6 +373,12 @@ function bindEvents() {
   logoutButton.addEventListener('click', handleLogout);
   tabButtons.forEach((button) => button.addEventListener('click', () => setActiveTab(button.dataset.tab)));
   tabLinks.forEach((button) => button.addEventListener('click', () => setActiveTab(button.dataset.tabLink)));
+  commandTrigger.addEventListener('click', openCommandPalette);
+  commandCloseButtons.forEach((button) => button.addEventListener('click', closeCommandPalette));
+  commandSearch.addEventListener('input', renderCommandResults);
+  commandResults.addEventListener('click', handleCommandResultClick);
+  document.addEventListener('keydown', handleCommandKeydown);
+  dashboardView.addEventListener('pointermove', updateDashboardGlow);
   refreshHealthButton.addEventListener('click', () => {
     loadDashboardHealth(true).catch((error) => setSendStatus(error.message, 'error'));
   });
@@ -2215,6 +2242,7 @@ function setActiveTab(tab) {
   const nextTab = tabButtons.some((button) => button.dataset.tab === tab) ? tab : 'overview';
 
   dashboardView.dataset.activeTab = nextTab;
+  activeWorkspaceTitle.textContent = workspaceMeta[nextTab]?.title || 'Dashboard';
 
   for (const button of tabButtons) {
     const isSelected = button.dataset.tab === nextTab;
@@ -2281,6 +2309,137 @@ function setActiveTab(tab) {
   } else {
     stopSavedMessagesSync();
   }
+}
+
+function openCommandPalette() {
+  commandPalette.hidden = false;
+  commandSearch.value = '';
+  commandSelectionIndex = Math.max(0, tabButtons.findIndex((button) => button.dataset.tab === getActiveTab()));
+  renderCommandResults();
+  document.body.classList.add('command-open');
+  window.setTimeout(() => commandSearch.focus(), 0);
+}
+
+function closeCommandPalette() {
+  if (commandPalette.hidden) {
+    return;
+  }
+
+  commandPalette.hidden = true;
+  document.body.classList.remove('command-open');
+  commandTrigger.focus();
+}
+
+function renderCommandResults() {
+  const query = commandSearch.value.trim().toLowerCase();
+
+  commandMatches = tabButtons
+    .map((button) => {
+      const tab = button.dataset.tab;
+      const meta = workspaceMeta[tab] || {};
+
+      return {
+        tab,
+        title: meta.title || button.textContent.trim(),
+        hint: meta.hint || '',
+        key: meta.key || '',
+        icon: button.querySelector('i')?.className || 'fa-solid fa-circle',
+      };
+    })
+    .filter((item) => `${item.title} ${item.hint} ${item.tab}`.toLowerCase().includes(query));
+
+  commandSelectionIndex = Math.min(commandSelectionIndex, Math.max(0, commandMatches.length - 1));
+  commandResults.innerHTML = commandMatches.length
+    ? commandMatches
+      .map((item, index) => `
+        <button
+          class="command-result${index === commandSelectionIndex ? ' active' : ''}"
+          type="button"
+          data-command-tab="${escapeHtml(item.tab)}"
+          role="option"
+          aria-selected="${index === commandSelectionIndex}"
+        >
+          <span class="command-result-index">${escapeHtml(item.key)}</span>
+          <span class="command-result-icon"><i class="${escapeHtml(item.icon)}" aria-hidden="true"></i></span>
+          <span class="command-result-copy">
+            <strong>${escapeHtml(item.title)}</strong>
+            <small>${escapeHtml(item.hint)}</small>
+          </span>
+          <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+        </button>
+      `)
+      .join('')
+    : '<p class="command-empty">No matching space. Try “messages” or “members”.</p>';
+
+  commandResults.querySelector('.command-result.active')?.scrollIntoView({ block: 'nearest' });
+}
+
+function handleCommandResultClick(event) {
+  const result = event.target.closest('[data-command-tab]');
+
+  if (!result) {
+    return;
+  }
+
+  setActiveTab(result.dataset.commandTab);
+  closeCommandPalette();
+}
+
+function handleCommandKeydown(event) {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+    event.preventDefault();
+
+    if (commandPalette.hidden) {
+      openCommandPalette();
+    } else {
+      closeCommandPalette();
+    }
+
+    return;
+  }
+
+  if (commandPalette.hidden) {
+    return;
+  }
+
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeCommandPalette();
+    return;
+  }
+
+  if (!['ArrowDown', 'ArrowUp', 'Enter'].includes(event.key) || !commandMatches.length) {
+    return;
+  }
+
+  event.preventDefault();
+
+  if (event.key === 'ArrowDown') {
+    commandSelectionIndex = (commandSelectionIndex + 1) % commandMatches.length;
+    renderCommandResults();
+  } else if (event.key === 'ArrowUp') {
+    commandSelectionIndex = (commandSelectionIndex - 1 + commandMatches.length) % commandMatches.length;
+    renderCommandResults();
+  } else {
+    setActiveTab(commandMatches[commandSelectionIndex].tab);
+    closeCommandPalette();
+  }
+}
+
+function updateDashboardGlow(event) {
+  const bounds = dashboardView.getBoundingClientRect();
+
+  dashboardView.style.setProperty('--pointer-x', `${event.clientX - bounds.left}px`);
+  dashboardView.style.setProperty('--pointer-y', `${event.clientY - bounds.top}px`);
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
 }
 
 function startSavedMessagesSync() {
