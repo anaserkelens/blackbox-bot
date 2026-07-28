@@ -3865,3 +3865,383 @@ button.danger:hover,
   background: #44262d;
   color: #ffd9dd;
 }
+
+/*
+ * Final palette consistency pass
+ * Keep generated and data-dependent UI on the same quiet material system.
+ */
+
+:root {
+  --cozy-canvas: #101115;
+  --cozy-panel: #191a1f;
+  --cozy-raised: #1d1e23;
+  --cozy-field: #121318;
+  --cozy-walnut: #28211e;
+  --cozy-navy: #15304b;
+  --cozy-line: rgba(242, 226, 207, 0.08);
+  --cozy-line-strong: rgba(242, 226, 207, 0.13);
+  --cozy-text: #e8e0d8;
+  --cozy-copy: #bbb3ab;
+  --cozy-muted: #85807b;
+  --cozy-blue: #69b5ff;
+  --cozy-warm: #d39a67;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+.dashboard-active input:focus,
+.dashboard-active select:focus,
+.dashboard-active textarea:focus {
+  outline: none;
+  border-color: rgba(90, 174, 255, 0.48);
+  background: #151820;
+  box-shadow: none;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 1px solid rgba(90, 174, 255, 0.72);
+  outline-offset: 1px;
+}
+
+.presence-activities {
+  border: 1px solid var(--cozy-line);
+  border-radius: 18px;
+  background: var(--cozy-raised);
+  padding: 14px;
+}
+
+.presence-activity-row {
+  border: 1px solid var(--cozy-line);
+  border-radius: 14px;
+  background: #18191e;
+  padding: 9px;
+}
+
+.presence-activity-row:hover {
+  border-color: rgba(90, 174, 255, 0.18);
+  background: #1a1b20;
+}
+
+.presence-activity-row .presence-activity-name {
+  border-color: transparent;
+  background: var(--cozy-field);
+}
+
+.presence-activity-row .remove {
+  border-color: rgba(228, 109, 121, 0.24);
+  background: #352025;
+  color: #efabb2;
+}
+
+.presence-activity-row .remove:hover {
+  border-color: rgba(228, 109, 121, 0.42);
+  background: #44262d;
+  color: #ffd9dd;
+}
+
+.presence-activity-empty,
+.voice-room-empty,
+.member-empty-state,
+.member-profile-empty,
+.member-history-empty,
+.case-empty-list,
+.health-empty,
+.activity-empty,
+.schedule-empty {
+  border-color: var(--cozy-line);
+  background: transparent;
+  color: var(--cozy-muted);
+}
+
+.voice-step-list li {
+  border: 1px solid var(--cozy-line);
+  background: var(--cozy-raised);
+}
+
+.voice-step-list li:hover {
+  border-color: rgba(90, 174, 255, 0.22);
+  background: #202126;
+}
+
+.voice-step-list li > span {
+  background: var(--cozy-navy);
+  color: #8bc8ff;
+}
+
+.voice-step-list strong,
+.voice-room-card-heading > strong {
+  color: var(--cozy-text);
+}
+
+.voice-step-list small,
+.voice-room-card-copy > p {
+  color: var(--cozy-muted);
+}
+
+.scheduled-mailbox-item,
+.health-storage-item,
+.health-error-item,
+.member-profile-metrics article,
+.member-history-card,
+.member-history-item,
+.analytics-breakdown-grid article,
+.case-detail-field,
+.case-history-section,
+.case-action-card {
+  border: 1px solid var(--cozy-line);
+  background: var(--cozy-raised);
+  box-shadow: none;
+  color: var(--cozy-copy);
+}
+
+.scheduled-mailbox-item:hover,
+.member-history-item:hover {
+  border-color: rgba(90, 174, 255, 0.18);
+  background: #202126;
+}
+
+.scheduled-mailbox-icon,
+.health-metric > span,
+.member-history-item > span,
+.member-profile-empty > span,
+.voice-room-card-icon,
+.activity-icon {
+  background: #142b46;
+  color: #73baff;
+}
+
+.scheduled-mailbox-copy strong,
+.health-storage-item > span:first-child,
+.health-error-item strong,
+.member-profile-metrics strong,
+.member-history-item strong,
+.analytics-breakdown-grid strong,
+.case-detail-field strong {
+  color: var(--cozy-text);
+}
+
+.scheduled-mailbox-copy p,
+.health-error-item p,
+.member-profile-metrics small,
+.member-history-item small,
+.analytics-breakdown-grid small,
+.case-detail-field small {
+  color: var(--cozy-muted);
+}
+
+.saved-message-chip,
+button.member-result {
+  border: 1px solid var(--cozy-line);
+  background: var(--cozy-raised);
+  color: var(--cozy-copy);
+  box-shadow: none;
+}
+
+.saved-message-chip:hover,
+button.member-result:hover {
+  border-color: rgba(90, 174, 255, 0.24);
+  background: #202733;
+  color: var(--cozy-text);
+}
+
+.saved-message-chip.active,
+button.member-result.active {
+  border-color: rgba(90, 174, 255, 0.38);
+  background: #17283a;
+  color: #dceeff;
+}
+
+.member-result-avatar {
+  border-color: rgba(242, 226, 207, 0.12);
+}
+
+.member-profile-facts {
+  border-color: var(--cozy-line);
+  background: var(--cozy-line);
+}
+
+.member-profile-facts div {
+  background: var(--cozy-raised);
+}
+
+.case-action-pill,
+.case-repeat-pill,
+.case-status-badge,
+.voice-room-visibility,
+.voice-room-members span,
+.storage-state,
+.schedule-status {
+  border: 1px solid var(--cozy-line);
+  background: #202126;
+  color: #aaa39c;
+}
+
+.storage-state.persistent,
+.schedule-status.sent,
+.voice-room-visibility.public,
+.case-status-badge.open {
+  border-color: rgba(87, 201, 155, 0.22);
+  background: rgba(87, 201, 155, 0.1);
+  color: #7ed5b2;
+}
+
+.storage-state.ephemeral,
+.schedule-status.failed,
+.voice-room-visibility.private,
+.case-status-badge.closed {
+  border-color: rgba(228, 109, 121, 0.2);
+  background: rgba(228, 109, 121, 0.09);
+  color: #df929a;
+}
+
+.schedule-status.scheduled,
+.schedule-status.publishing,
+.case-status-badge.pending {
+  border-color: rgba(90, 174, 255, 0.22);
+  background: rgba(90, 174, 255, 0.1);
+  color: #7cbeff;
+}
+
+.voice-room-members span.empty {
+  border-color: rgba(203, 151, 102, 0.16);
+  background: var(--cozy-walnut);
+  color: #b9a18e;
+}
+
+.scheduled-mailbox-actions .button-link.secondary {
+  border-color: rgba(203, 151, 102, 0.16);
+  background: var(--cozy-walnut);
+  color: #c2b8af;
+}
+
+.analytics-pattern-track {
+  background: #25262b;
+}
+
+.analytics-pattern-track > span {
+  background: #397fbe;
+}
+
+.activity-filter,
+button.activity-filter {
+  border-color: var(--cozy-line);
+  background: #202126;
+  color: #918a84;
+}
+
+.activity-filter:hover,
+button.activity-filter:hover {
+  border-color: rgba(203, 151, 102, 0.2);
+  background: var(--cozy-walnut);
+  color: #c9c0b8;
+}
+
+.activity-filter.active,
+button.activity-filter.active {
+  border-color: rgba(90, 174, 255, 0.28);
+  background: #17283a;
+  color: #7fc1ff;
+}
+
+.live-notification,
+.toast {
+  background: #1c1d22;
+}
+
+.live-notification.case,
+.live-notification.error,
+.toast.error {
+  border-color: rgba(228, 109, 121, 0.25);
+}
+
+.button-link,
+.button-link:hover,
+.saved-message-chip,
+.saved-message-chip:hover,
+button.member-result,
+button.member-result:hover,
+.case-list-item,
+.case-list-item:hover,
+.activity-filter,
+.activity-filter:hover {
+  box-shadow: none;
+}
+
+/* Readability stays restrained, never faint. */
+
+.dashboard-active .nav-intro span {
+  color: #9298a3;
+}
+
+.dashboard-active .nav-section-label {
+  color: #817b75;
+}
+
+.dashboard-active .nav-foot small {
+  color: #77736f;
+}
+
+.dashboard-active button.activity-filter {
+  border-color: var(--cozy-line);
+  background: #202126;
+  color: #aaa39c;
+}
+
+.dashboard-active button.activity-filter:hover {
+  border-color: rgba(203, 151, 102, 0.2);
+  background: var(--cozy-walnut);
+  color: #d0c7bf;
+}
+
+.dashboard-active button.activity-filter.active {
+  border-color: rgba(90, 174, 255, 0.28);
+  background: #17283a;
+  color: #8bc8ff;
+}
+
+.metric-panel strong,
+.analytics-metric-card strong,
+.voice-metric strong {
+  color: var(--cozy-text);
+}
+
+.mailbox-guide strong {
+  color: var(--cozy-text);
+}
+
+.mailbox-guide code {
+  color: #8bc8ff;
+}
+
+#bot-banner-placeholder {
+  color: #858b95;
+}
+
+.overview-primary-actions small {
+  color: #9ba6b1;
+}
+
+.voice-cleanup-note {
+  border-color: rgba(203, 151, 102, 0.15);
+  background: #25211f;
+}
+
+.voice-cleanup-note > span {
+  background: #312720;
+  color: #d09a68;
+}
+
+.voice-cleanup-note p {
+  color: #928b84;
+}
+
+.metric-panel::after,
+.analytics-metric-card::after,
+.voice-metric::after {
+  background: #c58b58;
+  box-shadow: none;
+  opacity: 0.72;
+}
