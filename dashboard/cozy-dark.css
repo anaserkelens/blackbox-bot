@@ -1379,6 +1379,517 @@ input[type="color"] {
 }
 
 /*
+ * Room shelf layout
+ * Navigation runs horizontally and the overview flows top-to-bottom.
+ */
+
+.dashboard-layout,
+.dashboard-active .dashboard-layout {
+  display: block;
+  width: 100%;
+}
+
+.dashboard-tabs,
+.dashboard-active .dashboard-tabs {
+  width: 100%;
+  min-height: 0;
+  align-items: center;
+  border-radius: 22px;
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  margin-bottom: 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 9px;
+  position: sticky;
+  scrollbar-width: none;
+  top: 100px;
+}
+
+.dashboard-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.dashboard-tabs::before {
+  display: none;
+}
+
+.nav-intro,
+.dashboard-active .nav-intro {
+  width: auto;
+  min-width: 160px;
+  align-self: stretch;
+  border: 0;
+  border-right: 1px solid rgba(242, 226, 207, 0.08);
+  display: flex;
+  flex: 0 0 160px;
+  flex-direction: column;
+  justify-content: center;
+  margin: 0 6px 0 0;
+  padding: 0 17px 0 11px;
+}
+
+.nav-intro span {
+  font-size: 11px;
+}
+
+.nav-intro small {
+  margin-top: 4px;
+}
+
+.nav-section-label,
+.nav-foot {
+  display: none;
+}
+
+button.tab-button,
+.dashboard-tabs .tab-button,
+.dashboard-active .tab-button {
+  width: auto;
+  min-width: max-content;
+  min-height: 48px;
+  align-items: center;
+  display: grid;
+  flex: 1 0 auto;
+  gap: 8px;
+  grid-template-columns: 28px auto;
+  justify-content: center;
+  padding: 0 13px;
+}
+
+button.tab-button::after,
+.dashboard-active .tab-button::after,
+button.tab-button[aria-selected="true"]::before,
+.dashboard-active .tab-button[aria-selected="true"]::before {
+  display: none;
+}
+
+button.tab-button > i,
+.dashboard-active .tab-button > i {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+}
+
+.dashboard-active .dashboard-tabs .tab-button .tab-label {
+  display: inline;
+  font-size: 9px;
+}
+
+.dashboard-content,
+.dashboard-active .dashboard-content {
+  width: 100%;
+}
+
+/* Overview becomes a welcoming room followed by an at-a-glance board. */
+
+.journal,
+.dashboard-active .journal {
+  min-height: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 1fr;
+  overflow: visible;
+  padding: 0;
+}
+
+.journal-bookmark {
+  right: 18px;
+  top: 18px;
+}
+
+.journal-page,
+.dashboard-active .journal-page {
+  min-height: 0;
+}
+
+.journal-page-left {
+  min-height: 410px;
+  border: 1px solid rgba(242, 226, 207, 0.08);
+  border-radius: 28px;
+  display: grid;
+  gap: 18px 54px;
+  grid-template-columns: minmax(360px, 0.95fr) minmax(470px, 1.05fr);
+  grid-template-rows: auto 1fr auto;
+  overflow: hidden;
+  padding: 42px 50px 36px;
+}
+
+.journal-date {
+  grid-column: 1 / -1;
+}
+
+.journal-welcome {
+  align-self: center;
+  grid-column: 1;
+  margin: 18px 0 0;
+  max-width: 560px;
+}
+
+.journal-welcome h1 {
+  font-size: clamp(50px, 4.4vw, 72px);
+}
+
+.journal-actions {
+  align-self: center;
+  grid-column: 2;
+  grid-row: 2;
+  margin: 18px 0 0;
+  max-width: none;
+}
+
+.journal-actions button {
+  min-height: 74px;
+  grid-template-columns: auto minmax(100px, 1fr) auto auto;
+}
+
+.journal-actions button small {
+  display: block;
+}
+
+.journal-signoff {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding-top: 0;
+}
+
+.journal-page-right,
+.dashboard-active .journal-page-right {
+  min-height: 440px;
+  border-radius: 28px;
+  margin: 0;
+  overflow: hidden;
+  padding: 28px 36px 34px;
+}
+
+.journal-tabs {
+  padding-right: 58px;
+}
+
+.journal-panel {
+  margin-top: 22px;
+  overflow: visible;
+}
+
+.journal-summary {
+  display: grid;
+  gap: 14px 28px;
+  grid-template-areas:
+    "head head"
+    "nook status"
+    "nook suggestion";
+  grid-template-columns: minmax(360px, 1.08fr) minmax(340px, 0.92fr);
+  grid-template-rows: auto 1fr auto;
+}
+
+.overview-summary-head {
+  align-items: end;
+  display: flex;
+  grid-area: head;
+  justify-content: space-between;
+}
+
+.overview-summary-head .eyebrow {
+  margin-bottom: 7px;
+}
+
+.overview-summary-head h2 {
+  color: #eee5db;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(25px, 2.5vw, 34px);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  margin: 0;
+}
+
+.overview-summary-head p:last-child {
+  color: #918b85;
+  font-size: 10px;
+  margin: 8px 0 0;
+}
+
+.overview-summary-head > span {
+  align-items: center;
+  border: 1px solid rgba(87, 201, 155, 0.15);
+  border-radius: 999px;
+  background: rgba(87, 201, 155, 0.075);
+  color: #72cfaa;
+  display: flex;
+  font-size: 8px;
+  font-weight: 700;
+  gap: 7px;
+  padding: 8px 11px;
+  text-transform: uppercase;
+}
+
+.overview-summary-head > span i {
+  font-size: 5px;
+}
+
+.bean-nook {
+  width: 100%;
+  height: 280px;
+  grid-area: nook;
+  margin: 0;
+  max-width: none;
+}
+
+.journal-status-list {
+  align-self: stretch;
+  border: 1px solid rgba(242, 226, 207, 0.075);
+  border-radius: 20px;
+  display: grid;
+  grid-area: status;
+  grid-template-columns: 1fr;
+  margin: 0;
+  overflow: hidden;
+}
+
+.journal-status-list > div {
+  align-items: center;
+  border: 0;
+  display: grid;
+  gap: 4px 11px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 14px 16px;
+}
+
+.journal-status-list > div + div {
+  border-left: 0;
+  border-top: 1px solid rgba(242, 226, 207, 0.075);
+}
+
+.journal-status-list > div > span:first-child {
+  grid-row: span 2;
+}
+
+.journal-suggestion {
+  grid-area: suggestion;
+  margin: 0;
+}
+
+.journal-note {
+  display: none;
+}
+
+/* Tool workspaces now use the entire room width. */
+
+.workspace,
+.dashboard-active .workspace {
+  gap: 14px;
+  grid-template-columns: minmax(0, 1.22fr) minmax(390px, 0.68fr);
+}
+
+.live-embed-workspace {
+  gap: 14px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(410px, 0.7fr);
+}
+
+.saved-messages-panel {
+  margin-bottom: 14px;
+}
+
+.preview-panel,
+.live-embed-preview-panel {
+  top: 178px;
+}
+
+.case-workspace,
+.member-profile-workspace,
+.analytics-grid,
+.voice-room-layout,
+.bot-grid {
+  gap: 14px;
+}
+
+@media (max-width: 1180px) {
+  .nav-intro,
+  .dashboard-active .nav-intro {
+    min-width: 135px;
+    flex-basis: 135px;
+  }
+
+  button.tab-button,
+  .dashboard-tabs .tab-button,
+  .dashboard-active .tab-button {
+    padding: 0 10px;
+  }
+
+  .journal-page-left {
+    gap: 18px 34px;
+    grid-template-columns: minmax(320px, 0.9fr) minmax(420px, 1.1fr);
+    padding: 38px;
+  }
+
+  .journal-summary {
+    grid-template-columns: minmax(330px, 1fr) minmax(310px, 1fr);
+  }
+}
+
+@media (max-width: 960px) {
+  .dashboard-tabs,
+  .dashboard-active .dashboard-tabs {
+    top: 86px;
+  }
+
+  .nav-intro,
+  .dashboard-active .nav-intro {
+    display: none;
+  }
+
+  .journal-page-left {
+    min-height: 0;
+    border-radius: 24px;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto auto;
+  }
+
+  .journal-welcome {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .journal-actions {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .journal-signoff {
+    grid-column: 1;
+    grid-row: 4;
+    margin-top: 10px;
+  }
+
+  .journal-page-right,
+  .dashboard-active .journal-page-right {
+    min-height: 0;
+    border-radius: 24px;
+  }
+
+  .journal-summary {
+    grid-template-areas:
+      "head"
+      "nook"
+      "status"
+      "suggestion";
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+
+  .bean-nook {
+    height: 270px;
+  }
+
+  .journal-status-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .journal-status-list > div {
+    grid-template-columns: 1fr;
+  }
+
+  .journal-status-list > div + div {
+    border-left: 1px solid rgba(242, 226, 207, 0.075);
+    border-top: 0;
+  }
+
+  .journal-status-list > div > span:first-child {
+    grid-row: auto;
+  }
+
+  .workspace,
+  .dashboard-active .workspace,
+  .live-embed-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-panel,
+  .live-embed-preview-panel {
+    top: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-tabs,
+  .dashboard-active .dashboard-tabs {
+    border-radius: 17px;
+  }
+
+  button.tab-button,
+  .dashboard-tabs .tab-button,
+  .dashboard-active .tab-button {
+    min-width: 45px;
+    grid-template-columns: 28px;
+    padding: 0 8px;
+  }
+
+  .dashboard-active .dashboard-tabs .tab-button .tab-label {
+    display: none;
+  }
+
+  .dashboard-active .dashboard-tabs .tab-button[aria-selected="true"] {
+    grid-template-columns: 28px auto;
+    padding: 0 12px 0 8px;
+  }
+
+  .dashboard-active .dashboard-tabs .tab-button[aria-selected="true"] .tab-label {
+    display: inline;
+  }
+
+  .journal-page-left {
+    padding: 28px 21px;
+  }
+
+  .journal-welcome h1 {
+    font-size: clamp(46px, 14vw, 59px);
+  }
+
+  .journal-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .journal-actions button {
+    min-height: 62px;
+  }
+
+  .journal-page-right,
+  .dashboard-active .journal-page-right {
+    padding: 24px 18px 27px;
+  }
+
+  .overview-summary-head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .bean-nook {
+    height: 245px;
+  }
+
+  .journal-status-list {
+    grid-template-columns: 1fr;
+  }
+
+  .journal-status-list > div {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .journal-status-list > div + div {
+    border-left: 0;
+    border-top: 1px solid rgba(242, 226, 207, 0.075);
+  }
+
+  .journal-status-list > div > span:first-child {
+    grid-row: span 2;
+  }
+}
+
+/*
  * Calm material pass
  * Warmth comes from solid surfaces and restrained contrast, not effects.
  */
