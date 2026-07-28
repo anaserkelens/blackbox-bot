@@ -1429,8 +1429,6 @@ function handleDashboardNavigationClick(event) {
 }
 
 function initializeJournal() {
-  document.querySelector('.home-actions-panel')?.remove();
-
   journalDate.textContent = new Intl.DateTimeFormat(undefined, {
     weekday: 'long',
     month: 'long',
