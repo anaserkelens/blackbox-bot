@@ -13,6 +13,7 @@
     />
     <link rel="stylesheet" href="/styles.css" />
     <link rel="stylesheet" href="/redesign.css" />
+    <link rel="stylesheet" href="/cozy-dark.css" />
   </head>
   <body>
     <main class="shell">
@@ -82,8 +83,8 @@
         <div class="dashboard-layout">
           <nav class="dashboard-tabs" aria-label="Dashboard spaces">
             <div class="nav-intro">
-              <span>CONTROL MAP</span>
-              <small>11 connected spaces</small>
+              <span>THE NIGHT ROOM</span>
+              <small>11 places, softly lit</small>
             </div>
             <p class="nav-section-label">Observe</p>
             <button class="tab-button" type="button" data-tab="overview" aria-selected="true">
@@ -150,89 +151,95 @@
               </div>
 
               <div class="journal-welcome">
-                <p class="eyebrow">Community control surface</p>
-                <h1 id="room-heading">Everything<br />in orbit.</h1>
-                <p>One living view of your community. Follow a signal, make a move, or let Bean keep watch.</p>
+                <p class="eyebrow">Your corner is ready</p>
+                <h1 id="room-heading">Settle in.<br />Bean's awake.</h1>
+                <p>The lights are low and everything important is close by. Take a look around, or pick up where you left off.</p>
               </div>
 
               <div class="journal-actions" aria-label="Quick actions">
                 <button type="button" data-tab-link="messages">
                   <span><i class="fa-solid fa-pen-nib" aria-hidden="true"></i></span>
-                  <strong>Compose</strong>
-                  <small>Message studio</small>
+                  <strong>Writing desk</strong>
+                  <small>Compose a message</small>
                   <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                 </button>
                 <button type="button" data-tab-link="live-embed">
                   <span><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i></span>
-                  <strong>Go live</strong>
-                  <small>Broadcast studio</small>
+                  <strong>Light the studio</strong>
+                  <small>Prepare a broadcast</small>
                   <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                 </button>
                 <button type="button" data-tab-link="welcome-embed">
                   <span><i class="fa-solid fa-hand-sparkles" aria-hidden="true"></i></span>
-                  <strong>First hello</strong>
-                  <small>Welcome flow</small>
+                  <strong>Open the front door</strong>
+                  <small>Shape the welcome</small>
                   <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                 </button>
                 <button type="button" data-tab-link="voice-rooms">
                   <span><i class="fa-solid fa-headphones" aria-hidden="true"></i></span>
-                  <strong>Voice rooms</strong>
-                  <small>Live spaces</small>
+                  <strong>Visit the lounge</strong>
+                  <small>Manage voice rooms</small>
                   <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                 </button>
               </div>
 
               <div class="journal-signoff">
                 <span><img src="/assets/bean-icon.png" alt="" /></span>
-                <p>Bean is standing by.</p>
+                <p>Warm, quiet, and under control.</p>
               </div>
             </section>
 
             <section class="journal-page journal-page-right">
               <div class="journal-tabs" role="tablist" aria-label="Overview pages">
-                <button class="journal-tab active" type="button" role="tab" data-journal-tab="summary" aria-selected="true">Now</button>
-                <button class="journal-tab" type="button" role="tab" data-journal-tab="pulse" aria-selected="false">System</button>
-                <button class="journal-tab" type="button" role="tab" data-journal-tab="activity" aria-selected="false">Activity</button>
+                <button class="journal-tab active" type="button" role="tab" data-journal-tab="summary" aria-selected="true">Tonight</button>
+                <button class="journal-tab" type="button" role="tab" data-journal-tab="pulse" aria-selected="false">Bean's pulse</button>
+                <button class="journal-tab" type="button" role="tab" data-journal-tab="activity" aria-selected="false">Footsteps</button>
               </div>
 
               <div class="journal-panel journal-summary" data-journal-panel="summary">
                 <div class="journal-note">
-                  <span><i class="fa-solid fa-thumbtack" aria-hidden="true"></i></span>
+                  <span><i class="fa-solid fa-mug-hot" aria-hidden="true"></i></span>
                   <div>
-                    <p class="eyebrow">Live readout</p>
-                    <h2>All signals look clear.</h2>
-                    <p>No urgent interventions detected. The community is moving at a steady rhythm.</p>
+                    <p class="eyebrow">A quiet note from Bean</p>
+                    <h2>The Corner is calm.</h2>
+                    <p>Nothing urgent is tugging at your sleeve. Stay a while, and move at your own pace.</p>
                   </div>
                 </div>
-                <div class="signal-orbit" aria-hidden="true">
-                  <span class="signal-core"><img src="/assets/bean-icon.png" alt="" /></span>
-                  <i class="orbit orbit-one"></i>
-                  <i class="orbit orbit-two"></i>
-                  <b class="orbit-node node-one"></b>
-                  <b class="orbit-node node-two"></b>
-                  <b class="orbit-node node-three"></b>
+                <div class="bean-nook" aria-hidden="true">
+                  <div class="nook-sky">
+                    <span class="nook-moon"></span>
+                    <i class="nook-star nook-star-one"></i>
+                    <i class="nook-star nook-star-two"></i>
+                    <i class="nook-star nook-star-three"></i>
+                  </div>
+                  <span class="nook-lamp"><i></i></span>
+                  <span class="nook-plant"><i></i><b></b></span>
+                  <div class="nook-seat">
+                    <img src="/assets/bean-icon.png" alt="" />
+                  </div>
+                  <span class="nook-rug"></span>
                 </div>
 
                 <div class="journal-status-list">
                   <div>
                     <span><i class="fa-solid fa-robot" aria-hidden="true"></i></span>
-                    <small>Bean status</small>
+                    <small>Bean by the fire</small>
                     <strong id="overview-bot-status">Checking</strong>
                   </div>
                   <div>
                     <span><i class="fa-solid fa-people-group" aria-hidden="true"></i></span>
-                    <small>Linked community</small>
+                    <small>Home</small>
                     <strong data-guild-name>UNDR CTRL</strong>
                   </div>
                   <div>
                     <span><i class="fa-solid fa-folder-open" aria-hidden="true"></i></span>
-                    <small>Open cases</small>
+                    <small>Needs attention</small>
                     <strong id="overview-open-cases">Checking</strong>
                   </div>
                 </div>
 
                 <button class="journal-suggestion" type="button" data-tab-link="members">
-                  <span><small>Find a signal</small><strong>Open member intelligence</strong></span>
+                  <span><small>Looking for someone?</small><strong>Open the member directory</strong></span>
                   <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                 </button>
               </div>
