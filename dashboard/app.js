@@ -112,7 +112,6 @@ const saveVoiceRoomSettingsButton = document.querySelector('#save-voice-room-set
 const voiceRoomListCount = document.querySelector('#voice-room-list-count');
 const voiceRoomList = document.querySelector('#voice-room-list');
 const tabButtons = [...document.querySelectorAll('.tab-button')];
-const tabLinks = [...document.querySelectorAll('[data-tab-link]')];
 const tabPanels = [...document.querySelectorAll('.tab-panel')];
 const refreshBotButton = document.querySelector('#refresh-bot');
 const botProfileTag = document.querySelector('#bot-profile-tag');
@@ -257,16 +256,46 @@ const welcomeEmbedStorageKey = 'bean_dashboard_welcome_embed';
 const welcomeMessageId = 'welcome-message';
 const workspaceMeta = {
   overview: { title: 'Room overview', hint: 'The full community signal', key: '01' },
-  members: { title: 'Member intelligence', hint: 'Find people and context', key: '02' },
-  analytics: { title: 'Community signals', hint: 'Patterns, momentum, rhythm', key: '03' },
-  cases: { title: 'Case desk', hint: 'Moderation history and actions', key: '04' },
-  mailbox: { title: 'Mailbox studio', hint: 'Publish updates and notices', key: '05' },
-  messages: { title: 'Message studio', hint: 'Compose reusable Discord posts', key: '06' },
-  'live-embed': { title: 'Live broadcast', hint: 'Shape the next stream alert', key: '07' },
-  'welcome-embed': { title: 'Welcome flow', hint: 'Design the first hello', key: '08' },
-  'voice-rooms': { title: 'Voice spaces', hint: 'Manage temporary rooms', key: '09' },
-  bot: { title: 'Bean identity', hint: 'Profile, voice, and presence', key: '10' },
-  settings: { title: 'System settings', hint: 'Session and connection details', key: '11' },
+  community: { title: 'Community room', hint: 'People and community signals', key: '02' },
+  members: { title: 'Member directory', hint: 'Find people and context', key: '02A' },
+  analytics: { title: 'Community signals', hint: 'Patterns, momentum, rhythm', key: '02B' },
+  cases: { title: 'Moderation desk', hint: 'History, context, and actions', key: '03' },
+  create: { title: 'Creation room', hint: 'Choose what you want to build', key: '04' },
+  messages: { title: 'Message builder', hint: 'Compose reusable Discord posts', key: '04A' },
+  mailbox: { title: 'Mailbox builder', hint: 'Publish updates and notices', key: '04B' },
+  'live-embed': { title: 'Live announcement', hint: 'Shape the next stream alert', key: '04C' },
+  'welcome-embed': { title: 'Welcome builder', hint: 'Design the first hello', key: '04D' },
+  'voice-rooms': { title: 'Voice spaces', hint: 'Manage temporary rooms', key: '05' },
+  bot: { title: 'Bean identity', hint: 'Profile, voice, and presence', key: '06' },
+  settings: { title: 'System settings', hint: 'Session and connection details', key: '07' },
+};
+const workspaceGroupByTab = {
+  members: 'community',
+  analytics: 'community',
+  messages: 'create',
+  mailbox: 'create',
+  'live-embed': 'create',
+  'welcome-embed': 'create',
+};
+const contextWorkspaceDefinitions = {
+  community: {
+    label: 'Community',
+    panels: ['members', 'analytics'],
+    items: [
+      { tab: 'members', label: 'Members', icon: 'fa-solid fa-address-card' },
+      { tab: 'analytics', label: 'Signals', icon: 'fa-solid fa-chart-line' },
+    ],
+  },
+  create: {
+    label: 'Create',
+    panels: ['messages', 'mailbox', 'live-embed', 'welcome-embed'],
+    items: [
+      { tab: 'messages', label: 'Message', icon: 'fa-solid fa-message' },
+      { tab: 'mailbox', label: 'Mailbox', icon: 'fa-solid fa-envelope-open-text' },
+      { tab: 'live-embed', label: 'Live', icon: 'fa-solid fa-tower-broadcast' },
+      { tab: 'welcome-embed', label: 'Welcome', icon: 'fa-solid fa-hand-sparkles' },
+    ],
+  },
 };
 let commandMatches = [];
 let commandSelectionIndex = 0;
@@ -346,6 +375,7 @@ init();
 
 async function init() {
   initializeJournal();
+  initializeWorkspaceNavigation();
   bindEvents();
   resetMailboxBuilder();
   renderSavedMessages();
@@ -366,7 +396,7 @@ function bindEvents() {
   loginForm.addEventListener('submit', handleLogin);
   logoutButton.addEventListener('click', handleLogout);
   tabButtons.forEach((button) => button.addEventListener('click', () => setActiveTab(button.dataset.tab)));
-  tabLinks.forEach((button) => button.addEventListener('click', () => setActiveTab(button.dataset.tabLink)));
+  dashboardView.addEventListener('click', handleDashboardNavigationClick);
   commandTrigger.addEventListener('click', openCommandPalette);
   commandCloseButtons.forEach((button) => button.addEventListener('click', closeCommandPalette));
   commandSearch.addEventListener('input', renderCommandResults);
@@ -1368,6 +1398,41 @@ function getPresenceActivityNames() {
     .filter(Boolean);
 }
 
+function initializeWorkspaceNavigation() {
+  Object.entries(contextWorkspaceDefinitions).forEach(([group, definition]) => {
+    const switcher = `
+      <nav class="context-switcher" data-workspace-switcher="${group}" aria-label="${definition.label} tools">
+        <button class="context-switcher-home" type="button" data-tab-link="${group}">
+          <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+          <span><small>Back to</small><strong>${definition.label}</strong></span>
+        </button>
+        <div class="context-switcher-options">
+          ${definition.items.map((item) => `
+            <button type="button" data-tab-link="${item.tab}">
+              <i class="${item.icon}" aria-hidden="true"></i>
+              <span>${item.label}</span>
+            </button>
+          `).join('')}
+        </div>
+      </nav>
+    `;
+
+    definition.panels.forEach((panelName) => {
+      document.querySelector(`[data-panel="${panelName}"]`)?.insertAdjacentHTML('afterbegin', switcher);
+    });
+  });
+}
+
+function handleDashboardNavigationClick(event) {
+  const link = event.target.closest('[data-tab-link]');
+
+  if (!link || !dashboardView.contains(link)) {
+    return;
+  }
+
+  setActiveTab(link.dataset.tabLink);
+}
+
 function initializeJournal() {
   document.querySelector('.home-actions-panel')?.remove();
 
@@ -2194,17 +2259,20 @@ function setGuildName(guildName) {
 }
 
 function getActiveTab() {
-  return tabButtons.find((button) => button.getAttribute('aria-selected') === 'true')?.dataset.tab || 'overview';
+  return dashboardView.dataset.activeTab
+    || tabButtons.find((button) => button.getAttribute('aria-selected') === 'true')?.dataset.tab
+    || 'overview';
 }
 
 function setActiveTab(tab) {
-  const nextTab = tabButtons.some((button) => button.dataset.tab === tab) ? tab : 'overview';
+  const nextTab = tabPanels.some((panel) => panel.dataset.panel === tab) ? tab : 'overview';
+  const primaryTab = workspaceGroupByTab[nextTab] || nextTab;
 
   dashboardView.dataset.activeTab = nextTab;
   activeWorkspaceTitle.textContent = workspaceMeta[nextTab]?.title || 'Dashboard';
 
   for (const button of tabButtons) {
-    const isSelected = button.dataset.tab === nextTab;
+    const isSelected = button.dataset.tab === primaryTab;
 
     button.setAttribute('aria-selected', String(isSelected));
     button.toggleAttribute('aria-current', isSelected);
@@ -2213,6 +2281,13 @@ function setActiveTab(tab) {
   for (const panel of tabPanels) {
     panel.hidden = panel.dataset.panel !== nextTab;
   }
+
+  dashboardView.querySelectorAll('[data-workspace-switcher] [data-tab-link]').forEach((button) => {
+    const isSelected = button.dataset.tabLink === nextTab;
+
+    button.classList.toggle('is-current', isSelected);
+    button.toggleAttribute('aria-current', isSelected);
+  });
 
   if (nextTab === 'bot' && !dashboardView.hidden) {
     refreshBotSettings().catch((error) => setSendStatus(error.message, 'error'));
@@ -2273,7 +2348,8 @@ function setActiveTab(tab) {
 function openCommandPalette() {
   commandPalette.hidden = false;
   commandSearch.value = '';
-  commandSelectionIndex = Math.max(0, tabButtons.findIndex((button) => button.dataset.tab === getActiveTab()));
+  const activePrimaryTab = workspaceGroupByTab[getActiveTab()] || getActiveTab();
+  commandSelectionIndex = Math.max(0, tabButtons.findIndex((button) => button.dataset.tab === activePrimaryTab));
   renderCommandResults();
   document.body.classList.add('command-open');
   window.setTimeout(() => commandSearch.focus(), 0);

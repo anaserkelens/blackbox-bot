@@ -84,41 +84,25 @@
           <nav class="dashboard-tabs" aria-label="Dashboard spaces">
             <div class="nav-intro">
               <span>THE NIGHT ROOM</span>
-              <small>11 places, softly lit</small>
+              <small>Seven rooms, softly lit</small>
             </div>
             <p class="nav-section-label">Observe</p>
             <button class="tab-button" type="button" data-tab="overview" aria-selected="true">
               <i class="fa-solid fa-house" aria-hidden="true"></i>
               <span class="tab-label">Overview</span>
             </button>
-            <button class="tab-button" type="button" data-tab="members" aria-selected="false">
-              <i class="fa-solid fa-address-card" aria-hidden="true"></i>
-              <span class="tab-label">Members</span>
-            </button>
-            <button class="tab-button" type="button" data-tab="analytics" aria-selected="false">
-              <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
-              <span class="tab-label">Signals</span>
+            <button class="tab-button" type="button" data-tab="community" aria-selected="false">
+              <i class="fa-solid fa-people-group" aria-hidden="true"></i>
+              <span class="tab-label">Community</span>
             </button>
             <button class="tab-button" type="button" data-tab="cases" aria-selected="false">
               <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
-              <span class="tab-label">Cases</span>
+              <span class="tab-label">Moderation</span>
             </button>
             <p class="nav-section-label">Create</p>
-            <button class="tab-button" type="button" data-tab="mailbox" aria-selected="false">
-              <i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i>
-              <span class="tab-label">Mailbox</span>
-            </button>
-            <button class="tab-button" type="button" data-tab="messages" aria-selected="false">
-              <i class="fa-solid fa-message" aria-hidden="true"></i>
-              <span class="tab-label">Messages</span>
-            </button>
-            <button class="tab-button" type="button" data-tab="live-embed" aria-selected="false">
-              <i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i>
-              <span class="tab-label">Live</span>
-            </button>
-            <button class="tab-button" type="button" data-tab="welcome-embed" aria-selected="false">
-              <i class="fa-solid fa-hand-sparkles" aria-hidden="true"></i>
-              <span class="tab-label">Welcome</span>
+            <button class="tab-button" type="button" data-tab="create" aria-selected="false">
+              <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+              <span class="tab-label">Create</span>
             </button>
             <p class="nav-section-label">Operate</p>
             <button class="tab-button" type="button" data-tab="voice-rooms" aria-selected="false">
@@ -384,6 +368,84 @@
               <div id="activity-feed" class="activity-feed"></div>
             </section>
           </section>
+        </section>
+
+        <section class="tab-panel workspace-hub community-hub" data-panel="community" hidden>
+          <header class="hub-hero">
+            <div>
+              <p class="eyebrow">Community room</p>
+              <h1>Know the people.<br />Notice the rhythm.</h1>
+            </div>
+            <p>Move between individual member context and the larger patterns shaping the room.</p>
+          </header>
+          <div class="hub-option-grid community-option-grid">
+            <button class="hub-option" type="button" data-tab-link="members">
+              <span class="hub-option-icon"><i class="fa-solid fa-address-card" aria-hidden="true"></i></span>
+              <span class="hub-option-copy">
+                <small>People</small>
+                <strong>Member directory</strong>
+                <span>Search profiles, history, moderation context, and room activity.</span>
+              </span>
+              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            </button>
+            <button class="hub-option" type="button" data-tab-link="analytics">
+              <span class="hub-option-icon"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></span>
+              <span class="hub-option-copy">
+                <small>Patterns</small>
+                <strong>Community signals</strong>
+                <span>See growth, engagement, voice activity, and moderation trends.</span>
+              </span>
+              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            </button>
+          </div>
+        </section>
+
+        <section class="tab-panel workspace-hub create-hub" data-panel="create" hidden>
+          <header class="hub-hero">
+            <div>
+              <p class="eyebrow">Creation room</p>
+              <h1>What are we<br />making tonight?</h1>
+            </div>
+            <p>Choose the kind of message first. Bean will open the right tools and keep each draft in its own place.</p>
+          </header>
+          <div class="hub-option-grid create-option-grid">
+            <button class="hub-option" type="button" data-tab-link="messages">
+              <span class="hub-option-icon"><i class="fa-solid fa-message" aria-hidden="true"></i></span>
+              <span class="hub-option-copy">
+                <small>Reusable</small>
+                <strong>Discord message</strong>
+                <span>Compose flexible posts and keep them ready for later.</span>
+              </span>
+              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            </button>
+            <button class="hub-option" type="button" data-tab-link="mailbox">
+              <span class="hub-option-icon"><i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i></span>
+              <span class="hub-option-copy">
+                <small>Community update</small>
+                <strong>Mailbox post</strong>
+                <span>Publish or schedule a focused update for the mailbox channel.</span>
+              </span>
+              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            </button>
+            <button class="hub-option" type="button" data-tab-link="live-embed">
+              <span class="hub-option-icon"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i></span>
+              <span class="hub-option-copy">
+                <small>Broadcast</small>
+                <strong>Live announcement</strong>
+                <span>Shape the next stream alert and preview it before publishing.</span>
+              </span>
+              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            </button>
+            <button class="hub-option" type="button" data-tab-link="welcome-embed">
+              <span class="hub-option-icon"><i class="fa-solid fa-hand-sparkles" aria-hidden="true"></i></span>
+              <span class="hub-option-copy">
+                <small>First impression</small>
+                <strong>Welcome message</strong>
+                <span>Design the greeting that meets every new community member.</span>
+              </span>
+              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            </button>
+          </div>
         </section>
 
         <section class="tab-panel" data-panel="mailbox" hidden>
