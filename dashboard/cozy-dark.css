@@ -3750,14 +3750,14 @@ button:focus-visible,
 button.secondary:not(.command-trigger):not(.topbar-logout):not(.icon-button),
 .dashboard-active button.secondary:not(.command-trigger):not(.topbar-logout):not(.icon-button) {
   border-color: rgba(203, 151, 102, 0.16);
-  background: #211e1d;
+  background: #28211e;
   color: #bdb4ac;
 }
 
 button.secondary:not(.command-trigger):not(.topbar-logout):not(.icon-button):hover,
 .dashboard-active button.secondary:not(.command-trigger):not(.topbar-logout):not(.icon-button):hover {
   border-color: rgba(203, 151, 102, 0.3);
-  background: #2a2320;
+  background: #332722;
   color: #eee5dc;
 }
 
@@ -3813,13 +3813,55 @@ button.tab-button[aria-selected="true"]::before,
 .icon-button,
 .dashboard-active .icon-button {
   border-color: rgba(203, 151, 102, 0.16);
-  background: #211e1d;
+  background: #28211e;
   color: #b8afa7;
 }
 
 .icon-button:hover,
 .dashboard-active .icon-button:hover {
   border-color: rgba(203, 151, 102, 0.3);
-  background: #2a2320;
+  background: #332722;
   color: #eee5dc;
+}
+
+/*
+ * Shared action surfaces
+ * Primary actions borrow the overview's navy material at every size.
+ */
+
+button {
+  border: 1px solid rgba(90, 174, 255, 0.22);
+  border-radius: 12px;
+  background: #15304b;
+  color: #e8e0d8;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
+}
+
+button:hover {
+  border-color: rgba(90, 174, 255, 0.38);
+  background: #193b5d;
+  color: #fff;
+}
+
+button:active {
+  border-color: rgba(90, 174, 255, 0.3);
+  background: #102840;
+}
+
+button.danger,
+.dashboard-active button.danger {
+  border-color: rgba(228, 109, 121, 0.28);
+  background: #352025;
+  color: #efabb2;
+}
+
+button.danger:hover,
+.dashboard-active button.danger:hover {
+  border-color: rgba(228, 109, 121, 0.46);
+  background: #44262d;
+  color: #ffd9dd;
 }
