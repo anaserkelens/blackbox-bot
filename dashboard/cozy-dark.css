@@ -2997,28 +2997,15 @@ body :is(
 }
 
 .home-bean-button::after {
-  width: 8px;
-  height: 8px;
-  border: 2px solid #18191e;
-  border-radius: 50%;
-  background: #007aff;
-  bottom: 2px;
-  content: "";
-  position: absolute;
-  right: 1px;
-  transition:
-    background 160ms ease,
-    transform 160ms ease;
+  display: none;
 }
 
 .home-bean-button .bean-mark {
   width: 43px;
   height: 43px;
-  filter: drop-shadow(0 7px 10px rgba(0, 0, 0, 0.24));
+  filter: none;
   object-fit: contain;
-  transition:
-    filter 180ms ease,
-    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .home-bean-button:hover,
@@ -3028,13 +3015,7 @@ body :is(
 }
 
 .home-bean-button:hover .bean-mark {
-  filter: drop-shadow(0 10px 13px rgba(0, 0, 0, 0.3));
   transform: translateY(-2px) rotate(-5deg) scale(1.06);
-}
-
-.home-bean-button:hover::after {
-  background: #54aaff;
-  transform: scale(1.12);
 }
 
 .home-bean-button:active .bean-mark {
@@ -3742,4 +3723,103 @@ body :is(
     align-items: flex-start;
     flex-direction: row;
   }
+}
+
+/*
+ * Flat interaction materials
+ * Buttons communicate through palette, border, and movement — never glow.
+ */
+
+button,
+button:hover,
+button:active,
+button:focus,
+.dashboard-active button,
+.dashboard-active button:hover,
+.dashboard-active button:active,
+.dashboard-active button:focus {
+  box-shadow: none !important;
+}
+
+button:focus-visible,
+.dashboard-active button:focus-visible {
+  outline: 2px solid #438fd9;
+  outline-offset: 2px;
+}
+
+button.secondary:not(.command-trigger):not(.topbar-logout):not(.icon-button),
+.dashboard-active button.secondary:not(.command-trigger):not(.topbar-logout):not(.icon-button) {
+  border-color: rgba(203, 151, 102, 0.16);
+  background: #211e1d;
+  color: #bdb4ac;
+}
+
+button.secondary:not(.command-trigger):not(.topbar-logout):not(.icon-button):hover,
+.dashboard-active button.secondary:not(.command-trigger):not(.topbar-logout):not(.icon-button):hover {
+  border-color: rgba(203, 151, 102, 0.3);
+  background: #2a2320;
+  color: #eee5dc;
+}
+
+button.tab-button[aria-selected="true"],
+.dashboard-active .tab-button[aria-selected="true"],
+button.tab-button[aria-selected="true"]:hover,
+.dashboard-active .tab-button[aria-selected="true"]:hover {
+  border-color: #288cec;
+  background: #0875dd;
+  color: #fff;
+}
+
+button.tab-button[aria-selected="true"]::before,
+.dashboard-active .tab-button[aria-selected="true"]::before {
+  box-shadow: none !important;
+}
+
+.overview-primary-actions button:first-child {
+  border-color: rgba(90, 174, 255, 0.22);
+  background: #15304b;
+}
+
+.overview-primary-actions button:first-child:hover {
+  border-color: rgba(90, 174, 255, 0.38);
+  background: #193b5d;
+}
+
+.overview-primary-actions button:first-child > span:first-child {
+  background: #1d4b76;
+  color: #81c2ff;
+}
+
+.overview-primary-actions button:nth-child(2) {
+  border-color: rgba(203, 151, 102, 0.18);
+  background: #28211e;
+}
+
+.overview-primary-actions button:nth-child(2):hover {
+  border-color: rgba(203, 151, 102, 0.34);
+  background: #332722;
+}
+
+.overview-primary-actions button:nth-child(2) > span:first-child {
+  background: #3a2a21;
+  color: #d5a06f;
+}
+
+.hub-option:hover {
+  border-color: rgba(203, 151, 102, 0.26);
+  background: #25201e;
+}
+
+.icon-button,
+.dashboard-active .icon-button {
+  border-color: rgba(203, 151, 102, 0.16);
+  background: #211e1d;
+  color: #b8afa7;
+}
+
+.icon-button:hover,
+.dashboard-active .icon-button:hover {
+  border-color: rgba(203, 151, 102, 0.3);
+  background: #2a2320;
+  color: #eee5dc;
 }
