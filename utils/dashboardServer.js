@@ -44,6 +44,13 @@ const {
   saveStreamEmbedSettings,
 } = require('./streamEmbedSettings');
 const {
+  getYouTubeEmbedStorageInfo,
+  getYouTubeEmbedStorageStatus,
+  loadYouTubeEmbedSettings,
+  saveYouTubeEmbedSettings,
+} = require('./youtubeEmbedSettings');
+const { getYouTubeUploadStateStorageInfo } = require('./youtubeUploadMonitor');
+const {
   deleteTempVoiceRoom,
   getTempVoiceOverview,
   getTempVoiceStorageInfo,
@@ -74,6 +81,7 @@ function startDashboard(client) {
 
   logSavedMessagesStorage();
   logStreamEmbedStorage();
+  logYouTubeEmbedStorage();
   logWelcomeEmbedStorage();
   logModerationCasesStorage();
   logTempVoiceStorage();
@@ -117,6 +125,18 @@ function logStreamEmbedStorage() {
 
   if (!storage.persistent) {
     console.warn('Live embed settings will reset after redeploys unless a Railway volume is attached.');
+  }
+}
+
+function logYouTubeEmbedStorage() {
+  const storage = getYouTubeEmbedStorageInfo(config);
+
+  console.log(
+    `YouTube embed storage: ${storage.filePath} (${storage.persistent ? 'persistent' : 'ephemeral'}, ${storage.source}).`,
+  );
+
+  if (!storage.persistent) {
+    console.warn('YouTube embed settings will reset after redeploys unless a Railway volume is attached.');
   }
 }
 
@@ -241,6 +261,16 @@ async function handleRequest(client, request, response) {
 
     if (request.method === 'PUT' && url.pathname === '/api/stream-embed') {
       await handleSaveStreamEmbed(request, response);
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/youtube-embed') {
+      await handleGetYouTubeEmbed(response);
+      return;
+    }
+
+    if (request.method === 'PUT' && url.pathname === '/api/youtube-embed') {
+      await handleSaveYouTubeEmbed(request, response);
       return;
     }
 
@@ -620,6 +650,8 @@ async function getDashboardStorageHealth() {
     ['Moderation Cases', getModerationCasesStorageInfo(config)],
     ['Temporary Voice', getTempVoiceStorageInfo(config)],
     ['Live Embed', getStreamEmbedStorageInfo(config)],
+    ['YouTube Embed', getYouTubeEmbedStorageInfo(config)],
+    ['YouTube Upload State', getYouTubeUploadStateStorageInfo(config)],
     ['Welcome Message', getWelcomeEmbedStorageInfo(config)],
     ['Presence', presence],
   ];
@@ -726,6 +758,37 @@ async function handleSaveStreamEmbed(request, response) {
     ok: true,
     settings,
     storage: await getStreamEmbedStorageStatus(config),
+  });
+}
+
+async function handleGetYouTubeEmbed(response) {
+  const [settings, storage] = await Promise.all([
+    loadYouTubeEmbedSettings(config),
+    getYouTubeEmbedStorageStatus(config),
+  ]);
+
+  sendJson(response, 200, {
+    ok: true,
+    settings,
+    storage,
+  });
+}
+
+async function handleSaveYouTubeEmbed(request, response) {
+  const body = await readJsonBody(request, 256 * 1024);
+  let settings;
+
+  try {
+    settings = await saveYouTubeEmbedSettings(config, body.settings);
+  } catch (error) {
+    sendJson(response, 400, { error: error.message });
+    return;
+  }
+
+  sendJson(response, 200, {
+    ok: true,
+    settings,
+    storage: await getYouTubeEmbedStorageStatus(config),
   });
 }
 

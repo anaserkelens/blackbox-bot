@@ -245,10 +245,18 @@ const livePreviewFooterIcon = document.querySelector('#live-preview-footer-icon'
 const livePreviewFooterText = document.querySelector('#live-preview-footer-text');
 const livePreviewTimestamp = document.querySelector('#live-preview-timestamp');
 const livePreviewButtons = document.querySelector('#live-preview-buttons');
+const embedBuilderTitle = document.querySelector('#embed-builder-title');
+const embedBuilderSubtitle = document.querySelector('#embed-builder-subtitle');
+const embedPlaceholderList = document.querySelector('#embed-placeholder-list');
+const embedTimestampLabel = document.querySelector('#embed-timestamp-label');
+const embedSaveHint = document.querySelector('#embed-save-hint');
+const embedPreviewSubtitle = document.querySelector('#embed-preview-subtitle');
+const embedBuilderButtons = [...document.querySelectorAll('[data-embed-builder]')];
 const sessionStorageKey = 'bean_dashboard_session';
 const savedMessagesStorageKey = 'bean_dashboard_saved_messages';
 const presenceStorageKey = 'bean_dashboard_presence';
 const liveEmbedStorageKey = 'bean_dashboard_live_embed';
+const youtubeEmbedStorageKey = 'bean_dashboard_youtube_embed';
 const welcomeEmbedStorageKey = 'bean_dashboard_welcome_embed';
 const welcomeMessageId = 'welcome-message';
 const workspaceMeta = {
@@ -300,6 +308,44 @@ const embedBuilderDefinitions = {
   live: {
     endpoint: '/api/stream-embed',
     storageKey: liveEmbedStorageKey,
+    label: 'Live embed',
+    title: 'Live Announcement Builder',
+    subtitle: 'Used when the featured Twitch account goes live.',
+    timestampLabel: 'Show the time the stream was detected',
+    saveHint: 'Changes apply to the next featured stream announcement.',
+    previewSubtitle: 'Sample stream data',
+    placeholders: [
+      'member',
+      'displayName',
+      'streamTitle',
+      'streamUrl',
+      'gameName',
+      'twitchUsername',
+      'previewUrl',
+      'avatarUrl',
+    ],
+  },
+  youtube: {
+    endpoint: '/api/youtube-embed',
+    storageKey: youtubeEmbedStorageKey,
+    label: 'YouTube upload embed',
+    title: 'YouTube Upload Notification Builder',
+    subtitle: 'Used when a new video is uploaded to @5nooof.',
+    timestampLabel: 'Show the time the video was published',
+    saveHint: 'Changes apply to the next YouTube upload announcement.',
+    previewSubtitle: 'Latest @5nooof video data',
+    placeholders: [
+      'member',
+      'displayName',
+      'videoTitle',
+      'videoUrl',
+      'videoId',
+      'thumbnailUrl',
+      'channelHandle',
+      'channelUrl',
+      'publishedAt',
+      'avatarUrl',
+    ],
   },
 };
 
@@ -341,9 +387,9 @@ const state = {
   welcomeStorage: null,
   welcomeRestoreAttempted: false,
   activeEmbedBuilder: 'live',
-  embedBuilderSettings: { live: null },
-  embedBuilderStorage: { live: null },
-  embedBuilderRestoreAttempted: { live: false },
+  embedBuilderSettings: { live: null, youtube: null },
+  embedBuilderStorage: { live: null, youtube: null },
+  embedBuilderRestoreAttempted: { live: false, youtube: false },
   presenceRestoreAttempted: false,
   savedMessagesRefreshTimer: null,
   savedMessagesRequest: null,
@@ -513,6 +559,9 @@ function bindEvents() {
   liveFieldsContainer.addEventListener('click', handleLiveFieldsClick);
   addLiveButton.addEventListener('click', () => addLiveEmbedButton({}, true));
   liveButtonsContainer.addEventListener('click', handleLiveButtonsClick);
+  embedBuilderButtons.forEach((button) => {
+    button.addEventListener('click', () => activateEmbedBuilder(button.dataset.embedBuilder));
+  });
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && getActiveTab() === 'messages' && !dashboardView.hidden) {
       loadSavedMessages({ silent: true }).catch(() => null);
@@ -1425,6 +1474,10 @@ function handleDashboardNavigationClick(event) {
   }
 
   setActiveTab(link.dataset.tabLink);
+
+  if (link.dataset.embedBuilderLink) {
+    activateEmbedBuilder(link.dataset.embedBuilderLink);
+  }
 }
 
 function initializeJournal() {
@@ -4331,8 +4384,46 @@ async function loadLiveEmbedSettings(showNotification = false, kind = state.acti
   }
 
   if (showNotification && state.activeEmbedBuilder === kind) {
-    setSendStatus(`${kind === 'welcome' ? 'Welcome message' : 'Live embed'} settings refreshed.`, 'success');
+    setSendStatus(`${definition.label} settings refreshed.`, 'success');
   }
+}
+
+function activateEmbedBuilder(kind) {
+  const definition = embedBuilderDefinitions[kind];
+
+  if (!definition) {
+    return;
+  }
+
+  state.activeEmbedBuilder = kind;
+  embedBuilderTitle.textContent = definition.title;
+  embedBuilderSubtitle.textContent = definition.subtitle;
+  embedTimestampLabel.textContent = definition.timestampLabel;
+  embedSaveHint.textContent = definition.saveHint;
+  embedPreviewSubtitle.textContent = definition.previewSubtitle;
+  embedPlaceholderList.replaceChildren(
+    ...definition.placeholders.map((placeholder) => {
+      const element = document.createElement('code');
+      element.textContent = `{${placeholder}}`;
+      return element;
+    }),
+  );
+
+  for (const button of embedBuilderButtons) {
+    const isActive = button.dataset.embedBuilder === kind;
+    button.classList.toggle('is-active', isActive);
+    button.setAttribute('aria-pressed', String(isActive));
+  }
+
+  const settings = state.embedBuilderSettings[kind];
+
+  if (settings) {
+    applyLiveEmbedSettings(settings);
+    renderLiveEmbedStorageStatus(state.embedBuilderStorage[kind]);
+    return;
+  }
+
+  loadLiveEmbedSettings(false, kind).catch((error) => setSendStatus(error.message, 'error'));
 }
 
 async function restoreLiveEmbedBackupIfNeeded(result, kind) {
@@ -4357,14 +4448,14 @@ async function restoreLiveEmbedBackupIfNeeded(result, kind) {
     });
 
     setSendStatus(
-      `${kind === 'welcome' ? 'Welcome message' : 'Live embed'} restored from this browser after the bot restart.`,
+      `${definition.label} restored from this browser after the bot restart.`,
       'success',
     );
     return restored;
   } catch (error) {
     state.embedBuilderRestoreAttempted[kind] = false;
     setSendStatus(
-      `Could not restore the ${kind === 'welcome' ? 'welcome message' : 'live embed'} browser backup: ${error.message}`,
+      `Could not restore the ${definition.label.toLowerCase()} browser backup: ${error.message}`,
       'error',
     );
     return result;
@@ -4424,7 +4515,7 @@ async function handleSaveLiveEmbed(event) {
     applyLiveEmbedSettings(result.settings || {});
     writeLiveEmbedBackup(result.settings, kind);
     renderLiveEmbedStorageStatus(result.storage);
-    setSendStatus(`${kind === 'welcome' ? 'Welcome message' : 'Live embed'} saved.`, 'success');
+    setSendStatus(`${definition.label} saved.`, 'success');
   } catch (error) {
     setSendStatus(error.message, 'error');
   } finally {
@@ -4859,15 +4950,16 @@ function replaceLivePreviewPlaceholders(template) {
     displayName: '5noof',
     avatarUrl: 'https://cdn.discordapp.com/embed/avatars/0.png',
   };
-  const values = state.activeEmbedBuilder === 'welcome'
+  const values = state.activeEmbedBuilder === 'youtube'
     ? {
         ...sharedValues,
-        username: '5noof',
-        userId: '185282790969835520',
-        serverName: state.guildName,
-        memberCount: '1,337',
-        createdAt: '14 March 2025',
-        joinedAt: 'Today',
+        videoTitle: 'Go To Sleep While I Run The Best Restaurant in Town',
+        videoUrl: 'https://www.youtube.com/watch?v=67rGoXhQcvA',
+        videoId: '67rGoXhQcvA',
+        thumbnailUrl: 'https://i.ytimg.com/vi/67rGoXhQcvA/hqdefault.jpg',
+        channelHandle: '@5nooof',
+        channelUrl: 'https://www.youtube.com/@5nooof',
+        publishedAt: '26 July 2026',
       }
     : {
         ...sharedValues,

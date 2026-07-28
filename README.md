@@ -149,17 +149,21 @@ Optional systems are controlled by environment variables. For example, tickets n
 
 The stream monitor has two paths. `FEATURED_STREAMER_USER_ID` receives a Twitch announcement in `ANNOUNCEMENT_CHANNEL_ID` without receiving the live role. Other members receive `LIVE_ROLE_ID` while streaming on Twitch, with no announcement posted. Enable `STREAM_MONITOR_ENABLED` and the Discord Developer Portal Presence Intent to use it.
 
-The dashboard Live Embed tab controls the featured Twitch announcement template, including advanced embed fields, link buttons, and embed-safe divider/spacer layout blocks. Its settings are stored in `stream-embed.json`, automatically on `RAILWAY_VOLUME_MOUNT_PATH` when a volume is attached. Use `DASHBOARD_STREAM_EMBED_PATH` to override that location.
+The dashboard Live Embed tab controls both the featured Twitch announcement and the YouTube upload notification templates, including advanced embed fields, link buttons, and embed-safe divider/spacer layout blocks. Twitch settings are stored in `stream-embed.json`; YouTube settings are stored separately in `youtube-embed.json`. Both automatically use `RAILWAY_VOLUME_MOUNT_PATH` when a volume is attached. Use `DASHBOARD_STREAM_EMBED_PATH` and `DASHBOARD_YOUTUBE_EMBED_PATH` to override those locations.
+
+The YouTube upload monitor watches `@5nooof` through YouTube's public channel feed every five minutes by default. It pings the `NEW UPLOAD` role and uses a Components V2 notification with the large video thumbnail plus a `Watch on YouTube` button. Previously seen video IDs are stored in `youtube-upload-state.json`, so restarts do not resend old uploads. Configure the channel, poll interval, role, destination, and storage with the `YOUTUBE_*` variables in `.env.example`.
 
 The Welcome Message tab provides a block-based Components V2 composer for automatic member greetings, matching the normal Messages layout. It supports uploaded header images, accent colors, text/divider/spacer blocks, accessory and action-row buttons, Unicode or custom server emoji on buttons, and member/server placeholders. New members are welcomed in `WELCOME_CHANNEL_ID` (default `1520407983354544171`). Settings are stored in `welcome-embed.json` on the Railway volume, or at `DASHBOARD_WELCOME_EMBED_PATH` when overridden. Enable the Server Members Intent in Discord and set `ENABLE_SERVER_MEMBERS_INTENT=true` so join events reach the bot.
 
 Announcements with link buttons use a Discord Components V2 container so the buttons render inside the same bordered announcement block. Each button can optionally show a Unicode emoji or a custom Discord emoji such as `<:name:id>`. Buttonless announcements continue to use standard Discord embeds.
 
-Member and role mentions in live announcement message content are enabled for both real announcements and `/teststream`.
+Member and role mentions in notification message content are enabled for real announcements, `/teststream`, and `/testyoutube`.
 
-To keep live and welcome embed settings across Railway restarts and redeploys, attach a volume to the bot service (for example at `/data`). Railway provides `RAILWAY_VOLUME_MOUNT_PATH` automatically and the bot stores both settings files there. The dashboard shows whether storage is persistent and keeps separate browser backups that can restore missing server-side files when the dashboard is reopened.
+To keep live, YouTube, and welcome embed settings across Railway restarts and redeploys, attach a volume to the bot service (for example at `/data`). Railway provides `RAILWAY_VOLUME_MOUNT_PATH` automatically and the bot stores the settings and YouTube upload state files there. The dashboard shows whether storage is persistent and keeps separate browser backups that can restore missing server-side settings when the dashboard is reopened.
 
 `/teststream` posts the currently saved live embed in the channel where the command is used. It is restricted at runtime to `BOT_OWNER_USER_ID`, who must also have `FOUNDER_ROLE_ID`; both IDs have UNDR CTRL defaults in `.env.example`.
+
+`/testyoutube` posts the currently saved YouTube notification using the channel's latest video when available. It has the same owner-plus-Founder restriction as `/teststream` and does not alter the upload monitor's seen-video state.
 
 ## Dashboard
 

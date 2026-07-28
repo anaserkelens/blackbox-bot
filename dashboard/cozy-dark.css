@@ -2420,6 +2420,25 @@ body :is(
   row-gap: 8px;
 }
 
+.embed-kind-switch {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.embed-kind-switch button {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.embed-kind-switch button.is-active {
+  background: var(--brand, #d6a75f);
+  border-color: var(--brand, #d6a75f);
+  color: #17130e;
+}
+
 @media (max-width: 640px) {
   .status-pill,
   .dashboard-active .status-pill {

@@ -85,6 +85,10 @@ const config = {
     userLogs: loggingChannels.systemLog,
     voiceLogs: loggingChannels.lineLog,
     streamAnnouncements: readEnv('ANNOUNCEMENT_CHANNEL_ID') || '1520519675543293972',
+    youtubeAnnouncements:
+      readEnv('YOUTUBE_ANNOUNCEMENT_CHANNEL_ID')
+      || readEnv('ANNOUNCEMENT_CHANNEL_ID')
+      || '1520519675543293972',
     mailbox: readEnv('MAILBOX_CHANNEL_ID') || '1520519675543293972',
     tempVoiceTrigger: readEnv('TEMP_VOICE_TRIGGER_CHANNEL_ID') || '1520514900978307226',
   },
@@ -94,6 +98,7 @@ const config = {
     moderator: readEnv('MODERATOR_ROLE_ID'),
     verified: readEnv('VERIFIED_ROLE_ID'),
     live: readEnv('LIVE_ROLE_ID') || '1520781346740506874',
+    newUpload: readEnv('NEW_UPLOAD_ROLE_ID') || '1520828024533159936',
   },
   reactionRole: {
     messageId: readEnv('REACTION_ROLE_MESSAGE_ID'),
@@ -109,6 +114,20 @@ const config = {
     enabled: readBoolean('STREAM_MONITOR_ENABLED', false),
     featuredUserId: readEnv('FEATURED_STREAMER_USER_ID') || '185282790969835520',
   },
+  youtubeMonitor: {
+    enabled: readBoolean('YOUTUBE_UPLOAD_MONITOR_ENABLED', true),
+    channelId: readEnv('YOUTUBE_CHANNEL_ID') || 'UC7qyud6JzpiNoiFVQgzFAkg',
+    channelHandle: readEnv('YOUTUBE_CHANNEL_HANDLE') || '@5nooof',
+    channelDisplayName: readEnv('YOUTUBE_CHANNEL_DISPLAY_NAME') || 'snuf',
+    featuredUserId:
+      readEnv('YOUTUBE_FEATURED_USER_ID')
+      || readEnv('FEATURED_STREAMER_USER_ID')
+      || '185282790969835520',
+    pollIntervalSeconds: Math.min(
+      86400,
+      Math.max(60, readInteger('YOUTUBE_POLL_INTERVAL_SECONDS', 300)),
+    ),
+  },
   dashboard: {
     enabled: readBoolean('DASHBOARD_ENABLED', true),
     password: readEnv('DASHBOARD_PASSWORD'),
@@ -118,6 +137,8 @@ const config = {
     savedMessagesPath: readEnv('DASHBOARD_SAVED_MESSAGES_PATH'),
     presencePath: readEnv('DASHBOARD_PRESENCE_PATH'),
     streamEmbedPath: readEnv('DASHBOARD_STREAM_EMBED_PATH'),
+    youtubeEmbedPath: readEnv('DASHBOARD_YOUTUBE_EMBED_PATH'),
+    youtubeUploadStatePath: readEnv('YOUTUBE_UPLOAD_STATE_PATH'),
     welcomeEmbedPath: readEnv('DASHBOARD_WELCOME_EMBED_PATH'),
     moderationCasesPath: readEnv('MODERATION_CASES_PATH'),
     tempVoicePath: readEnv('TEMP_VOICE_PATH'),

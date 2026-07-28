@@ -400,6 +400,8 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
     savedMessagesPath: path.join(temporaryDirectory, 'api-saved.json'),
     presencePath: path.join(temporaryDirectory, 'api-presence.json'),
     streamEmbedPath: path.join(temporaryDirectory, 'api-stream.json'),
+    youtubeEmbedPath: path.join(temporaryDirectory, 'api-youtube.json'),
+    youtubeUploadStatePath: path.join(temporaryDirectory, 'api-youtube-state.json'),
     welcomeEmbedPath: path.join(temporaryDirectory, 'api-welcome.json'),
     moderationCasesPath: path.join(temporaryDirectory, 'api-cases.json'),
     tempVoicePath: path.join(temporaryDirectory, 'api-voice.json'),
@@ -432,7 +434,7 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
   assert.equal(health.response.status, 200);
   assert.equal(health.data.discord.latencyMs, 42);
   assert.equal(health.data.api.healthy, true);
-  assert.equal(health.data.storage.length, 8);
+  assert.equal(health.data.storage.length, 10);
   assert.equal(health.data.errors[0].source, 'Dashboard test');
 
   const analytics = await fetchJson(`${baseUrl}/api/analytics?days=30`, { headers });
@@ -448,6 +450,30 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
   assert.ok(Array.isArray(notifications.data.notifications));
   assert.equal(memberSearch.response.status, 200);
   assert.deepEqual(memberSearch.data.members, []);
+
+  const youtubeEmbed = await fetchJson(`${baseUrl}/api/youtube-embed`, { headers });
+
+  assert.equal(youtubeEmbed.response.status, 200);
+  assert.equal(youtubeEmbed.data.settings.content, '<@&1520828024533159936>');
+  assert.equal(youtubeEmbed.data.settings.buttons[0].label, 'Watch on YouTube');
+
+  const savedYouTubeEmbed = await fetchJson(`${baseUrl}/api/youtube-embed`, {
+    method: 'PUT',
+    headers,
+    body: {
+      settings: {
+        ...youtubeEmbed.data.settings,
+        embed: {
+          ...youtubeEmbed.data.settings.embed,
+          footerText: 'Saved from the dashboard test',
+        },
+      },
+    },
+  });
+  const reloadedYouTubeEmbed = await fetchJson(`${baseUrl}/api/youtube-embed`, { headers });
+
+  assert.equal(savedYouTubeEmbed.response.status, 200);
+  assert.equal(reloadedYouTubeEmbed.data.settings.embed.footerText, 'Saved from the dashboard test');
 
   const scheduledAt = new Date(Date.now() + 60_000).toISOString();
   const created = await fetchJson(`${baseUrl}/api/mailbox/scheduled`, {

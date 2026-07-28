@@ -19,6 +19,33 @@ function createStreamAnnouncementPayload(settings, context) {
   return createAnnouncementPayload(settings, values, context.timestamp || new Date());
 }
 
+function createYouTubeAnnouncementPayload(settings, context) {
+  const video = context.video || {};
+  const values = {
+    member: String(context.member),
+    displayName:
+      context.member?.displayName
+      || context.member?.user?.displayName
+      || context.member?.user?.username
+      || '',
+    videoTitle: video.title || 'New YouTube video',
+    videoUrl: video.url || '',
+    videoId: video.id || '',
+    thumbnailUrl: video.thumbnailUrl || '',
+    channelHandle: context.channelHandle || '',
+    channelUrl: context.channelHandle
+      ? `https://www.youtube.com/${String(context.channelHandle).replace(/^@?/, '@')}`
+      : '',
+    publishedAt: video.publishedAt || '',
+    avatarUrl:
+      (typeof context.member?.displayAvatarURL === 'function'
+        && context.member.displayAvatarURL({ size: 256 }))
+      || '',
+  };
+
+  return createAnnouncementPayload(settings, values, context.timestamp || new Date());
+}
+
 function createAnnouncementPayload(settings, values, timestamp = new Date()) {
   const content = replacePlaceholders(settings.content, values);
   const embedSettings = settings.embed;
@@ -411,5 +438,6 @@ function resolveOptionalUrl(template, values, label) {
 module.exports = {
   createAnnouncementPayload,
   createStreamAnnouncementPayload,
+  createYouTubeAnnouncementPayload,
   replacePlaceholders,
 };
