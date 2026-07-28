@@ -9,7 +9,6 @@ const passwordInput = document.querySelector('#password');
 const logoutButton = document.querySelector('#logout');
 const botStatus = document.querySelector('#bot-status');
 const dashboardClock = document.querySelector('#dashboard-clock');
-const dashboardDaypart = document.querySelector('#dashboard-daypart');
 const overviewBotStatus = document.querySelector('#overview-bot-status');
 const overviewOpenCases = document.querySelector('#overview-open-cases');
 const healthStatus = document.querySelector('#health-status');
@@ -1484,10 +1483,10 @@ function showDashboard(session) {
 }
 
 function setBotStatus(isReady, tag) {
-  const text = isReady ? `Online${tag ? `: ${tag}` : ''}` : 'Bot not ready';
+  const overviewText = isReady ? `Online${tag ? `: ${tag}` : ''}` : 'Bot not ready';
 
-  botStatus.textContent = text;
-  overviewBotStatus.textContent = text;
+  botStatus.textContent = isReady ? 'Bean online' : 'Bean offline';
+  overviewBotStatus.textContent = overviewText;
   botStatus.classList.toggle('ready', isReady);
   botStatus.classList.toggle('offline', !isReady);
 }
@@ -1511,16 +1510,7 @@ function stopInterfaceClock() {
 
 function updateInterfaceClock() {
   const now = new Date();
-  const hour = now.getHours();
-  const daypart = hour < 5
-    ? 'Late shift'
-    : hour < 12
-      ? 'Morning shift'
-      : hour < 18
-        ? 'Afternoon shift'
-        : 'Evening shift';
 
-  dashboardDaypart.textContent = daypart;
   dashboardClock.textContent = new Intl.DateTimeFormat(undefined, {
     hour: '2-digit',
     minute: '2-digit',
