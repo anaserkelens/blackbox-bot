@@ -2182,3 +2182,125 @@ textarea:focus {
     background: #18191e;
   }
 }
+/*
+ * Geist typography and a continuous overview stream.
+ * The snapshot remains primary; operational details no longer hide behind tabs.
+ */
+
+body,
+body :is(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  span,
+  strong,
+  small,
+  label,
+  button,
+  input,
+  textarea,
+  select,
+  option,
+  kbd,
+  a,
+  time
+) {
+  font-family: "Geist Variable", "Geist", "Segoe UI", system-ui, sans-serif !important;
+}
+
+.journal-page-right,
+.dashboard-active .journal-page-right {
+  padding-top: 34px;
+}
+
+.journal-panel {
+  margin-top: 0;
+}
+
+.overview-insight-grid,
+.dashboard-active .overview-insight-grid {
+  display: grid !important;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr);
+  margin-top: 14px;
+}
+
+.overview-stream-heading {
+  align-items: end;
+  border: 1px solid rgba(242, 226, 207, 0.08);
+  border-radius: 24px;
+  background: #19191d;
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: space-between;
+  padding: 24px 28px;
+}
+
+.overview-stream-heading .eyebrow {
+  margin: 0 0 6px;
+}
+
+.overview-stream-heading h2 {
+  color: #eee5db;
+  font-size: clamp(24px, 2.4vw, 32px);
+  font-weight: 560;
+  letter-spacing: -0.04em;
+  margin: 0;
+}
+
+.overview-stream-heading > p {
+  color: #918b85;
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 320px;
+  text-align: right;
+}
+
+.overview-insight-grid > .dashboard-panel,
+.dashboard-active .overview-insight-grid > .dashboard-panel {
+  border: 1px solid rgba(242, 226, 207, 0.08);
+  border-radius: 28px;
+  background: #19191d;
+  box-shadow: none;
+  color: #ded7cf;
+}
+
+.overview-insight-grid .section-heading h2 {
+  color: #eee3d7;
+  font-weight: 560;
+}
+
+.overview-insight-grid .health-metric,
+.overview-insight-grid .health-storage-item,
+.overview-insight-grid .health-error-item,
+.overview-insight-grid .activity-item {
+  border-color: rgba(242, 226, 207, 0.075);
+  background: #1d1e23;
+  color: #d6cec6;
+}
+
+@media (max-width: 960px) {
+  .overview-insight-grid,
+  .dashboard-active .overview-insight-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .overview-stream-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+    padding: 21px;
+  }
+
+  .overview-stream-heading > p {
+    max-width: none;
+    text-align: left;
+  }
+}
