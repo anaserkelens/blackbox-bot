@@ -25,7 +25,6 @@ const refreshActivityButton = document.querySelector('#refresh-activity');
 const activityFilterButtons = [...document.querySelectorAll('.activity-filter')];
 const activityFeed = document.querySelector('#activity-feed');
 const journalDate = document.querySelector('#journal-date');
-const activeWorkspaceTitle = document.querySelector('#active-workspace-title');
 const commandTrigger = document.querySelector('#command-trigger');
 const commandPalette = document.querySelector('#command-palette');
 const commandSearch = document.querySelector('#command-search');
@@ -2253,7 +2252,6 @@ function setActiveTab(tab) {
   const primaryTab = workspaceGroupByTab[nextTab] || nextTab;
 
   dashboardView.dataset.activeTab = nextTab;
-  activeWorkspaceTitle.textContent = workspaceMeta[nextTab]?.title || 'Dashboard';
 
   for (const button of tabButtons) {
     const isSelected = button.dataset.tab === primaryTab;
