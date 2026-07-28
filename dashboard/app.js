@@ -70,7 +70,6 @@ const analyticsMemberBreakdown = document.querySelector('#analytics-member-break
 const analyticsMailboxStatus = document.querySelector('#analytics-mailbox-status');
 const analyticsMailboxBreakdown = document.querySelector('#analytics-mailbox-breakdown');
 const guildNameElements = [...document.querySelectorAll('[data-guild-name]')];
-const dashboardApiStatus = document.querySelector('#dashboard-api-status');
 const savedMessagesContainer = document.querySelector('#saved-messages');
 const savedMessageCount = document.querySelector('#saved-message-count');
 const caseStorageStatus = document.querySelector('#case-storage-status');
@@ -265,8 +264,7 @@ const workspaceMeta = {
   'live-embed': { title: 'Live announcement', hint: 'Shape the next stream alert', key: '04C' },
   'welcome-embed': { title: 'Welcome builder', hint: 'Design the first hello', key: '04D' },
   'voice-rooms': { title: 'Voice spaces', hint: 'Manage temporary rooms', key: '05' },
-  bot: { title: 'Bean identity', hint: 'Profile, voice, and presence', key: '06' },
-  settings: { title: 'System settings', hint: 'Session and connection details', key: '07' },
+  bot: { title: 'Bean settings', hint: 'Profile, identity, and presence', key: '06' },
 };
 const workspaceGroupByTab = {
   members: 'community',
@@ -574,10 +572,8 @@ async function checkApiStatus() {
 
     setGuildName(ping.guildName);
     setApiStatus(`API connected. ${botText}.`, 'success');
-    dashboardApiStatus.textContent = 'Connected';
   } catch (error) {
     setApiStatus(`API check failed on ${window.location.origin}: ${error.message}`, 'error');
-    dashboardApiStatus.textContent = 'Check failed';
   }
 }
 
