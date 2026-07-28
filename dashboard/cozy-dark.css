@@ -1377,3 +1377,297 @@ input[type="color"] {
     border-radius: 21px;
   }
 }
+
+/*
+ * Calm material pass
+ * Warmth comes from solid surfaces and restrained contrast, not effects.
+ */
+
+body,
+body.dashboard-active,
+.login-active {
+  background: linear-gradient(180deg, #111216 0%, #0d0e11 100%);
+}
+
+body::before,
+body.dashboard-active::before,
+body::after,
+.dashboard::before,
+.topbar::after,
+.dashboard-tabs::before,
+.journal::after,
+.journal-page-left::before,
+.journal-page-left::after,
+.journal-page-right::after,
+.command-dialog::before {
+  display: none;
+}
+
+.topbar,
+.dashboard-active .topbar,
+.dashboard-active .dashboard[data-active-tab]:not([data-active-tab="overview"]) .topbar {
+  background: #18191e;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.2);
+}
+
+.bean-mark-wrap {
+  background: #111721;
+  box-shadow: none;
+}
+
+.dashboard-tabs,
+.dashboard-active .dashboard-tabs {
+  background: #15161b;
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.25);
+}
+
+button.tab-button[aria-selected="true"],
+.dashboard-active .tab-button[aria-selected="true"] {
+  background: #007aff;
+  box-shadow: 0 10px 22px rgba(0, 83, 182, 0.22);
+}
+
+.journal,
+.dashboard-active .journal {
+  background: #15161a;
+  box-shadow: 0 28px 68px rgba(0, 0, 0, 0.27);
+}
+
+.journal-page-left {
+  background: #1b1c21;
+}
+
+.journal-page-right,
+.dashboard-active .journal-page-right {
+  background: #19191d;
+  box-shadow:
+    -16px 0 38px rgba(0, 0, 0, 0.16),
+    inset 0 1px rgba(255, 244, 230, 0.025);
+}
+
+.journal-note {
+  background: #2b221e;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.2);
+}
+
+.journal-actions button {
+  background: #202126;
+}
+
+.journal-actions button:hover {
+  background: #202a37;
+}
+
+.journal-tab.active {
+  background: #2d2521;
+}
+
+.journal-suggestion {
+  background: #142131;
+}
+
+.journal-suggestion:hover {
+  background: #172b42;
+}
+
+.bean-nook {
+  background: #17181d;
+  box-shadow:
+    inset 0 -22px 38px rgba(0, 0, 0, 0.16),
+    0 14px 30px rgba(0, 0, 0, 0.14);
+}
+
+.nook-sky {
+  background: linear-gradient(180deg, #151d2c, #172033);
+  box-shadow: 0 11px 24px rgba(0, 0, 0, 0.22);
+}
+
+.nook-seat {
+  background: #4a352c;
+  box-shadow: 0 12px 22px rgba(0, 0, 0, 0.26);
+}
+
+.nook-rug {
+  background: #2b2421;
+}
+
+.composer,
+.preview-panel,
+.saved-messages-panel,
+.dashboard-panel,
+.metric-panel,
+.live-embed-editor,
+.live-embed-preview-panel,
+.text-block,
+.layout-block,
+.button-block,
+.case-list-panel,
+.case-detail-panel,
+.member-results-panel,
+.member-profile-panel,
+.analytics-chart-panel,
+.analytics-detail-panel,
+.voice-room-list-panel,
+.voice-room-settings {
+  background: #191a1f;
+  box-shadow: 0 19px 42px rgba(0, 0, 0, 0.21);
+}
+
+.preview-panel,
+.live-embed-preview-panel {
+  background: #16171b;
+}
+
+.saved-messages-panel {
+  background: #1a1b20;
+}
+
+.mailbox-guide,
+.mailbox-schedule-controls,
+.live-editor-section,
+.case-filter-panel,
+.presence-activities {
+  background: #1d1e23;
+}
+
+.live-placeholder-guide {
+  background: #27211e;
+}
+
+.discord-preview,
+.preview-panel .discord-preview,
+.live-discord-message,
+.live-preview-card {
+  background: #101115;
+}
+
+.metric-panel,
+.analytics-metric-card,
+.voice-metric {
+  background: #1b1c21;
+}
+
+.case-list-item,
+.member-result-item,
+.voice-room-card,
+.activity-item {
+  background: #1d1e23;
+}
+
+.case-list-item:hover,
+.member-result-item:hover,
+.voice-room-card:hover {
+  background: #1b2633;
+}
+
+.case-list-item.active,
+.member-result-item.active {
+  background: #17283a;
+}
+
+.member-search-hero,
+.analytics-hero,
+.voice-hero {
+  background: #24201f;
+  box-shadow: 0 22px 46px rgba(0, 0, 0, 0.22);
+}
+
+.member-search-input {
+  background: #1b1919;
+}
+
+.voice-privacy-card {
+  background: #28221f;
+}
+
+.bot-identity-panel {
+  background: #25201e;
+}
+
+.bot-banner-frame {
+  background: #151820;
+}
+
+.settings-grid .metric-panel,
+.journal-page-right .health-metric,
+.journal-page-right .health-storage-item,
+.journal-page-right .health-error-item,
+.journal-page-right .activity-item,
+.activity-filter {
+  background: #1d1e23;
+}
+
+.activity-filter:hover,
+.activity-filter.active {
+  background: #17283a;
+}
+
+input,
+select,
+textarea,
+input[type="file"],
+input[type="color"] {
+  background: #121318;
+}
+
+input:hover,
+select:hover,
+textarea:hover {
+  background: #15161b;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  background: #13171e;
+}
+
+.toggle-row {
+  background: #1d1e23;
+}
+
+.toast {
+  background: #1c1d22;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.3);
+}
+
+.command-backdrop {
+  background: rgba(7, 8, 11, 0.86);
+}
+
+.command-dialog {
+  background: #1a1b20;
+  box-shadow: 0 38px 95px rgba(0, 0, 0, 0.5);
+}
+
+.command-result:hover,
+.command-result.active {
+  background: #27211e;
+}
+
+.command-result-icon {
+  background: #17283a;
+}
+
+.command-search {
+  background: #142131;
+}
+
+.login-form {
+  background: #1a1b20;
+}
+
+@media (max-width: 960px) {
+  .dashboard-tabs,
+  .dashboard-active .dashboard-tabs {
+    background: #15161b;
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar,
+  .dashboard-active .topbar,
+  .dashboard-active .dashboard[data-active-tab]:not([data-active-tab="overview"]) .topbar {
+    background: #18191e;
+  }
+}
