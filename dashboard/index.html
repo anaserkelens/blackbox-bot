@@ -121,43 +121,47 @@
               <span class="tab-label">Moderation</span>
             </button>
             <p class="nav-section-label">Create</p>
-            <div id="create-nav-group" class="nav-create-group">
-              <button
-                class="tab-button"
-                type="button"
-                data-tab="create"
-                aria-selected="false"
-                aria-expanded="false"
-                aria-controls="create-nav-submenu"
-              >
-                <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
-                <span class="tab-label">Create</span>
-                <i class="fa-solid fa-chevron-down nav-group-chevron" aria-hidden="true"></i>
+            <nav id="create-nav-list" class="nav-create-list" aria-label="Create tools">
+              <button type="button" data-tab-link="messages">
+                <i class="fa-solid fa-message" aria-hidden="true"></i>
+                <span>Discord message</span>
               </button>
-              <nav id="create-nav-submenu" class="nav-create-submenu" aria-label="Create tools" hidden>
-                <button type="button" data-tab-link="messages">
-                  <i class="fa-solid fa-message" aria-hidden="true"></i>
-                  <span>Discord message</span>
-                </button>
-                <button type="button" data-tab-link="mailbox">
-                  <i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i>
-                  <span>Mailbox post</span>
-                </button>
-                <button type="button" data-tab-link="live-embed">
-                  <i class="fa-solid fa-bell" aria-hidden="true"></i>
-                  <span>Creator notifications</span>
-                </button>
-                <button type="button" data-tab-link="welcome-embed">
-                  <i class="fa-solid fa-hand-sparkles" aria-hidden="true"></i>
-                  <span>Welcome message</span>
-                </button>
-              </nav>
-            </div>
+              <button type="button" data-tab-link="mailbox">
+                <i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i>
+                <span>Mailbox post</span>
+              </button>
+              <button type="button" data-tab-link="live-embed" data-feature-nav-any="streamMonitor youtubeMonitor">
+                <i class="fa-solid fa-bell" aria-hidden="true"></i>
+                <span>Creator notifications</span>
+              </button>
+              <button type="button" data-tab-link="welcome-embed" data-feature-nav="welcomeMessages">
+                <i class="fa-solid fa-hand-sparkles" aria-hidden="true"></i>
+                <span>Welcome message</span>
+              </button>
+            </nav>
             <p class="nav-section-label">Operate</p>
-            <button class="tab-button" type="button" data-tab="voice-rooms" aria-selected="false">
-              <i class="fa-solid fa-headphones" aria-hidden="true"></i>
-              <span class="tab-label">Voice</span>
-            </button>
+            <nav id="feature-nav-list" class="nav-feature-list" aria-label="Feature tools">
+              <button type="button" data-tab-link="invite-moderation" data-feature-nav="inviteModeration">
+                <i class="fa-solid fa-link-slash" aria-hidden="true"></i>
+                <span>Invite filter</span>
+              </button>
+              <button type="button" data-tab-link="tickets" data-feature-nav="tickets">
+                <i class="fa-solid fa-ticket" aria-hidden="true"></i>
+                <span>Tickets</span>
+              </button>
+              <button type="button" data-tab-link="reaction-roles" data-feature-nav="reactionRoles">
+                <i class="fa-solid fa-user-check" aria-hidden="true"></i>
+                <span>Reaction roles</span>
+              </button>
+              <button type="button" data-tab-link="voice-rooms" data-feature-nav="temporaryVoice">
+                <i class="fa-solid fa-headphones" aria-hidden="true"></i>
+                <span>Voice rooms</span>
+              </button>
+              <button type="button" data-tab-link="audit-logging" data-feature-nav="detailedLogging">
+                <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
+                <span>Audit logs</span>
+              </button>
+            </nav>
             <button class="tab-button" type="button" data-tab="config" aria-selected="false">
               <i class="fa-solid fa-gear" aria-hidden="true"></i>
               <span class="tab-label">Settings</span>
@@ -167,8 +171,6 @@
               <small>Encrypted · Private</small>
             </div>
           </nav>
-          <button id="create-menu-backdrop" class="create-menu-backdrop" type="button" aria-label="Close Create menu" hidden></button>
-
           <div class="dashboard-content">
             <section class="tab-panel" data-panel="overview">
           <section class="overview-desk" aria-labelledby="room-heading">
@@ -913,7 +915,17 @@
           </section>
         </section>
 
-        <section class="tab-panel" data-panel="voice-rooms" hidden>
+        <section class="tab-panel feature-page" data-panel="voice-rooms" data-feature-page="temporaryVoice" hidden>
+          <section class="dashboard-panel feature-status-strip">
+            <div class="feature-status-copy">
+              <span class="feature-status-icon"><i class="fa-solid fa-headphones" aria-hidden="true"></i></span>
+              <div><small>Feature status</small><strong>Temporary voice rooms</strong><p data-feature-status-copy="temporaryVoice">Loading current status…</p></div>
+            </div>
+            <label class="feature-page-toggle" aria-label="Enable temporary voice rooms">
+              <span>Enabled</span>
+              <span class="config-feature-toggle"><input id="voice-room-enabled" type="checkbox" data-feature-toggle="temporaryVoice" data-requires-permission="configure"><i></i></span>
+            </label>
+          </section>
           <section class="dashboard-panel voice-hero">
             <div class="toolbar-row">
               <div>
@@ -964,11 +976,7 @@
                 <span id="voice-room-storage-status" class="status-pill">Checking storage</span>
               </div>
 
-              <label class="toggle-row">
-                <input id="voice-room-enabled" type="checkbox" />
-                <span>Enable temporary voice rooms</span>
-              </label>
-              <span class="muted">Bean instantly creates a public room named after the member and moves them inside.</span>
+              <span class="muted">Bean instantly creates a public room named after the member and moves them inside when this feature is enabled above.</span>
 
               <label class="field voice-trigger-field">
                 Create lobby channel ID
@@ -1028,7 +1036,160 @@
           </section>
         </section>
 
-        <section class="tab-panel" data-panel="welcome-embed" hidden>
+        <section class="tab-panel feature-page" data-panel="invite-moderation" data-feature-page="inviteModeration" hidden>
+          <section class="dashboard-panel feature-page-hero">
+            <div class="feature-page-heading">
+              <span><i class="fa-solid fa-link-slash" aria-hidden="true"></i></span>
+              <div><p class="eyebrow">Community protection</p><h1>Invite Moderation</h1><p>Keep unapproved Discord invites out of public conversation without adding work for staff.</p></div>
+            </div>
+            <label class="feature-page-toggle feature-page-toggle-large">
+              <span><strong>Invite filter</strong><small data-feature-status-copy="inviteModeration">Loading current status…</small></span>
+              <span class="config-feature-toggle"><input type="checkbox" data-feature-toggle="inviteModeration" data-requires-permission="configure"><i></i></span>
+            </label>
+          </section>
+          <div class="feature-page-grid">
+            <section class="dashboard-panel feature-detail-card feature-detail-card-wide">
+              <div class="section-heading"><div><p class="eyebrow">Protection flow</p><h2>Quietly handles invite spam</h2></div><span class="status-pill" data-feature-state-pill="inviteModeration">Checking</span></div>
+              <div class="feature-step-grid">
+                <article><span>1</span><div><strong>Detect</strong><p>Bean watches new messages for Discord invite links.</p></div></article>
+                <article><span>2</span><div><strong>Remove</strong><p>The unauthorized message is deleted before it spreads.</p></div></article>
+                <article><span>3</span><div><strong>Protect</strong><p>The sender is timed out and staff receive a structured log.</p></div></article>
+              </div>
+            </section>
+            <section class="dashboard-panel feature-requirements-card">
+              <p class="eyebrow">Connected setup</p><h2>Requirements</h2>
+              <div class="feature-requirement-list">
+                <div><span><i class="fa-solid fa-message" aria-hidden="true"></i> Message Content intent</span><strong>Required</strong></div>
+                <div><span><i class="fa-solid fa-file-shield" aria-hidden="true"></i> Entry log</span><strong data-feature-binding="channels.entryLog">Checking</strong></div>
+                <div><span><i class="fa-solid fa-user-shield" aria-hidden="true"></i> Moderate Members</span><strong>Required</strong></div>
+              </div>
+              <button class="secondary feature-settings-link" type="button" data-tab-link="config"><i class="fa-solid fa-sliders" aria-hidden="true"></i> Open server configuration</button>
+            </section>
+            <section class="dashboard-panel feature-note-card">
+              <span><i class="fa-solid fa-circle-info" aria-hidden="true"></i></span>
+              <div><strong>Allowed invites stay untouched</strong><p>Bean continues using the approved invite patterns configured in Railway while blocking everything else.</p></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="tab-panel feature-page" data-panel="tickets" data-feature-page="tickets" hidden>
+          <section class="dashboard-panel feature-page-hero">
+            <div class="feature-page-heading">
+              <span><i class="fa-solid fa-ticket" aria-hidden="true"></i></span>
+              <div><p class="eyebrow">Member support</p><h1>Ticket System</h1><p>Give members a private, structured way to ask staff for help.</p></div>
+            </div>
+            <label class="feature-page-toggle feature-page-toggle-large">
+              <span><strong>Ticket system</strong><small data-feature-status-copy="tickets">Loading current status…</small></span>
+              <span class="config-feature-toggle"><input type="checkbox" data-feature-toggle="tickets" data-requires-permission="configure"><i></i></span>
+            </label>
+          </section>
+          <div class="feature-page-grid">
+            <section class="dashboard-panel feature-detail-card feature-detail-card-wide">
+              <div class="section-heading"><div><p class="eyebrow">Member journey</p><h2>From request to resolution</h2></div><span class="status-pill" data-feature-state-pill="tickets">Checking</span></div>
+              <div class="feature-step-grid">
+                <article><span>1</span><div><strong>Open</strong><p>A member presses the ticket button in your support channel.</p></div></article>
+                <article><span>2</span><div><strong>Discuss</strong><p>Bean creates a private thread shared with the support team.</p></div></article>
+                <article><span>3</span><div><strong>Close</strong><p>The conversation closes cleanly and the action is logged.</p></div></article>
+              </div>
+            </section>
+            <section class="dashboard-panel feature-requirements-card">
+              <p class="eyebrow">Connected setup</p><h2>Destinations</h2>
+              <div class="feature-requirement-list">
+                <div><span><i class="fa-solid fa-hashtag" aria-hidden="true"></i> Ticket launcher</span><strong data-feature-binding="channels.tickets">Checking</strong></div>
+                <div><span><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Ticket log</span><strong data-feature-binding="channels.ticketLogs">Checking</strong></div>
+                <div><span><i class="fa-solid fa-user-shield" aria-hidden="true"></i> Moderator role</span><strong data-feature-binding="roles.moderator">Checking</strong></div>
+              </div>
+              <button class="secondary feature-settings-link" type="button" data-tab-link="config"><i class="fa-solid fa-sliders" aria-hidden="true"></i> Configure channels and roles</button>
+            </section>
+            <section class="dashboard-panel feature-note-card">
+              <span><i class="fa-solid fa-terminal" aria-hidden="true"></i></span>
+              <div><strong>Publish the launcher in Discord</strong><p>Use <code>/ticketsetup</code> in the configured channel whenever you need to recreate the ticket panel.</p></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="tab-panel feature-page" data-panel="reaction-roles" data-feature-page="reactionRoles" hidden>
+          <section class="dashboard-panel feature-page-hero">
+            <div class="feature-page-heading">
+              <span><i class="fa-solid fa-user-check" aria-hidden="true"></i></span>
+              <div><p class="eyebrow">Member access</p><h1>Reaction Roles</h1><p>Turn a Discord reaction into a simple, dependable verification step.</p></div>
+            </div>
+            <label class="feature-page-toggle feature-page-toggle-large">
+              <span><strong>Reaction roles</strong><small data-feature-status-copy="reactionRoles">Loading current status…</small></span>
+              <span class="config-feature-toggle"><input type="checkbox" data-feature-toggle="reactionRoles" data-requires-permission="configure"><i></i></span>
+            </label>
+          </section>
+          <div class="feature-page-grid">
+            <section class="dashboard-panel feature-detail-card feature-detail-card-wide">
+              <div class="section-heading"><div><p class="eyebrow">Verification flow</p><h2>One reaction, one role</h2></div><span class="status-pill" data-feature-state-pill="reactionRoles">Checking</span></div>
+              <div class="feature-step-grid">
+                <article><span>1</span><div><strong>Read</strong><p>The member reads the rules and finds the verification reaction.</p></div></article>
+                <article><span>2</span><div><strong>React</strong><p>Bean checks the configured message and emoji.</p></div></article>
+                <article><span>3</span><div><strong>Unlock</strong><p>The Verified role is granted automatically.</p></div></article>
+              </div>
+            </section>
+            <section class="dashboard-panel feature-requirements-card">
+              <p class="eyebrow">Connected setup</p><h2>Requirements</h2>
+              <div class="feature-requirement-list">
+                <div><span><i class="fa-solid fa-hashtag" aria-hidden="true"></i> Rules channel</span><strong data-feature-binding="channels.rules">Checking</strong></div>
+                <div><span><i class="fa-solid fa-id-badge" aria-hidden="true"></i> Verified role</span><strong data-feature-binding="roles.verified">Checking</strong></div>
+                <div><span><i class="fa-solid fa-face-smile" aria-hidden="true"></i> Message and emoji</span><strong>Environment</strong></div>
+              </div>
+              <button class="secondary feature-settings-link" type="button" data-tab-link="config"><i class="fa-solid fa-sliders" aria-hidden="true"></i> Configure channel and role</button>
+            </section>
+            <section class="dashboard-panel feature-note-card">
+              <span><i class="fa-solid fa-terminal" aria-hidden="true"></i></span>
+              <div><strong>Setup command included</strong><p>Use <code>/setupreactionrole</code> to publish or refresh the verification message in Discord.</p></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="tab-panel feature-page" data-panel="audit-logging" data-feature-page="detailedLogging" hidden>
+          <section class="dashboard-panel feature-page-hero">
+            <div class="feature-page-heading">
+              <span><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></span>
+              <div><p class="eyebrow">Server records</p><h1>Detailed Audit Logging</h1><p>Keep Discord changes organized across purpose-built staff channels.</p></div>
+            </div>
+            <label class="feature-page-toggle feature-page-toggle-large">
+              <span><strong>Detailed logging</strong><small data-feature-status-copy="detailedLogging">Loading current status…</small></span>
+              <span class="config-feature-toggle"><input type="checkbox" data-feature-toggle="detailedLogging" data-requires-permission="configure"><i></i></span>
+            </label>
+          </section>
+          <div class="feature-page-grid feature-logging-grid">
+            <section class="dashboard-panel feature-detail-card feature-detail-card-wide">
+              <div class="section-heading"><div><p class="eyebrow">Coverage</p><h2>What Bean records</h2></div><span class="status-pill" data-feature-state-pill="detailedLogging">Checking</span></div>
+              <div class="logging-coverage-grid">
+                <article><i class="fa-solid fa-message" aria-hidden="true"></i><div><strong>Messages</strong><p>Edits, deletes, bulk deletes, and attachments.</p></div></article>
+                <article><i class="fa-solid fa-user-group" aria-hidden="true"></i><div><strong>Members</strong><p>Joins, leaves, usernames, nicknames, and roles.</p></div></article>
+                <article><i class="fa-solid fa-headphones" aria-hidden="true"></i><div><strong>Voice</strong><p>Joins, moves, disconnects, and voice-state changes.</p></div></article>
+                <article><i class="fa-solid fa-server" aria-hidden="true"></i><div><strong>Server</strong><p>Channels, roles, scheduled events, bans, and timeouts.</p></div></article>
+              </div>
+            </section>
+            <section class="dashboard-panel feature-requirements-card">
+              <p class="eyebrow">Log destinations</p><h2>Connected channels</h2>
+              <div class="feature-requirement-list">
+                <div><span>Entry log</span><strong data-feature-binding="channels.entryLog">Checking</strong></div>
+                <div><span>Message log</span><strong data-feature-binding="channels.signalLog">Checking</strong></div>
+                <div><span>Voice log</span><strong data-feature-binding="channels.lineLog">Checking</strong></div>
+                <div><span>Operation log</span><strong data-feature-binding="channels.operationLog">Checking</strong></div>
+                <div><span>System log</span><strong data-feature-binding="channels.systemLog">Checking</strong></div>
+              </div>
+              <button class="secondary feature-settings-link" type="button" data-tab-link="config"><i class="fa-solid fa-sliders" aria-hidden="true"></i> Configure log channels</button>
+            </section>
+          </div>
+        </section>
+
+        <section class="tab-panel feature-page" data-panel="welcome-embed" data-feature-page="welcomeMessages" hidden>
+          <section class="dashboard-panel feature-status-strip">
+            <div class="feature-status-copy">
+              <span class="feature-status-icon"><i class="fa-solid fa-hand-sparkles" aria-hidden="true"></i></span>
+              <div><small>Feature status</small><strong>Welcome messages</strong><p data-feature-status-copy="welcomeMessages">Loading current status…</p></div>
+            </div>
+            <label class="feature-page-toggle" aria-label="Enable welcome messages">
+              <span>Enabled</span>
+              <span class="config-feature-toggle"><input type="checkbox" data-feature-toggle="welcomeMessages" data-requires-permission="configure"><i></i></span>
+            </label>
+          </section>
           <section class="workspace">
             <form id="welcome-message-form" class="composer">
               <div class="toolbar-row">
@@ -1137,7 +1298,23 @@
           </section>
         </section>
 
-        <section class="tab-panel" data-panel="live-embed" hidden>
+        <section class="tab-panel feature-page" data-panel="live-embed" data-feature-page-any="streamMonitor youtubeMonitor" hidden>
+          <section class="feature-status-grid">
+            <label class="dashboard-panel feature-status-strip feature-status-strip-compact">
+              <div class="feature-status-copy">
+                <span class="feature-status-icon"><i class="fa-brands fa-twitch" aria-hidden="true"></i></span>
+                <div><small>Twitch</small><strong>Live monitor</strong><p data-feature-status-copy="streamMonitor">Loading current status…</p></div>
+              </div>
+              <span class="config-feature-toggle"><input type="checkbox" data-feature-toggle="streamMonitor" data-requires-permission="configure"><i></i></span>
+            </label>
+            <label class="dashboard-panel feature-status-strip feature-status-strip-compact">
+              <div class="feature-status-copy">
+                <span class="feature-status-icon youtube"><i class="fa-brands fa-youtube" aria-hidden="true"></i></span>
+                <div><small>YouTube</small><strong>Upload monitor</strong><p data-feature-status-copy="youtubeMonitor">Loading current status…</p></div>
+              </div>
+              <span class="config-feature-toggle"><input type="checkbox" data-feature-toggle="youtubeMonitor" data-requires-permission="configure"><i></i></span>
+            </label>
+          </section>
           <section id="embed-builder-workspace" class="live-embed-workspace">
             <form id="live-embed-form" class="live-embed-editor">
               <div class="toolbar-row">
@@ -1373,7 +1550,7 @@
             <div>
               <p class="eyebrow">Control center</p>
               <h1>Server configuration</h1>
-              <p>Connect Bean's channels, roles, features, access, and Discord requirements in one place.</p>
+              <p>Connect Bean's channels, roles, staff access, and Discord requirements in one place.</p>
             </div>
             <div class="config-readiness-card">
               <span id="config-readiness-ring">—</span>
@@ -1388,7 +1565,6 @@
             <button class="active" type="button" data-config-section="overview"><i class="fa-solid fa-grid-2" aria-hidden="true"></i> Overview</button>
             <button type="button" data-config-section="channels"><i class="fa-solid fa-hashtag" aria-hidden="true"></i> Channels</button>
             <button type="button" data-config-section="roles"><i class="fa-solid fa-users-gear" aria-hidden="true"></i> Roles</button>
-            <button type="button" data-config-section="features"><i class="fa-solid fa-toggle-on" aria-hidden="true"></i> Features</button>
             <button type="button" data-config-section="diagnostics"><i class="fa-solid fa-stethoscope" aria-hidden="true"></i> Diagnostics</button>
             <button type="button" data-config-section="access"><i class="fa-solid fa-key" aria-hidden="true"></i> Access & audit</button>
           </nav>
@@ -1430,13 +1606,6 @@
                 <div><p class="eyebrow">Permissions</p><h2>Roles</h2><p>Connect community roles and decide who may use each part of the dashboard.</p></div>
               </header>
               <div id="config-role-grid" class="config-field-grid"></div>
-            </section>
-
-            <section class="config-section" data-config-panel="features" hidden>
-              <header class="config-section-heading">
-                <div><p class="eyebrow">Systems</p><h2>Features</h2><p>Enable the parts of Bean that belong in your server. Requirements are checked automatically.</p></div>
-              </header>
-              <div id="config-feature-grid" class="config-feature-grid"></div>
             </section>
 
             <section class="config-section" data-config-panel="diagnostics" hidden>

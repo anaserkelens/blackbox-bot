@@ -124,10 +124,8 @@ const voiceRoomListCount = document.querySelector('#voice-room-list-count');
 const voiceRoomList = document.querySelector('#voice-room-list');
 const tabButtons = [...document.querySelectorAll('.tab-button')];
 const tabPanels = [...document.querySelectorAll('.tab-panel')];
-const createNavGroup = document.querySelector('#create-nav-group');
-const createNavButton = createNavGroup?.querySelector('[data-tab="create"]');
-const createNavSubmenu = document.querySelector('#create-nav-submenu');
-const createMenuBackdrop = document.querySelector('#create-menu-backdrop');
+const createNavList = document.querySelector('#create-nav-list');
+const featureNavList = document.querySelector('#feature-nav-list');
 const refreshBotButton = document.querySelector('#refresh-bot');
 const botProfileTag = document.querySelector('#bot-profile-tag');
 const botProfileName = document.querySelector('#bot-profile-name');
@@ -158,7 +156,6 @@ const configSectionButtons = [...document.querySelectorAll('[data-config-section
 const configSections = [...document.querySelectorAll('[data-config-panel]')];
 const configChannelGrid = document.querySelector('#config-channel-grid');
 const configRoleGrid = document.querySelector('#config-role-grid');
-const configFeatureGrid = document.querySelector('#config-feature-grid');
 const configDiagnosticList = document.querySelector('#config-diagnostic-list');
 const configAttentionList = document.querySelector('#config-attention-list');
 const configAuditList = document.querySelector('#config-audit-list');
@@ -178,6 +175,7 @@ const configDirtyDot = document.querySelector('#config-dirty-dot');
 const saveDashboardConfigButton = document.querySelector('#save-dashboard-config');
 const resetDashboardConfigButton = document.querySelector('#reset-dashboard-config');
 const refreshConfigDiagnosticsButton = document.querySelector('#refresh-config-diagnostics');
+const featureToggleInputs = [...document.querySelectorAll('[data-feature-toggle]')];
 const composer = document.querySelector('#composer');
 const messageNameInput = document.querySelector('#message-name');
 const channelInput = document.querySelector('#channel-id');
@@ -317,22 +315,21 @@ const workspaceMeta = {
   members: { title: 'Member directory', hint: 'Find people and context', key: '02A' },
   analytics: { title: 'Community signals', hint: 'Patterns, momentum, rhythm', key: '02B' },
   cases: { title: 'Moderation desk', hint: 'History, context, and actions', key: '03' },
-  create: { title: 'Create something', hint: 'Open the creation tools', key: '04' },
   messages: { title: 'Message builder', hint: 'Compose reusable Discord posts', key: '04A' },
   mailbox: { title: 'Mailbox builder', hint: 'Publish updates and notices', key: '04B' },
   'live-embed': { title: 'Creator notifications', hint: 'Shape Twitch and YouTube alerts', key: '04C' },
   'welcome-embed': { title: 'Welcome builder', hint: 'Design the first hello', key: '04D' },
+  'invite-moderation': { title: 'Invite moderation', hint: 'Filter unauthorized Discord invites', key: '05A' },
+  tickets: { title: 'Ticket system', hint: 'Private member support threads', key: '05B' },
+  'reaction-roles': { title: 'Reaction roles', hint: 'Verification and member access', key: '05C' },
   'voice-rooms': { title: 'Voice spaces', hint: 'Manage temporary rooms', key: '05' },
+  'audit-logging': { title: 'Detailed audit logs', hint: 'Message, member, voice, and server records', key: '05D' },
   config: { title: 'Server configuration', hint: 'Channels, roles, features, and access', key: '06' },
   bot: { title: 'Bean profile', hint: 'Profile, identity, and presence', key: '06A' },
 };
 const workspaceGroupByTab = {
   members: 'community',
   analytics: 'community',
-  messages: 'create',
-  mailbox: 'create',
-  'live-embed': 'create',
-  'welcome-embed': 'create',
   bot: 'config',
 };
 const contextWorkspaceDefinitions = {
@@ -512,7 +509,6 @@ function bindEvents() {
   logoutButton.addEventListener('click', handleLogout);
   tabButtons.forEach((button) => button.addEventListener('click', () => handlePrimaryTabClick(button)));
   dashboardView.addEventListener('click', handleDashboardNavigationClick);
-  createMenuBackdrop?.addEventListener('click', () => setCreateMenuExpanded(false));
   commandTrigger.addEventListener('click', openCommandPalette);
   commandCloseButtons.forEach((button) => button.addEventListener('click', closeCommandPalette));
   commandSearch.addEventListener('input', renderCommandResults);
@@ -569,6 +565,11 @@ function bindEvents() {
   resetDashboardConfigButton?.addEventListener('click', resetDashboardConfiguration);
   refreshConfigDiagnosticsButton?.addEventListener('click', () => {
     loadDashboardConfiguration(true).catch((error) => setSendStatus(error.message, 'error'));
+  });
+  featureToggleInputs.forEach((input) => {
+    input.addEventListener('change', () => {
+      handleFeatureToggleChange(input).catch((error) => setSendStatus(error.message, 'error'));
+    });
   });
   composer.addEventListener('submit', handleSend);
   messageColorPicker.addEventListener('input', handleMessageColorPickerInput);
@@ -659,7 +660,6 @@ function bindEvents() {
   embedBuilderButtons.forEach((button) => {
     button.addEventListener('click', () => activateEmbedBuilder(button.dataset.embedBuilder));
   });
-  window.addEventListener('resize', handleCreateNavigationResize);
   window.addEventListener('beforeunload', (event) => {
     const hasUnsavedChanges = state.configurationDirty
       || [...state.builderManagers.values()].some((manager) => manager.bar?.classList.contains('is-dirty'));
@@ -1731,10 +1731,10 @@ function renderDashboardConfiguration() {
 
   renderConfigurationChannels();
   renderConfigurationRoles();
-  renderConfigurationFeatures();
   renderConfigurationDiagnostics();
   renderConfigurationAudit();
   renderConfigurationSummary();
+  renderFeatureControls();
   setDashboardConfigDirty(false);
   applySessionPermissions(state.session?.permissions || {});
 }
@@ -1858,23 +1858,6 @@ function renderConfigurationRoles() {
     shell.append(icon, select, chevron);
     card.append(heading, shell);
     configRoleGrid.append(card);
-  }
-}
-
-function renderConfigurationFeatures() {
-  configFeatureGrid.replaceChildren();
-
-  for (const [key, [label, description, iconClass]] of Object.entries(dashboardConfigurationDefinitions.features)) {
-    const card = document.createElement('label');
-
-    card.className = 'config-feature-card';
-    card.innerHTML = `
-      <span class="config-feature-icon"><i class="${escapeHtml(iconClass)}" aria-hidden="true"></i></span>
-      <span class="config-feature-copy"><strong>${escapeHtml(label)}</strong><small>${escapeHtml(description)}</small></span>
-      <span class="config-feature-toggle"><input type="checkbox" data-config-feature="${escapeHtml(key)}"><i></i></span>
-    `;
-    card.querySelector('input').checked = Boolean(state.configuration.features[key]);
-    configFeatureGrid.append(card);
   }
 }
 
@@ -2058,10 +2041,133 @@ function collectDashboardConfiguration() {
   dashboardConfigForm.querySelectorAll('[data-config-role]').forEach((select) => {
     settings.roles[select.dataset.configRole] = select.value || null;
   });
-  dashboardConfigForm.querySelectorAll('[data-config-feature]').forEach((input) => {
-    settings.features[input.dataset.configFeature] = input.checked;
-  });
   return settings;
+}
+
+async function loadFeatureConfiguration(showNotification = false) {
+  const result = await api('/api/configuration');
+
+  state.configuration = cloneData(result.settings);
+  state.savedConfiguration = cloneData(result.settings);
+  state.configurationDiagnostics = result.diagnostics;
+  state.configurationStorage = result.storage;
+  state.configurationOauth = result.oauth;
+  renderFeatureControls();
+  applySessionPermissions(state.session?.permissions || {});
+
+  if (showNotification) {
+    setSendStatus('Feature status refreshed.', 'success');
+  }
+
+  return result;
+}
+
+function renderFeatureControls() {
+  const features = state.configuration?.features;
+
+  if (!features) {
+    return;
+  }
+
+  featureToggleInputs.forEach((input) => {
+    const key = input.dataset.featureToggle;
+    const enabled = Boolean(features[key]);
+
+    input.checked = enabled;
+    input.closest('.feature-page-toggle, .feature-status-strip')?.classList.toggle('is-enabled', enabled);
+  });
+
+  document.querySelectorAll('[data-feature-status-copy]').forEach((element) => {
+    const key = element.dataset.featureStatusCopy;
+    const enabled = Boolean(features[key]);
+
+    element.textContent = enabled
+      ? 'Enabled · Bean is actively running this feature.'
+      : 'Disabled · Your setup is saved and can still be edited.';
+  });
+
+  document.querySelectorAll('[data-feature-state-pill]').forEach((element) => {
+    const enabled = Boolean(features[element.dataset.featureStatePill]);
+
+    element.textContent = enabled ? 'Running' : 'Disabled';
+    element.classList.toggle('ready', enabled);
+    element.classList.toggle('offline', !enabled);
+  });
+
+  document.querySelectorAll('[data-feature-nav]').forEach((element) => {
+    const enabled = Boolean(features[element.dataset.featureNav]);
+
+    element.classList.toggle('is-feature-disabled', !enabled);
+    element.setAttribute('aria-description', enabled ? 'Feature enabled' : 'Feature disabled');
+  });
+
+  document.querySelectorAll('[data-feature-nav-any]').forEach((element) => {
+    const keys = element.dataset.featureNavAny.split(/\s+/).filter(Boolean);
+    const enabled = keys.some((key) => Boolean(features[key]));
+
+    element.classList.toggle('is-feature-disabled', !enabled);
+    element.setAttribute('aria-description', enabled ? 'At least one feature enabled' : 'Features disabled');
+  });
+
+  document.querySelectorAll('[data-feature-page]').forEach((element) => {
+    element.classList.toggle('is-feature-disabled', !features[element.dataset.featurePage]);
+  });
+
+  document.querySelectorAll('[data-feature-page-any]').forEach((element) => {
+    const keys = element.dataset.featurePageAny.split(/\s+/).filter(Boolean);
+
+    element.classList.toggle('is-feature-disabled', !keys.some((key) => Boolean(features[key])));
+  });
+
+  document.querySelectorAll('[data-feature-binding]').forEach((element) => {
+    const [group, key] = element.dataset.featureBinding.split('.');
+    const value = state.configuration?.[group]?.[key];
+
+    element.textContent = value ? 'Connected' : 'Not configured';
+    element.classList.toggle('is-missing', !value);
+  });
+}
+
+async function handleFeatureToggleChange(input) {
+  if (state.session?.permissions?.configure === false) {
+    renderFeatureControls();
+    throw new Error('Your dashboard role cannot change feature settings.');
+  }
+
+  if (!state.configuration) {
+    await loadFeatureConfiguration(false);
+  }
+
+  const key = input.dataset.featureToggle;
+  const definition = dashboardConfigurationDefinitions.features[key];
+  const settings = cloneData(state.configuration);
+  const enabled = input.checked;
+
+  settings.features[key] = enabled;
+  input.disabled = true;
+
+  try {
+    const result = await api('/api/configuration', {
+      method: 'PUT',
+      body: { settings },
+    });
+
+    state.configuration = cloneData(result.settings);
+    state.savedConfiguration = cloneData(result.settings);
+    state.configurationDiagnostics = result.diagnostics;
+    state.configurationStorage = result.storage;
+    renderFeatureControls();
+
+    const restartNote = key === 'youtubeMonitor' && enabled
+      ? ' Restart Bean if the YouTube monitor was disabled when it started.'
+      : '';
+    setSendStatus(`${definition?.[0] || 'Feature'} ${enabled ? 'enabled' : 'disabled'}.${restartNote}`, 'success');
+  } catch (error) {
+    renderFeatureControls();
+    throw error;
+  } finally {
+    input.disabled = state.session?.permissions?.configure === false;
+  }
 }
 
 function resetDashboardConfiguration() {
@@ -2538,7 +2644,7 @@ function handleDashboardNavigationClick(event) {
   const createLauncher = event.target.closest('[data-create-launcher]');
 
   if (createLauncher && dashboardView.contains(createLauncher)) {
-    setCreateMenuExpanded(true, { focusFirst: true });
+    setActiveTab('messages');
     return;
   }
 
@@ -2556,43 +2662,7 @@ function handleDashboardNavigationClick(event) {
 }
 
 function handlePrimaryTabClick(button) {
-  if (button.dataset.tab === 'create') {
-    setCreateMenuExpanded(createNavSubmenu?.hidden !== false, { focusFirst: true });
-    return;
-  }
-
   setActiveTab(button.dataset.tab);
-}
-
-function setCreateMenuExpanded(expanded, options = {}) {
-  if (!createNavButton || !createNavSubmenu) {
-    return;
-  }
-
-  const isExpanded = Boolean(expanded);
-  const compact = isCompactCreateNavigation();
-
-  createNavSubmenu.hidden = !isExpanded;
-  createNavButton.setAttribute('aria-expanded', String(isExpanded));
-  createNavGroup?.classList.toggle('is-expanded', isExpanded);
-  createMenuBackdrop.hidden = !isExpanded || !compact;
-  document.body.classList.toggle('create-menu-open', isExpanded && compact);
-
-  if (isExpanded && options.focusFirst) {
-    window.setTimeout(() => {
-      createNavSubmenu.querySelector('[data-tab-link]')?.focus();
-    }, 0);
-  }
-}
-
-function isCompactCreateNavigation() {
-  return window.matchMedia('(max-width: 960px)').matches;
-}
-
-function handleCreateNavigationResize() {
-  if (createNavSubmenu?.hidden === false) {
-    setCreateMenuExpanded(true);
-  }
 }
 
 function initializeJournal() {
@@ -2711,6 +2781,7 @@ function showDashboard(session) {
   loadDashboardHealth(false).catch(() => null);
   loadActivityFeed(false).catch(() => null);
   startDashboardNotifications();
+  loadFeatureConfiguration(false).catch((error) => setSendStatus(error.message, 'error'));
 
   if (!state.composerInitialized) {
     resetComposer();
@@ -3862,8 +3933,6 @@ function setActiveTab(tab) {
     button.toggleAttribute('aria-current', isSelected);
   }
 
-  setCreateMenuExpanded(primaryTab === 'create' && !isCompactCreateNavigation());
-
   for (const panel of tabPanels) {
     panel.hidden = panel.dataset.panel !== nextTab;
   }
@@ -3875,7 +3944,14 @@ function setActiveTab(tab) {
     button.toggleAttribute('aria-current', isSelected);
   });
 
-  createNavSubmenu?.querySelectorAll('[data-tab-link]').forEach((button) => {
+  createNavList?.querySelectorAll('[data-tab-link]').forEach((button) => {
+    const isSelected = button.dataset.tabLink === nextTab;
+
+    button.classList.toggle('is-current', isSelected);
+    button.toggleAttribute('aria-current', isSelected);
+  });
+
+  featureNavList?.querySelectorAll('[data-tab-link]').forEach((button) => {
     const isSelected = button.dataset.tabLink === nextTab;
 
     button.classList.toggle('is-current', isSelected);
@@ -3973,17 +4049,20 @@ function renderCommandResults() {
   const query = commandSearch.value.trim().toLowerCase();
 
   commandMatches = Object.entries(workspaceMeta)
-    .filter(([tab]) => tab === 'create' || tabPanels.some((panel) => panel.dataset.panel === tab))
+    .filter(([tab]) => tabPanels.some((panel) => panel.dataset.panel === tab))
     .map(([tab, meta]) => {
       const primaryTab = workspaceGroupByTab[tab] || tab;
       const button = tabButtons.find((item) => item.dataset.tab === primaryTab);
+      const featureButton = featureNavList?.querySelector(`[data-tab-link="${tab}"]`);
 
       return {
         tab,
         title: meta.title || button?.textContent.trim() || tab,
         hint: meta.hint || '',
         key: meta.key || '',
-        icon: button?.querySelector('i')?.className || 'fa-solid fa-circle',
+        icon: button?.querySelector('i')?.className
+          || featureButton?.querySelector('i')?.className
+          || 'fa-solid fa-circle',
       };
     })
     .filter((item) => `${item.title} ${item.hint} ${item.tab}`.toLowerCase().includes(query));
@@ -4026,11 +4105,6 @@ function handleCommandResultClick(event) {
 }
 
 function navigateToCommandDestination(tab) {
-  if (tab === 'create') {
-    setCreateMenuExpanded(true, { focusFirst: true });
-    return;
-  }
-
   setActiveTab(tab);
 }
 
@@ -4052,12 +4126,6 @@ function handleCommandKeydown(event) {
       event.preventDefault();
       closeNotificationCenter();
       return;
-    }
-
-    if (event.key === 'Escape' && createNavSubmenu?.hidden === false) {
-      event.preventDefault();
-      setCreateMenuExpanded(false);
-      createNavButton?.focus();
     }
 
     return;
@@ -4175,14 +4243,16 @@ function renderVoiceRooms() {
   const settings = state.voiceRooms.settings || {};
   const totals = state.voiceRooms.totals || {};
 
-  voiceRoomEnabledInput.checked = settings.enabled !== false;
+  const featureEnabled = state.configuration?.features?.temporaryVoice ?? settings.enabled !== false;
+
+  voiceRoomEnabledInput.checked = featureEnabled;
   voiceRoomTriggerIdInput.value = settings.triggerChannelId || '';
   voiceRoomCount.textContent = Number(totals.rooms || 0).toLocaleString();
   voiceMemberCount.textContent = Number(totals.members || 0).toLocaleString();
 
   voiceRoomStatus.classList.remove('ready', 'offline');
-  voiceRoomStatus.textContent = settings.enabled === false ? 'Rooms paused' : 'Ready for guests';
-  voiceRoomStatus.classList.add(settings.enabled === false ? 'offline' : 'ready');
+  voiceRoomStatus.textContent = featureEnabled ? 'Ready for guests' : 'Rooms paused';
+  voiceRoomStatus.classList.add(featureEnabled ? 'ready' : 'offline');
 
   const storage = state.voiceRooms.storage;
   voiceRoomStorageStatus.classList.remove('ready', 'offline');
