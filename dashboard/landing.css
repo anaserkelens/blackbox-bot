@@ -437,7 +437,10 @@ p {
 .hero {
   position: relative;
   isolation: isolate;
-  padding: clamp(64px, 10vw, 128px) 0 clamp(48px, 7vw, 96px);
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - 68px);
+  padding: clamp(56px, 8vw, 104px) 0 0;
   overflow: hidden;
 }
 
@@ -496,6 +499,7 @@ p {
 .hero-inner {
   position: relative;
   z-index: 2;
+  margin-bottom: clamp(24px, 4vw, 48px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -578,11 +582,11 @@ p {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 1500px;
-  margin: clamp(36px, 5vw, 64px) auto -4%;
+  max-width: 1600px;
+  margin: auto auto 0;
   padding: 0 clamp(18px, 4vw, 40px);
-  perspective: 1700px;
-  perspective-origin: center -10%;
+  perspective: 1800px;
+  perspective-origin: center -8%;
 }
 
 .hero-window {
@@ -598,10 +602,10 @@ p {
 
 /* lay the product shot back like it sits on the planet surface */
 .hero-stage .hero-window {
-  transform: rotateX(30deg);
+  transform: rotateX(29deg);
   transform-origin: center top;
-  -webkit-mask-image: linear-gradient(to bottom, #000 55%, rgba(0, 0, 0, 0.25) 88%, transparent);
-  mask-image: linear-gradient(to bottom, #000 55%, rgba(0, 0, 0, 0.25) 88%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, #000 64%, rgba(0, 0, 0, 0.3) 92%, transparent);
+  mask-image: linear-gradient(to bottom, #000 64%, rgba(0, 0, 0, 0.3) 92%, transparent);
 }
 
 .win-bar {
