@@ -3245,6 +3245,170 @@ body :is(
   }
 }
 
+/* Create is a navigation group, not a standalone workspace. */
+
+.nav-create-group {
+  width: 100%;
+  display: grid;
+  gap: 4px;
+}
+
+.nav-create-group > .tab-button,
+.dashboard-active .nav-create-group > .tab-button {
+  grid-template-columns: 32px minmax(0, 1fr) 14px;
+}
+
+.nav-create-group .nav-group-chevron,
+.dashboard-active .nav-create-group .nav-group-chevron {
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  background: transparent;
+  color: currentColor;
+  font-size: 8px;
+  justify-self: center;
+  transform: rotate(0);
+  transition: transform 180ms ease;
+}
+
+.nav-create-group.is-expanded .nav-group-chevron,
+.dashboard-active .nav-create-group.is-expanded .nav-group-chevron {
+  transform: rotate(180deg);
+}
+
+.nav-create-submenu {
+  display: grid;
+  gap: 3px;
+  padding: 2px 4px 5px 15px;
+}
+
+.nav-create-submenu[hidden],
+.create-menu-backdrop[hidden] {
+  display: none !important;
+}
+
+.nav-create-submenu button {
+  min-height: 35px;
+  align-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: none;
+  color: #77736f;
+  display: grid;
+  font-size: 9px;
+  font-weight: 620;
+  gap: 9px;
+  grid-template-columns: 23px minmax(0, 1fr);
+  justify-content: stretch;
+  padding: 0 9px;
+  text-align: left;
+}
+
+.nav-create-submenu button > i {
+  width: 23px;
+  height: 23px;
+  border-radius: 8px;
+  background: rgba(242, 226, 207, 0.045);
+  display: grid;
+  font-size: 8px;
+  place-items: center;
+}
+
+.nav-create-submenu button:hover {
+  background: #1d2027;
+  color: #ded7cf;
+}
+
+.nav-create-submenu button.is-current {
+  background: rgba(0, 122, 255, 0.14);
+  color: #8ec5ff;
+}
+
+.nav-create-submenu button.is-current > i {
+  background: rgba(0, 122, 255, 0.2);
+  color: #b6d9ff;
+}
+
+.create-menu-backdrop {
+  display: none;
+}
+
+@media (max-width: 960px) {
+  .nav-create-group {
+    width: auto;
+    display: block;
+    flex: 0 0 auto;
+  }
+
+  .nav-create-group > .tab-button,
+  .dashboard-active .nav-create-group > .tab-button {
+    grid-template-columns: 28px auto 12px;
+  }
+
+  .nav-create-submenu {
+    width: auto;
+    border: 1px solid rgba(242, 226, 207, 0.1);
+    border-radius: 24px;
+    background:
+      radial-gradient(circle at 20% 0%, rgba(0, 122, 255, 0.16), transparent 14rem),
+      #17181f;
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.55);
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    inset: auto 14px 14px;
+    padding: 18px;
+    position: fixed;
+    z-index: 110;
+  }
+
+  .nav-create-submenu::before {
+    color: #e9ded1;
+    content: "Create";
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 20px;
+    grid-column: 1 / -1;
+    padding: 1px 3px 6px;
+  }
+
+  .nav-create-submenu button {
+    min-height: 58px;
+    border: 1px solid rgba(242, 226, 207, 0.07);
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.025);
+    color: #b6afa8;
+    font-size: 10px;
+    grid-template-columns: 30px minmax(0, 1fr);
+    padding: 0 12px;
+  }
+
+  .nav-create-submenu button > i {
+    width: 30px;
+    height: 30px;
+    font-size: 10px;
+  }
+
+  .create-menu-backdrop:not([hidden]) {
+    width: 100vw;
+    height: 100vh;
+    border: 0;
+    border-radius: 0;
+    background: rgba(5, 6, 9, 0.58);
+    display: block;
+    inset: 0;
+    padding: 0;
+    position: fixed;
+    z-index: 15;
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+  }
+
+  body.create-menu-open {
+    overflow: hidden;
+  }
+}
+
 /*
  * Overview — the evening desk
  * One focused workspace instead of stacked promotional sections.
