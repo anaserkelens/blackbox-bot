@@ -1113,45 +1113,99 @@
         <section class="tab-panel feature-page" data-panel="reaction-roles" data-feature-page="reactionRoles" hidden>
           <section class="dashboard-panel feature-page-hero">
             <div class="feature-page-heading">
-              <span><i class="fa-solid fa-user-check" aria-hidden="true"></i></span>
-              <div><p class="eyebrow">Member access</p><h1>Reaction Roles</h1><p>Turn a Discord reaction into a simple, dependable verification step.</p></div>
+              <span><i class="fa-solid fa-icons" aria-hidden="true"></i></span>
+              <div><p class="eyebrow">Self-serve roles</p><h1>Reaction Roles</h1><p>Connect any reaction on any existing Discord message or embed to any role you choose.</p></div>
             </div>
             <label class="feature-page-toggle feature-page-toggle-large">
               <span><strong>Reaction roles</strong><small data-feature-status-copy="reactionRoles">Loading current status…</small></span>
               <span class="config-feature-toggle"><input type="checkbox" data-feature-toggle="reactionRoles" data-requires-permission="configure"><i></i></span>
             </label>
           </section>
-          <div class="feature-page-grid">
-            <section class="dashboard-panel feature-detail-card feature-detail-card-wide">
-              <div class="section-heading"><div><p class="eyebrow">Verification flow</p><h2>One reaction, one role</h2></div><span class="status-pill" data-feature-state-pill="reactionRoles">Checking</span></div>
-              <div class="feature-step-grid">
-                <article><span>1</span><div><strong>Read</strong><p>The member reads the rules and finds the verification reaction.</p></div></article>
-                <article><span>2</span><div><strong>React</strong><p>Bean checks the configured message and emoji.</p></div></article>
-                <article><span>3</span><div><strong>Unlock</strong><p>The Verified role is granted automatically.</p></div></article>
+          <div class="reaction-role-workspace">
+            <form id="reaction-role-form" class="dashboard-panel reaction-role-builder">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">New mapping</p>
+                  <h2>Connect a reaction to a role</h2>
+                  <p>Copy the Discord message link, choose the emoji members should click, and select the role Bean should manage.</p>
+                </div>
+                <span class="status-pill" data-feature-state-pill="reactionRoles">Checking</span>
+              </div>
+              <div class="reaction-role-form-grid">
+                <label class="field reaction-role-message-field">
+                  Discord message link
+                  <span class="reaction-role-input-shell">
+                    <i class="fa-solid fa-link" aria-hidden="true"></i>
+                    <input id="reaction-role-message-link" type="url" placeholder="https://discord.com/channels/server/channel/message" required />
+                  </span>
+                  <small>Works with normal messages and embed messages in any channel Bean can read.</small>
+                </label>
+                <label class="field">
+                  Reaction emoji
+                  <span class="reaction-role-input-shell">
+                    <i class="fa-regular fa-face-smile" aria-hidden="true"></i>
+                    <input id="reaction-role-emoji" type="text" maxlength="100" placeholder="🔔 or custom emoji" required />
+                  </span>
+                </label>
+                <label class="field">
+                  Role to grant
+                  <span class="cozy-role-select reaction-role-role-select">
+                    <span class="cozy-role-select-icon" aria-hidden="true"><i class="fa-solid fa-at"></i></span>
+                    <select id="reaction-role-role" required>
+                      <option value="">Loading Discord roles&hellip;</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down cozy-role-select-chevron" aria-hidden="true"></i>
+                  </span>
+                </label>
+              </div>
+              <div class="reaction-role-builder-footer">
+                <label class="reaction-role-behavior">
+                  <input id="reaction-role-remove-on-unreact" type="checkbox" checked />
+                  <span><i></i></span>
+                  <span><strong>Remove role when reaction is removed</strong><small>Recommended for color, notification, and opt-in roles.</small></span>
+                </label>
+                <button id="add-reaction-role" type="submit" data-requires-permission="configure">
+                  <i class="fa-solid fa-plus" aria-hidden="true"></i> Add reaction role
+                </button>
+              </div>
+            </form>
+            <section class="dashboard-panel reaction-role-guide">
+              <span><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i></span>
+              <div>
+                <p class="eyebrow">Use it your way</p>
+                <h2>One system, plenty of uses</h2>
+                <ul>
+                  <li><i class="fa-solid fa-palette" aria-hidden="true"></i><span><strong>Role colors</strong><small>Let members pick their preferred server color.</small></span></li>
+                  <li><i class="fa-solid fa-bell" aria-hidden="true"></i><span><strong>Notifications</strong><small>Offer opt-in event, upload, or announcement pings.</small></span></li>
+                  <li><i class="fa-solid fa-shield-heart" aria-hidden="true"></i><span><strong>Verification</strong><small>Use it for access only when your server actually needs it.</small></span></li>
+                </ul>
               </div>
             </section>
-            <form id="reaction-role-channel-settings-form" class="dashboard-panel feature-requirements-card feature-channel-settings">
-              <p class="eyebrow">Connected setup</p><h2>Requirements</h2>
-              <label class="field">
-                Rules channel
-                <span class="cozy-channel-select">
-                  <span class="cozy-channel-select-icon" aria-hidden="true"><i class="fa-solid fa-hashtag"></i></span>
-                  <select id="reaction-role-channel" class="discord-channel-select" data-feature-channel-setting="rules" required>
-                    <option value="">Loading Discord channels&hellip;</option>
-                  </select>
-                  <i class="fa-solid fa-chevron-down cozy-channel-select-chevron" aria-hidden="true"></i>
-                </span>
-              </label>
-              <div class="feature-requirement-list">
-                <div><span><i class="fa-solid fa-id-badge" aria-hidden="true"></i> Verified role</span><strong data-feature-binding="roles.verified">Checking</strong></div>
-                <div><span><i class="fa-solid fa-face-smile" aria-hidden="true"></i> Message and emoji</span><strong>Environment</strong></div>
+            <section class="dashboard-panel reaction-role-list-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Active mappings</p>
+                  <h2>Reaction roles</h2>
+                  <p>Multiple emojis can live on the same message, and the same role can be offered in more than one place.</p>
+                </div>
+                <div class="reaction-role-list-actions">
+                  <span id="reaction-role-count" class="status-pill">Loading</span>
+                  <button id="refresh-reaction-roles" class="secondary icon-button" type="button" aria-label="Refresh reaction roles">
+                    <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+                  </button>
+                </div>
               </div>
-              <button type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save reaction-role channel</button>
-              <button class="secondary feature-settings-link feature-secondary-link" type="button" data-tab-link="config"><i class="fa-solid fa-users-gear" aria-hidden="true"></i> Configure verified role</button>
-            </form>
-            <section class="dashboard-panel feature-note-card">
-              <span><i class="fa-solid fa-terminal" aria-hidden="true"></i></span>
-              <div><strong>Setup command included</strong><p>Use <code>/setupreactionrole</code> to publish or refresh the verification message in Discord.</p></div>
+              <div id="reaction-role-list" class="reaction-role-list">
+                <div class="reaction-role-empty">
+                  <span><i class="fa-solid fa-icons" aria-hidden="true"></i></span>
+                  <strong>Loading reaction roles</strong>
+                  <p>Your configured mappings will appear here.</p>
+                </div>
+              </div>
+              <footer class="reaction-role-command-note">
+                <i class="fa-solid fa-terminal" aria-hidden="true"></i>
+                <span><strong>Need to restore the reactions?</strong> Run <code>/setupreactionrole</code> and Bean will refresh every configured emoji.</span>
+              </footer>
             </section>
           </div>
         </section>

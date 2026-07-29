@@ -69,7 +69,6 @@ const config = {
   ownerUserId: readEnv('BOT_OWNER_USER_ID') || '185282790969835520',
   channels: {
     welcome: readEnv('WELCOME_CHANNEL_ID') || '1520407983354544171',
-    rules: readEnv('RULES_CHANNEL_ID'),
     tickets: readEnv('TICKET_CHANNEL_ID'),
     ...loggingChannels,
     ticketLogs: loggingChannels.operationLog,
@@ -93,14 +92,14 @@ const config = {
     founder: readEnv('FOUNDER_ROLE_ID') || '1520451840058064999',
     staff: readEnv('STAFF_ROLE_ID'),
     moderator: readEnv('MODERATOR_ROLE_ID'),
-    verified: readEnv('VERIFIED_ROLE_ID'),
     live: readEnv('LIVE_ROLE_ID') || '1520781346740506874',
     newUpload: readEnv('NEW_UPLOAD_ROLE_ID') || '1520828024533159936',
   },
-  reactionRole: {
+  legacyReactionRole: {
     messageId: readEnv('REACTION_ROLE_MESSAGE_ID'),
     channelId: readEnv('REACTION_ROLE_CHANNEL_ID') || readEnv('RULES_CHANNEL_ID'),
     emojiId: readEnv('REACTION_ROLE_EMOJI_ID'),
+    roleId: readEnv('VERIFIED_ROLE_ID'),
   },
   invites: {
     enabled: readBoolean('INVITE_MODERATION_ENABLED', false),
@@ -140,6 +139,7 @@ const config = {
     welcomeEmbedPath: readEnv('DASHBOARD_WELCOME_EMBED_PATH'),
     moderationCasesPath: readEnv('MODERATION_CASES_PATH'),
     tempVoicePath: readEnv('TEMP_VOICE_PATH'),
+    reactionRolesPath: readEnv('DASHBOARD_REACTION_ROLES_PATH'),
     mailboxSchedulePath: readEnv('MAILBOX_SCHEDULE_PATH'),
     activityPath: readEnv('DASHBOARD_ACTIVITY_PATH'),
     settingsPath: readEnv('DASHBOARD_SETTINGS_PATH'),

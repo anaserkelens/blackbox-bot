@@ -1,44 +1,34 @@
 const { MessageFlags, PermissionFlagsBits, SlashCommandBuilder } = require('discord.js');
 
 const { config } = require('../utils/config');
+const {
+  loadReactionRoleMappings,
+  syncReactionRoleMappings,
+} = require('../utils/reactionRoles');
 
 const data = new SlashCommandBuilder()
   .setName('setupreactionrole')
-  .setDescription('Add the configured verification reaction to the configured message.')
+  .setDescription('Refresh every configured reaction-role emoji.')
   .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
   .setDMPermission(false);
 
 async function execute(interaction) {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-  if (
-    !config.reactionRole.channelId
-    || !config.reactionRole.messageId
-    || !config.reactionRole.emojiId
-    || !config.roles.verified
-  ) {
-    await interaction.editReply(
-      'Choose the channel and Verified role in the dashboard, then configure the reaction-role message and emoji.',
-    );
+  const mappings = (await loadReactionRoleMappings(config))
+    .filter((mapping) => mapping.guildId === interaction.guildId);
+
+  if (!mappings.length) {
+    await interaction.editReply('There are no reaction-role mappings yet. Create one in the dashboard first.');
     return;
   }
 
-  const channel = await interaction.guild.channels.fetch(config.reactionRole.channelId).catch(() => null);
+  const results = await syncReactionRoleMappings(interaction.client, config, interaction.guildId);
+  const succeeded = results.filter((result) => result.ok).length;
+  const failed = results.length - succeeded;
+  const failureCopy = failed ? ` ${failed} could not be refreshed; check the dashboard mappings.` : '';
 
-  if (!channel?.isTextBased()) {
-    await interaction.editReply(`Reaction role channel ${config.reactionRole.channelId} was not found.`);
-    return;
-  }
-
-  const message = await channel.messages.fetch(config.reactionRole.messageId).catch(() => null);
-
-  if (!message) {
-    await interaction.editReply(`Reaction role message ${config.reactionRole.messageId} was not found.`);
-    return;
-  }
-
-  await message.react(config.reactionRole.emojiId);
-  await interaction.editReply('Reaction role has been set up.');
+  await interaction.editReply(`Refreshed ${succeeded} of ${results.length} reaction-role mappings.${failureCopy}`);
 }
 
 module.exports = { data, execute };

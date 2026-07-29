@@ -119,11 +119,18 @@ const voiceRoomEnabledInput = document.querySelector('#voice-room-enabled');
 const voiceRoomTriggerIdInput = document.querySelector('#voice-room-trigger-id');
 const saveVoiceRoomSettingsButton = document.querySelector('#save-voice-room-settings');
 const ticketChannelSettingsForm = document.querySelector('#ticket-channel-settings-form');
-const reactionRoleChannelSettingsForm = document.querySelector('#reaction-role-channel-settings-form');
 const featureChannelSettingsForms = [
   ticketChannelSettingsForm,
-  reactionRoleChannelSettingsForm,
 ].filter(Boolean);
+const reactionRoleForm = document.querySelector('#reaction-role-form');
+const reactionRoleMessageLinkInput = document.querySelector('#reaction-role-message-link');
+const reactionRoleEmojiInput = document.querySelector('#reaction-role-emoji');
+const reactionRoleRoleInput = document.querySelector('#reaction-role-role');
+const reactionRoleRemoveOnUnreactInput = document.querySelector('#reaction-role-remove-on-unreact');
+const addReactionRoleButton = document.querySelector('#add-reaction-role');
+const refreshReactionRolesButton = document.querySelector('#refresh-reaction-roles');
+const reactionRoleCount = document.querySelector('#reaction-role-count');
+const reactionRoleList = document.querySelector('#reaction-role-list');
 const voiceRoomListCount = document.querySelector('#voice-room-list-count');
 const voiceRoomList = document.querySelector('#voice-room-list');
 const tabButtons = [...document.querySelectorAll('.tab-button')];
@@ -328,7 +335,7 @@ const workspaceMeta = {
   'welcome-embed': { title: 'Welcome builder', hint: 'Design the first hello', key: '04D' },
   'invite-moderation': { title: 'Invite moderation', hint: 'Filter unauthorized Discord invites', key: '05A' },
   tickets: { title: 'Ticket system', hint: 'Private member support threads', key: '05B' },
-  'reaction-roles': { title: 'Reaction roles', hint: 'Verification and member access', key: '05C' },
+  'reaction-roles': { title: 'Reaction roles', hint: 'Self-serve colors, pings, access, and more', key: '05C' },
   'voice-rooms': { title: 'Voice spaces', hint: 'Manage temporary rooms', key: '05' },
   'audit-logging': { title: 'Detailed audit logs', hint: 'Message, member, voice, and server records', key: '05D' },
   config: { title: 'Server configuration', hint: 'Channels, roles, features, and access', key: '06' },
@@ -441,6 +448,8 @@ const state = {
   configurationStorage: null,
   configurationOauth: null,
   discordRoles: [],
+  reactionRoles: [],
+  reactionRoleStorage: null,
   configurationChannels: [],
   configurationDirty: false,
   builderManagers: new Map(),
@@ -578,6 +587,11 @@ function bindEvents() {
     });
   });
   auditLogSettingsForm?.addEventListener('submit', handleAuditLogSettingsSave);
+  reactionRoleForm?.addEventListener('submit', handleReactionRoleCreate);
+  refreshReactionRolesButton?.addEventListener('click', () => {
+    loadReactionRoles(true).catch((error) => setSendStatus(error.message, 'error'));
+  });
+  reactionRoleList?.addEventListener('click', handleReactionRoleListClick);
   featureChannelSettingsForms.forEach((form) => {
     form.addEventListener('submit', handleFeatureChannelSettingsSave);
   });
@@ -1637,7 +1651,6 @@ const dashboardConfigurationDefinitions = {
     founder: ['Founder role', 'Full bot and dashboard ownership.'],
     staff: ['Staff role', 'Full dashboard access below Founder ownership.'],
     moderator: ['Moderator role', 'Cases, members, tickets, and voice operations.'],
-    verified: ['Verified role', 'Role granted by the verification system.'],
     live: ['Going Live role', 'Granted to members streaming on Twitch.'],
     newUpload: ['New Upload role', 'Mentioned for YouTube upload alerts.'],
   },
@@ -1648,7 +1661,7 @@ const dashboardConfigurationDefinitions = {
     youtubeMonitor: ['YouTube monitor', 'Check the channel feed and publish new upload alerts.', 'fa-brands fa-youtube'],
     temporaryVoice: ['Temporary voice rooms', 'Create member-owned rooms from the configured lobby.', 'fa-headphones'],
     tickets: ['Ticket system', 'Let members create private support tickets.', 'fa-ticket'],
-    reactionRoles: ['Reaction roles', 'Grant the configured verification role from Discord reactions.', 'fa-user-check'],
+    reactionRoles: ['Reaction roles', 'Map reactions on any Discord message to self-serve roles.', 'fa-icons'],
     detailedLogging: ['Detailed audit logging', 'Record message, member, voice, role, and channel changes.', 'fa-clipboard-list'],
   },
 };
@@ -1863,7 +1876,6 @@ function getChannelOwnerTab(key) {
 
   return {
     welcome: 'welcome-embed',
-    rules: 'reaction-roles',
     tickets: 'tickets',
     streamAnnouncements: 'live-embed',
     youtubeAnnouncements: 'live-embed',
@@ -2230,7 +2242,6 @@ async function handleFeatureChannelSettingsSave(event) {
 
     const messages = {
       tickets: 'Ticket destination saved.',
-      rules: 'Reaction-role channel saved.',
     };
 
     setSendStatus(messages[changedKeys[0]] || 'Feature destinations saved.', 'success');
@@ -2241,6 +2252,212 @@ async function handleFeatureChannelSettingsSave(event) {
       submitButton.disabled = state.session?.permissions?.configure === false;
       submitButton.innerHTML = originalLabel;
     }
+  }
+}
+
+async function loadReactionRoles(showNotification = false) {
+  if (!reactionRoleList) {
+    return;
+  }
+
+  refreshReactionRolesButton?.classList.add('is-spinning');
+
+  try {
+    const [result, rolesResult] = await Promise.all([
+      api('/api/reaction-roles'),
+      api('/api/roles').catch(() => ({ roles: state.discordRoles })),
+    ]);
+
+    state.reactionRoles = Array.isArray(result.mappings) ? result.mappings : [];
+    state.reactionRoleStorage = result.storage || null;
+    state.discordRoles = Array.isArray(rolesResult.roles) ? rolesResult.roles : state.discordRoles;
+    renderReactionRoleRoleOptions();
+    renderReactionRoles();
+
+    if (showNotification) {
+      setSendStatus('Reaction roles refreshed.', 'success');
+    }
+  } finally {
+    refreshReactionRolesButton?.classList.remove('is-spinning');
+  }
+}
+
+function renderReactionRoleRoleOptions() {
+  if (!reactionRoleRoleInput) {
+    return;
+  }
+
+  const selectedValue = reactionRoleRoleInput.value;
+  reactionRoleRoleInput.replaceChildren();
+
+  const placeholder = document.createElement('option');
+
+  placeholder.value = '';
+  placeholder.textContent = state.discordRoles.length ? 'Choose a Discord role' : 'No manageable roles found';
+  reactionRoleRoleInput.append(placeholder);
+
+  for (const role of state.discordRoles) {
+    const option = document.createElement('option');
+
+    option.value = role.id;
+    option.textContent = `@ ${role.name}`;
+    reactionRoleRoleInput.append(option);
+  }
+
+  if ([...reactionRoleRoleInput.options].some((option) => option.value === selectedValue)) {
+    reactionRoleRoleInput.value = selectedValue;
+  }
+}
+
+function renderReactionRoles() {
+  if (!reactionRoleList || !reactionRoleCount) {
+    return;
+  }
+
+  const mappings = state.reactionRoles;
+
+  reactionRoleCount.textContent = `${mappings.length} mapping${mappings.length === 1 ? '' : 's'}`;
+  reactionRoleCount.classList.toggle('ready', mappings.length > 0);
+  reactionRoleList.replaceChildren();
+
+  if (!mappings.length) {
+    const empty = document.createElement('div');
+
+    empty.className = 'reaction-role-empty';
+    empty.innerHTML = `
+      <span><i class="fa-solid fa-icons" aria-hidden="true"></i></span>
+      <strong>No reaction roles yet</strong>
+      <p>Add your first mapping above whenever you are ready to use the feature.</p>
+    `;
+    reactionRoleList.append(empty);
+    return;
+  }
+
+  for (const mapping of mappings) {
+    const card = document.createElement('article');
+    const emoji = document.createElement('span');
+    const copy = document.createElement('div');
+    const heading = document.createElement('div');
+    const role = document.createElement('strong');
+    const behavior = document.createElement('span');
+    const details = document.createElement('p');
+    const actions = document.createElement('div');
+    const openLink = document.createElement('a');
+    const removeButton = document.createElement('button');
+
+    card.className = `reaction-role-card${mapping.healthy ? '' : ' has-warning'}`;
+    emoji.className = 'reaction-role-emoji';
+
+    if (mapping.emojiId) {
+      const image = document.createElement('img');
+
+      image.src = `https://cdn.discordapp.com/emojis/${mapping.emojiId}.webp?size=64&quality=lossless`;
+      image.alt = mapping.emojiName || 'Custom emoji';
+      emoji.append(image);
+    } else {
+      emoji.textContent = mapping.emojiDisplay;
+    }
+
+    copy.className = 'reaction-role-card-copy';
+    heading.className = 'reaction-role-card-heading';
+    role.textContent = `@${mapping.roleName || mapping.roleId}`;
+    if (mapping.roleColor) {
+      role.style.setProperty('--reaction-role-color', mapping.roleColor);
+    }
+    behavior.className = 'reaction-role-behavior-pill';
+    behavior.textContent = mapping.removeOnUnreact ? 'Add + remove' : 'Add only';
+    heading.append(role, behavior);
+    details.textContent = mapping.healthy
+      ? `${mapping.emojiDisplay} in #${mapping.channelName || mapping.channelId} · Added ${formatDateTime(mapping.createdAt)}`
+      : 'Bean can no longer reach the channel or role. Check the Discord setup.';
+    copy.append(heading, details);
+
+    actions.className = 'reaction-role-card-actions';
+    openLink.className = 'secondary reaction-role-open-link';
+    openLink.href = mapping.messageUrl;
+    openLink.target = '_blank';
+    openLink.rel = 'noreferrer';
+    openLink.innerHTML = '<i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i><span>Message</span>';
+    removeButton.type = 'button';
+    removeButton.className = 'reaction-role-remove';
+    removeButton.dataset.reactionRoleDelete = mapping.id;
+    removeButton.dataset.reactionRoleName = `@${mapping.roleName || mapping.roleId}`;
+    removeButton.disabled = state.session?.permissions?.configure === false;
+    removeButton.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i><span>Remove</span>';
+    actions.append(openLink, removeButton);
+    card.append(emoji, copy, actions);
+    reactionRoleList.append(card);
+  }
+}
+
+async function handleReactionRoleCreate(event) {
+  event.preventDefault();
+
+  if (state.session?.permissions?.configure === false) {
+    setSendStatus('Your dashboard access cannot change reaction roles.', 'error');
+    return;
+  }
+
+  const originalLabel = addReactionRoleButton.innerHTML;
+
+  addReactionRoleButton.disabled = true;
+  addReactionRoleButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Adding&hellip;';
+
+  try {
+    const result = await api('/api/reaction-roles', {
+      method: 'POST',
+      body: {
+        messageUrl: reactionRoleMessageLinkInput.value.trim(),
+        emoji: reactionRoleEmojiInput.value.trim(),
+        roleId: reactionRoleRoleInput.value,
+        removeOnUnreact: reactionRoleRemoveOnUnreactInput.checked,
+      },
+    });
+
+    state.reactionRoles = Array.isArray(result.mappings) ? result.mappings : state.reactionRoles;
+    reactionRoleMessageLinkInput.value = '';
+    reactionRoleEmojiInput.value = '';
+    reactionRoleRoleInput.value = '';
+    reactionRoleRemoveOnUnreactInput.checked = true;
+    renderReactionRoles();
+    setSendStatus('Reaction role added. Bean placed the emoji on the Discord message.', 'success');
+  } catch (error) {
+    setSendStatus(error.message, 'error');
+  } finally {
+    addReactionRoleButton.disabled = state.session?.permissions?.configure === false;
+    addReactionRoleButton.innerHTML = originalLabel;
+  }
+}
+
+async function handleReactionRoleListClick(event) {
+  const button = event.target.closest('[data-reaction-role-delete]');
+
+  if (!button) {
+    return;
+  }
+
+  const roleName = button.dataset.reactionRoleName || 'this role';
+
+  if (!window.confirm(`Remove the reaction-role mapping for ${roleName}?`)) {
+    return;
+  }
+
+  button.disabled = true;
+  const originalLabel = button.innerHTML;
+  button.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>';
+
+  try {
+    const result = await api(`/api/reaction-roles/${encodeURIComponent(button.dataset.reactionRoleDelete)}`, {
+      method: 'DELETE',
+    });
+
+    state.reactionRoles = Array.isArray(result.mappings) ? result.mappings : [];
+    renderReactionRoles();
+    setSendStatus(`Removed the reaction-role mapping for ${roleName}.`, 'success');
+  } catch (error) {
+    button.disabled = false;
+    button.innerHTML = originalLabel;
+    setSendStatus(error.message, 'error');
   }
 }
 
@@ -3060,6 +3277,7 @@ function applySessionPermissions(permissions = {}) {
   setFormPermission(caseRevokeForm, permissions.moderate !== false);
   setFormPermission(voiceRoomSettingsForm, permissions.moderate !== false);
   setFormPermission(auditLogSettingsForm, permissions.configure !== false);
+  setFormPermission(reactionRoleForm, permissions.configure !== false);
   featureChannelSettingsForms.forEach((form) => {
     setFormPermission(form, permissions.configure !== false);
   });
@@ -4195,6 +4413,10 @@ function setActiveTab(tab) {
 
   if (nextTab === 'welcome-embed' && !dashboardView.hidden) {
     loadWelcomeMessageSettings(false).catch((error) => setSendStatus(error.message, 'error'));
+  }
+
+  if (nextTab === 'reaction-roles' && !dashboardView.hidden) {
+    loadReactionRoles(false).catch((error) => setSendStatus(error.message, 'error'));
   }
 
   if (nextTab === 'cases' && !dashboardView.hidden) {

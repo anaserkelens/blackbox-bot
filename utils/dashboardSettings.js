@@ -3,7 +3,6 @@ const path = require('node:path');
 
 const settingsFileName = 'dashboard-settings.json';
 const channelKeys = [
-  'rules',
   'tickets',
   'ticketLogs',
   'caseFiles',
@@ -24,7 +23,6 @@ const roleKeys = [
   'founder',
   'staff',
   'moderator',
-  'verified',
   'live',
   'newUpload',
 ];
@@ -131,9 +129,6 @@ function normalizeDashboardSettings(input, config) {
 function applyDashboardSettings(config, settings) {
   Object.assign(config.channels, settings.channels);
   Object.assign(config.roles, settings.roles);
-  if (config.reactionRole) {
-    config.reactionRole.channelId = settings.channels.rules || config.reactionRole.channelId;
-  }
   config.invites.enabled = settings.features.inviteModeration;
   config.streamMonitor.enabled = settings.features.streamMonitor;
   config.youtubeMonitor.enabled = settings.features.youtubeMonitor;
@@ -158,7 +153,12 @@ function getFeatureDefaults(config) {
     youtubeMonitor: Boolean(config.youtubeMonitor?.enabled),
     temporaryVoice: Boolean(config.channels?.tempVoiceTrigger),
     tickets: Boolean(config.channels?.tickets),
-    reactionRoles: Boolean(config.reactionRole?.messageId && config.roles?.verified),
+    reactionRoles: Boolean(
+      config.legacyReactionRole?.messageId
+      && config.legacyReactionRole?.channelId
+      && config.legacyReactionRole?.emojiId
+      && config.legacyReactionRole?.roleId
+    ),
     detailedLogging: true,
   };
 }

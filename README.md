@@ -150,7 +150,7 @@ Tracked rooms are deleted after they remain completely empty for 10 seconds. The
 
 The room creator can use `/room limit members:<0-99>` while connected to their temporary room. A value of `0` removes the limit. Other members cannot change the room's capacity, and no additional room controls are exposed.
 
-Optional systems are controlled by environment variables. For example, tickets need `TICKET_CHANNEL_ID`, ticket logs need `TICKET_LOG_CHANNEL_ID`, and reaction roles need `REACTION_ROLE_MESSAGE_ID`, `REACTION_ROLE_EMOJI_ID`, and `VERIFIED_ROLE_ID`. See [.env.example](.env.example) for the full list.
+Optional systems can be enabled from their dedicated dashboard pages. Reaction roles are created there by connecting any existing Discord message link and emoji to any manageable role; no Rules channel or Verified role is required. See [.env.example](.env.example) for deployment and storage options.
 
 The stream monitor has two paths. `FEATURED_STREAMER_USER_ID` receives a Twitch announcement in `ANNOUNCEMENT_CHANNEL_ID` without receiving the live role. Other members receive `LIVE_ROLE_ID` while streaming on Twitch, with no announcement posted. Enable `STREAM_MONITOR_ENABLED` and the Discord Developer Portal Presence Intent to use it.
 

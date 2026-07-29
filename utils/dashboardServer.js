@@ -52,6 +52,12 @@ const {
   saveSavedMessages,
 } = require('./savedMessages');
 const {
+  createReactionRoleMapping,
+  deleteReactionRoleMapping,
+  getReactionRoleStorageInfo,
+  listReactionRoleMappings,
+} = require('./reactionRoles');
+const {
   getStreamEmbedStorageInfo,
   getStreamEmbedStorageStatus,
   loadStreamEmbedSettings,
@@ -116,6 +122,7 @@ function startDashboard(client) {
   logWelcomeEmbedStorage();
   logModerationCasesStorage();
   logTempVoiceStorage();
+  logReactionRoleStorage();
 
   const server = http.createServer((request, response) => {
     handleRequest(client, request, response).catch((error) => {
@@ -204,6 +211,18 @@ function logTempVoiceStorage() {
 
   if (!storage.persistent) {
     console.warn('Temporary voice room tracking will reset after redeploys unless a Railway volume is attached.');
+  }
+}
+
+function logReactionRoleStorage() {
+  const storage = getReactionRoleStorageInfo(config);
+
+  console.log(
+    `Reaction-role storage: ${storage.filePath} (${storage.persistent ? 'persistent' : 'ephemeral'}, ${storage.source}).`,
+  );
+
+  if (!storage.persistent) {
+    console.warn('Reaction-role mappings will reset after redeploys unless a Railway volume is attached.');
   }
 }
 
@@ -322,6 +341,21 @@ async function handleRequest(client, request, response) {
 
     if (request.method === 'PUT' && url.pathname === '/api/configuration') {
       await handleSaveDashboardConfiguration(client, request, response, session.user);
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/reaction-roles') {
+      await handleGetReactionRoles(client, response);
+      return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/reaction-roles') {
+      await handleCreateReactionRole(client, request, response, session.user);
+      return;
+    }
+
+    if (request.method === 'DELETE' && url.pathname.startsWith('/api/reaction-roles/')) {
+      await handleDeleteReactionRole(client, url.pathname, response, session.user);
       return;
     }
 
@@ -742,6 +776,82 @@ async function handleGetDiscordRoles(client, response) {
   });
 }
 
+async function handleGetReactionRoles(client, response) {
+  try {
+    const mappings = await listReactionRoleMappings(client, config);
+
+    sendJson(response, 200, {
+      ok: true,
+      mappings,
+      storage: getReactionRoleStorageInfo(config),
+    });
+  } catch (error) {
+    sendJson(response, 500, { error: 'Reaction-role mappings could not be loaded.' });
+  }
+}
+
+async function handleCreateReactionRole(client, request, response, actor) {
+  const body = await readJsonBody(request, 64 * 1024);
+
+  try {
+    const mapping = await createReactionRoleMapping(client, config, body, actor);
+    const mappings = await listReactionRoleMappings(client, config);
+
+    await sendStructuredLog(client, config.channels.operationLog, {
+      title: 'Reaction Role Created',
+      emoji: '🎭',
+      color: colors.success,
+      summary: `A reaction-role mapping was created for <@&${mapping.roleId}>.`,
+      referenceId: `REACTION-ROLE-${mapping.id}`,
+      links: [{ label: 'Open Message', url: `https://discord.com/channels/${mapping.guildId}/${mapping.channelId}/${mapping.messageId}` }],
+      fields: [
+        { name: 'Emoji', value: mapping.emojiDisplay },
+        { name: 'Role', value: `<@&${mapping.roleId}>` },
+        { name: 'Remove on unreact', value: mapping.removeOnUnreact ? 'Yes' : 'No' },
+      ],
+    }).catch((error) => console.error('Failed to log reaction-role creation:', error));
+
+    sendJson(response, 201, { ok: true, mapping, mappings });
+  } catch (error) {
+    const status = ['GUILD_NOT_FOUND', 'CHANNEL_NOT_FOUND', 'MESSAGE_NOT_FOUND', 'ROLE_NOT_FOUND', 'EMOJI_NOT_FOUND']
+      .includes(error.code)
+      ? 404
+      : (error.code === 'BOT_NOT_READY' ? 503 : 400);
+
+    sendJson(response, status, { error: error.message });
+  }
+}
+
+async function handleDeleteReactionRole(client, pathname, response, actor) {
+  const mappingId = decodeURIComponent(pathname.slice('/api/reaction-roles/'.length));
+
+  if (!mappingId || mappingId.includes('/')) {
+    sendJson(response, 400, { error: 'Reaction-role mapping ID is required.' });
+    return;
+  }
+
+  try {
+    const removed = await deleteReactionRoleMapping(client, config, mappingId);
+    const mappings = await listReactionRoleMappings(client, config);
+
+    await sendStructuredLog(client, config.channels.operationLog, {
+      title: 'Reaction Role Removed',
+      emoji: '🧹',
+      color: colors.warning,
+      summary: `A reaction-role mapping for <@&${removed.roleId}> was removed.`,
+      referenceId: `REACTION-ROLE-${removed.id}`,
+      fields: [
+        { name: 'Emoji', value: removed.emojiDisplay },
+        { name: 'Changed by', value: actor?.id ? `<@${actor.id}>` : (actor?.displayName || 'Dashboard') },
+      ],
+    }).catch((error) => console.error('Failed to log reaction-role removal:', error));
+
+    sendJson(response, 200, { ok: true, removed, mappings });
+  } catch (error) {
+    sendJson(response, error.code === 'MAPPING_NOT_FOUND' ? 404 : 400, { error: error.message });
+  }
+}
+
 async function handleGetConfigurationOptions(client, response) {
   if (!client.isReady()) {
     sendJson(response, 503, { error: 'Bot is not ready yet.' });
@@ -1082,7 +1192,6 @@ function isConfigurationCheckRelevant(key, features) {
 function isRoleCheckRelevant(key, features) {
   if (key === 'live') return features.streamMonitor;
   if (key === 'newUpload') return features.youtubeMonitor;
-  if (key === 'verified') return features.reactionRoles;
   return Boolean(config.roles[key]);
 }
 
