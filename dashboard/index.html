@@ -49,9 +49,6 @@
           <div class="status-cluster">
             <time id="dashboard-clock" class="topbar-clock" aria-label="Local dashboard time">--:--</time>
             <span id="bot-status" class="topbar-presence">Checking</span>
-            <button id="density-toggle" class="secondary density-toggle" type="button" aria-pressed="false" aria-label="Toggle compact dashboard density" title="Toggle compact density">
-              <i class="fa-solid fa-table-list" aria-hidden="true"></i>
-            </button>
             <button
               id="notification-trigger"
               class="secondary notification-trigger"
@@ -63,11 +60,6 @@
             >
               <i class="fa-solid fa-bell" aria-hidden="true"></i>
               <span id="notification-badge" class="notification-badge" hidden>0</span>
-            </button>
-            <button id="command-trigger" class="secondary command-trigger" type="button" aria-haspopup="dialog" aria-label="Search dashboard">
-              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-              <span>Search</span>
-              <kbd>Ctrl K</kbd>
             </button>
             <div id="session-identity" class="session-identity">
               <span id="session-avatar" class="session-avatar"><i class="fa-solid fa-user" aria-hidden="true"></i></span>
@@ -93,16 +85,14 @@
               <i class="fa-solid fa-house" aria-hidden="true"></i>
               <span class="tab-label">Overview</span>
             </button>
-            <div class="nav-section-group">
-              <button class="tab-button" type="button" data-tab="community" aria-selected="false">
-                <i class="fa-solid fa-people-group" aria-hidden="true"></i>
-                <span class="tab-label">Community</span>
-              </button>
-              <nav class="nav-inline-submenu" aria-label="Community tools">
-                <button type="button" data-tab-link="members"><i class="fa-solid fa-address-card" aria-hidden="true"></i><span>Members</span></button>
-                <button type="button" data-tab-link="analytics"><i class="fa-solid fa-chart-line" aria-hidden="true"></i><span>Analytics</span></button>
-              </nav>
-            </div>
+            <button class="tab-button" type="button" data-tab="members" aria-selected="false">
+              <i class="fa-solid fa-address-card" aria-hidden="true"></i>
+              <span class="tab-label">Members</span>
+            </button>
+            <button class="tab-button" type="button" data-tab="analytics" aria-selected="false">
+              <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
+              <span class="tab-label">Analytics</span>
+            </button>
             <button class="tab-button" type="button" data-tab="cases" aria-selected="false">
               <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
               <span class="tab-label">Moderation</span>
@@ -187,7 +177,7 @@
               </div>
 
               <nav class="overview-quiet-links" aria-label="Useful rooms">
-                <button type="button" data-tab-link="community"><i class="fa-solid fa-people-group" aria-hidden="true"></i> Community</button>
+                <button type="button" data-tab-link="members"><i class="fa-solid fa-address-card" aria-hidden="true"></i> Members</button>
                 <button type="button" data-tab-link="cases"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Moderation</button>
                 <button type="button" data-tab-link="voice-rooms"><i class="fa-solid fa-headphones" aria-hidden="true"></i> Voice rooms</button>
               </nav>
@@ -299,36 +289,6 @@
               <div id="activity-feed" class="activity-feed"></div>
             </section>
           </section>
-        </section>
-
-        <section class="tab-panel workspace-hub community-hub" data-panel="community" hidden>
-          <header class="hub-hero">
-            <div>
-              <p class="eyebrow">Community room</p>
-              <h1>Know the people.<br />Notice the rhythm.</h1>
-            </div>
-            <p>Move between individual member context and the larger patterns shaping the room.</p>
-          </header>
-          <div class="hub-option-grid community-option-grid">
-            <button class="hub-option" type="button" data-tab-link="members">
-              <span class="hub-option-icon"><i class="fa-solid fa-address-card" aria-hidden="true"></i></span>
-              <span class="hub-option-copy">
-                <small>People</small>
-                <strong>Member directory</strong>
-                <span>Search profiles, history, moderation context, and room activity.</span>
-              </span>
-              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-            </button>
-            <button class="hub-option" type="button" data-tab-link="analytics">
-              <span class="hub-option-icon"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></span>
-              <span class="hub-option-copy">
-                <small>Patterns</small>
-                <strong>Community signals</strong>
-                <span>See growth, engagement, voice activity, and moderation trends.</span>
-              </span>
-              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-            </button>
-          </div>
         </section>
 
         <section class="tab-panel" data-panel="mailbox" hidden>
@@ -1853,28 +1813,6 @@
         </div>
       </section>
     </main>
-    <div id="command-palette" class="command-palette" hidden>
-      <button class="command-backdrop" type="button" data-command-close aria-label="Close workspace switcher"></button>
-      <section class="command-dialog" role="dialog" aria-modal="true" aria-labelledby="command-title">
-        <div class="command-dialog-head">
-          <span><i class="fa-solid fa-bolt" aria-hidden="true"></i></span>
-          <div>
-            <p>BEAN QUICK SWITCH</p>
-            <h2 id="command-title">Where do you want to go?</h2>
-          </div>
-          <button class="command-close" type="button" data-command-close aria-label="Close workspace switcher">
-            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-          </button>
-        </div>
-        <label class="command-search">
-          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-          <input id="command-search" type="search" placeholder="Search spaces, e.g. messages" autocomplete="off" />
-          <kbd>ESC</kbd>
-        </label>
-        <div id="command-results" class="command-results" role="listbox" aria-label="Dashboard spaces"></div>
-        <footer><span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span><span><kbd>↵</kbd> Open</span></footer>
-      </section>
-    </div>
     <aside id="notification-center" class="notification-center" role="dialog" aria-modal="true" aria-labelledby="notification-center-title" hidden>
       <button class="notification-backdrop" type="button" data-notification-close aria-label="Close notification center"></button>
       <section class="notification-drawer">

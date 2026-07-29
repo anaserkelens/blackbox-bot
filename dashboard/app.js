@@ -8,7 +8,6 @@ const apiStatus = document.querySelector('#api-status');
 const logoutButton = document.querySelector('#logout');
 const botStatus = document.querySelector('#bot-status');
 const dashboardClock = document.querySelector('#dashboard-clock');
-const densityToggle = document.querySelector('#density-toggle');
 const sessionAvatar = document.querySelector('#session-avatar');
 const sessionName = document.querySelector('#session-name');
 const sessionRole = document.querySelector('#session-role');
@@ -35,11 +34,6 @@ const refreshActivityButton = document.querySelector('#refresh-activity');
 const activityFilterButtons = [...document.querySelectorAll('.activity-filter')];
 const activityFeed = document.querySelector('#activity-feed');
 const journalDate = document.querySelector('#journal-date');
-const commandTrigger = document.querySelector('#command-trigger');
-const commandPalette = document.querySelector('#command-palette');
-const commandSearch = document.querySelector('#command-search');
-const commandResults = document.querySelector('#command-results');
-const commandCloseButtons = [...document.querySelectorAll('[data-command-close]')];
 const memberSearchForm = document.querySelector('#member-search-form');
 const memberSearchInput = document.querySelector('#member-search');
 const memberSearchButton = document.querySelector('#member-search-button');
@@ -323,38 +317,10 @@ const notificationStorageKey = 'bean_dashboard_notification_center';
 const notificationReadStorageKey = 'bean_dashboard_notification_read';
 const interfacePreferenceStorageKey = 'bean_dashboard_interface_preferences';
 const welcomeMessageId = 'welcome-message';
-const workspaceMeta = {
-  overview: { title: 'Room overview', hint: 'The full community signal', key: '01' },
-  community: { title: 'Community room', hint: 'People and community signals', key: '02' },
-  members: { title: 'Member directory', hint: 'Find people and context', key: '02A' },
-  analytics: { title: 'Community signals', hint: 'Patterns, momentum, rhythm', key: '02B' },
-  cases: { title: 'Moderation desk', hint: 'History, context, and actions', key: '03' },
-  messages: { title: 'Message builder', hint: 'Compose reusable Discord posts', key: '04A' },
-  mailbox: { title: 'Mailbox builder', hint: 'Publish updates and notices', key: '04B' },
-  'live-embed': { title: 'Creator notifications', hint: 'Shape Twitch and YouTube alerts', key: '04C' },
-  'welcome-embed': { title: 'Welcome builder', hint: 'Design the first hello', key: '04D' },
-  'invite-moderation': { title: 'Invite moderation', hint: 'Filter unauthorized Discord invites', key: '05A' },
-  tickets: { title: 'Ticket system', hint: 'Private member support threads', key: '05B' },
-  'reaction-roles': { title: 'Reaction roles', hint: 'Self-serve colors, pings, access, and more', key: '05C' },
-  'voice-rooms': { title: 'Voice spaces', hint: 'Manage temporary rooms', key: '05' },
-  'audit-logging': { title: 'Detailed audit logs', hint: 'Message, member, voice, and server records', key: '05D' },
-  config: { title: 'Server configuration', hint: 'Channels, roles, features, and access', key: '06' },
-  bot: { title: 'Bean profile', hint: 'Profile, identity, and presence', key: '06A' },
-};
 const workspaceGroupByTab = {
-  members: 'community',
-  analytics: 'community',
   bot: 'config',
 };
 const contextWorkspaceDefinitions = {
-  community: {
-    label: 'Community',
-    panels: ['members', 'analytics'],
-    items: [
-      { tab: 'members', label: 'Members', icon: 'fa-solid fa-address-card' },
-      { tab: 'analytics', label: 'Signals', icon: 'fa-solid fa-chart-line' },
-    ],
-  },
   config: {
     label: 'Settings',
     panels: ['config', 'bot'],
@@ -364,9 +330,6 @@ const contextWorkspaceDefinitions = {
     ],
   },
 };
-let commandMatches = [];
-let commandSelectionIndex = 0;
-
 const embedBuilderDefinitions = {
   live: {
     endpoint: '/api/stream-embed',
@@ -524,16 +487,11 @@ function bindEvents() {
   logoutButton.addEventListener('click', handleLogout);
   tabButtons.forEach((button) => button.addEventListener('click', () => handlePrimaryTabClick(button)));
   dashboardView.addEventListener('click', handleDashboardNavigationClick);
-  commandTrigger.addEventListener('click', openCommandPalette);
-  commandCloseButtons.forEach((button) => button.addEventListener('click', closeCommandPalette));
-  commandSearch.addEventListener('input', renderCommandResults);
-  commandResults.addEventListener('click', handleCommandResultClick);
   notificationTrigger?.addEventListener('click', openNotificationCenter);
-  densityToggle?.addEventListener('click', toggleInterfaceDensity);
   notificationCloseButtons.forEach((button) => button.addEventListener('click', closeNotificationCenter));
   markNotificationsReadButton?.addEventListener('click', markAllNotificationsRead);
   notificationCenterList?.addEventListener('click', handleNotificationCenterClick);
-  document.addEventListener('keydown', handleCommandKeydown);
+  document.addEventListener('keydown', handleGlobalKeydown);
   dashboardView.addEventListener('pointermove', updateDashboardGlow);
   refreshHealthButton.addEventListener('click', () => {
     loadDashboardHealth(true).catch((error) => setSendStatus(error.message, 'error'));
@@ -3120,17 +3078,6 @@ function initializeInterfacePreferences() {
   setRememberedSelectValue(caseActionFilter, preferences.caseAction);
   setRememberedSelectValue(caseStatusFilter, preferences.caseStatus);
   setRememberedSelectValue(caseDateFilter, preferences.caseDate);
-  document.body.classList.toggle('compact-density', Boolean(preferences.compactDensity));
-  densityToggle?.setAttribute('aria-pressed', String(Boolean(preferences.compactDensity)));
-}
-
-function toggleInterfaceDensity() {
-  const compact = !document.body.classList.contains('compact-density');
-
-  document.body.classList.toggle('compact-density', compact);
-  densityToggle.setAttribute('aria-pressed', String(compact));
-  writeInterfacePreferences({ compactDensity: compact });
-  setSendStatus(compact ? 'Compact dashboard density enabled.' : 'Cozy dashboard density restored.', 'success');
 }
 
 function handleRememberedCaseFilters() {
@@ -4392,13 +4339,6 @@ function setActiveTab(tab) {
     button.toggleAttribute('aria-current', isSelected);
   });
 
-  dashboardView.querySelectorAll('.nav-inline-submenu [data-tab-link]').forEach((button) => {
-    const isSelected = button.dataset.tabLink === nextTab;
-
-    button.classList.toggle('is-current', isSelected);
-    button.toggleAttribute('aria-current', isSelected);
-  });
-
   if (nextTab === 'bot' && !dashboardView.hidden) {
     refreshBotSettings().catch((error) => setSendStatus(error.message, 'error'));
   }
@@ -4463,133 +4403,10 @@ function setActiveTab(tab) {
   }
 }
 
-function openCommandPalette() {
-  commandPalette.hidden = false;
-  commandSearch.value = '';
-  const activePrimaryTab = workspaceGroupByTab[getActiveTab()] || getActiveTab();
-  commandSelectionIndex = Math.max(0, tabButtons.findIndex((button) => button.dataset.tab === activePrimaryTab));
-  renderCommandResults();
-  document.body.classList.add('command-open');
-  window.setTimeout(() => commandSearch.focus(), 0);
-}
-
-function closeCommandPalette() {
-  if (commandPalette.hidden) {
-    return;
-  }
-
-  commandPalette.hidden = true;
-  document.body.classList.remove('command-open');
-  commandTrigger.focus();
-}
-
-function renderCommandResults() {
-  const query = commandSearch.value.trim().toLowerCase();
-
-  commandMatches = Object.entries(workspaceMeta)
-    .filter(([tab]) => tabPanels.some((panel) => panel.dataset.panel === tab))
-    .map(([tab, meta]) => {
-      const primaryTab = workspaceGroupByTab[tab] || tab;
-      const button = tabButtons.find((item) => item.dataset.tab === primaryTab);
-      const featureButton = featureNavList?.querySelector(`[data-tab-link="${tab}"]`);
-
-      return {
-        tab,
-        title: meta.title || button?.textContent.trim() || tab,
-        hint: meta.hint || '',
-        key: meta.key || '',
-        icon: button?.querySelector('i')?.className
-          || featureButton?.querySelector('i')?.className
-          || 'fa-solid fa-circle',
-      };
-    })
-    .filter((item) => `${item.title} ${item.hint} ${item.tab}`.toLowerCase().includes(query));
-
-  commandSelectionIndex = Math.min(commandSelectionIndex, Math.max(0, commandMatches.length - 1));
-  commandResults.innerHTML = commandMatches.length
-    ? commandMatches
-      .map((item, index) => `
-        <button
-          class="command-result${index === commandSelectionIndex ? ' active' : ''}"
-          type="button"
-          data-command-tab="${escapeHtml(item.tab)}"
-          role="option"
-          aria-selected="${index === commandSelectionIndex}"
-        >
-          <span class="command-result-index">${escapeHtml(item.key)}</span>
-          <span class="command-result-icon"><i class="${escapeHtml(item.icon)}" aria-hidden="true"></i></span>
-          <span class="command-result-copy">
-            <strong>${escapeHtml(item.title)}</strong>
-            <small>${escapeHtml(item.hint)}</small>
-          </span>
-          <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-        </button>
-      `)
-      .join('')
-    : '<p class="command-empty">No matching space. Try “messages” or “members”.</p>';
-
-  commandResults.querySelector('.command-result.active')?.scrollIntoView({ block: 'nearest' });
-}
-
-function handleCommandResultClick(event) {
-  const result = event.target.closest('[data-command-tab]');
-
-  if (!result) {
-    return;
-  }
-
-  navigateToCommandDestination(result.dataset.commandTab);
-  closeCommandPalette();
-}
-
-function navigateToCommandDestination(tab) {
-  setActiveTab(tab);
-}
-
-function handleCommandKeydown(event) {
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+function handleGlobalKeydown(event) {
+  if (event.key === 'Escape' && notificationCenter?.hidden === false) {
     event.preventDefault();
-
-    if (commandPalette.hidden) {
-      openCommandPalette();
-    } else {
-      closeCommandPalette();
-    }
-
-    return;
-  }
-
-  if (commandPalette.hidden) {
-    if (event.key === 'Escape' && notificationCenter?.hidden === false) {
-      event.preventDefault();
-      closeNotificationCenter();
-      return;
-    }
-
-    return;
-  }
-
-  if (event.key === 'Escape') {
-    event.preventDefault();
-    closeCommandPalette();
-    return;
-  }
-
-  if (!['ArrowDown', 'ArrowUp', 'Enter'].includes(event.key) || !commandMatches.length) {
-    return;
-  }
-
-  event.preventDefault();
-
-  if (event.key === 'ArrowDown') {
-    commandSelectionIndex = (commandSelectionIndex + 1) % commandMatches.length;
-    renderCommandResults();
-  } else if (event.key === 'ArrowUp') {
-    commandSelectionIndex = (commandSelectionIndex - 1 + commandMatches.length) % commandMatches.length;
-    renderCommandResults();
-  } else {
-    navigateToCommandDestination(commandMatches[commandSelectionIndex].tab);
-    closeCommandPalette();
+    closeNotificationCenter();
   }
 }
 
