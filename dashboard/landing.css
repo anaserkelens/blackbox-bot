@@ -643,44 +643,52 @@ p {
   color: var(--text-soft);
 }
 
-/* ---------- Route grid ---------- */
-.route-grid {
+/* ---------- Workspace grid ---------- */
+.workspace-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
+  gap: 14px;
   margin-top: 28px;
 }
 
-.route {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 16px;
+.workspace {
+  display: block;
+  padding: 20px;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: var(--r-md);
+  border-radius: var(--r-lg);
   color: var(--text);
   text-decoration: none;
-  font-weight: 550;
-  font-size: 0.93rem;
-  transition: border-color 150ms var(--ease), background 150ms var(--ease);
+  transition: transform 150ms var(--ease), border-color 150ms var(--ease), background 150ms var(--ease);
 }
 
-.route:hover {
+.workspace:hover {
+  transform: translateY(-3px);
   background: var(--raised);
   border-color: var(--line-strong);
 }
 
-.route i {
+.workspace i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-sm);
+  background: var(--lamp-soft);
   color: var(--lamp);
-  width: 18px;
-  text-align: center;
+  font-size: 1rem;
 }
 
-.route code {
-  margin-left: auto;
-  font-size: 0.75rem;
-  color: var(--text-faint);
+.workspace h3 {
+  font-size: 1rem;
+  margin: 12px 0 4px;
+}
+
+.workspace p {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--text-soft);
 }
 
 /* ---------- Pricing ---------- */
