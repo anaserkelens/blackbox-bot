@@ -1311,7 +1311,6 @@ input[type='search'] {
 
 .nav-intro small {
   font-family: var(--font-display);
-  font-style: italic;
   font-size: 0.82rem;
   color: var(--text-faint);
 }
@@ -1619,7 +1618,6 @@ input[type='search'] {
 }
 
 .overview-lead-copy h1 span {
-  font-style: italic;
   font-weight: 480;
   color: var(--bean-bright);
 }
@@ -1942,7 +1940,6 @@ input[type='search'] {
   padding: 0.7rem 0.15rem;
   color: var(--text-faint);
   font-size: 0.82rem;
-  font-style: italic;
   font-family: var(--font-display);
 }
 
@@ -2053,7 +2050,6 @@ input[type='search'] {
   text-align: center;
   color: var(--text-faint);
   font-family: var(--font-display);
-  font-style: italic;
 }
 
 /* ---------- 14. Hub pages ---------- */
@@ -2341,7 +2337,6 @@ input[type='search'] {
   text-align: center;
   color: var(--text-faint);
   font-family: var(--font-display);
-  font-style: italic;
 }
 
 .command-dialog footer {
@@ -2516,7 +2511,6 @@ input[type='search'] {
   text-align: center;
   color: var(--text-faint);
   font-family: var(--font-display);
-  font-style: italic;
 }
 
 /* ---------- 17. Workspace & composer ---------- */
@@ -3377,7 +3371,6 @@ input[type='search'] {
   text-align: center;
   color: var(--text-faint);
   font-family: var(--font-display);
-  font-style: italic;
 }
 
 .bulk-action-bar {
@@ -4369,7 +4362,6 @@ input[type='search'] {
   padding: 0.8rem 0.2rem;
   color: var(--text-faint);
   font-size: 0.8rem;
-  font-style: italic;
   font-family: var(--font-display);
 }
 
@@ -4854,7 +4846,6 @@ input[type='search'] {
   text-align: center;
   color: var(--text-faint);
   font-family: var(--font-display);
-  font-style: italic;
 }
 
 /* ---------- 26. Feature pages ---------- */
@@ -5487,7 +5478,6 @@ button.is-feature-disabled {
   text-align: center;
   color: var(--text-faint);
   font-family: var(--font-display);
-  font-style: italic;
 }
 
 .config-access-grid {
@@ -5591,7 +5581,6 @@ button.is-feature-disabled {
   text-align: center;
   color: var(--text-faint);
   font-family: var(--font-display);
-  font-style: italic;
 }
 
 .config-save-dock {
@@ -5688,7 +5677,6 @@ button.is-feature-disabled {
 #bot-banner-placeholder {
   color: var(--text-faint);
   font-size: 0.8rem;
-  font-style: italic;
   font-family: var(--font-display);
 }
 
@@ -5786,7 +5774,6 @@ button.is-feature-disabled {
   padding: 1rem 0.4rem;
   color: var(--text-faint);
   font-size: 0.84rem;
-  font-style: italic;
   font-family: var(--font-display);
 }
 
