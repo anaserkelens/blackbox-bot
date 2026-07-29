@@ -463,25 +463,21 @@ p {
     radial-gradient(1px 1px at 30% 88%, rgba(236, 235, 228, 0.3), transparent);
 }
 
-/* planet-limb arc behind the headline */
+/* subtle planet-limb horizon — only the top arc shows, fading at the sides */
 .hero-arc {
   position: absolute;
   left: 50%;
-  top: 150px;
-  width: min(1600px, 165vw);
+  top: 240px;
+  width: min(2800px, 260vw);
   aspect-ratio: 1;
   transform: translateX(-50%);
   border-radius: 50%;
+  border: 1px solid rgba(143, 161, 190, 0.2);
+  box-shadow: inset 0 0 120px 20px rgba(143, 161, 190, 0.06);
   pointer-events: none;
   z-index: 0;
-  background:
-    radial-gradient(circle at 50% 50%,
-      transparent 66%,
-      rgba(143, 161, 190, 0.05) 68%,
-      rgba(143, 161, 190, 0.34) 69.5%,
-      rgba(143, 161, 190, 0.05) 71%,
-      transparent 73%),
-    radial-gradient(circle at 50% 32%, rgba(143, 161, 190, 0.12), transparent 48%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.5) 20%, transparent 42%);
+  mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.5) 20%, transparent 42%);
 }
 
 .hero-glow {
@@ -538,8 +534,9 @@ p {
 .hero-title {
   display: flex;
   flex-direction: column;
-  max-width: 16ch;
+  max-width: min(940px, 92vw);
   margin-bottom: 22px;
+  text-wrap: balance;
 }
 
 .line-bright {
@@ -578,15 +575,19 @@ p {
 
 /* App-window mockup */
 .hero-stage {
+  position: relative;
+  z-index: 1;
   width: 100%;
-  margin-top: clamp(48px, 7vw, 84px);
-  perspective: 1500px;
-  perspective-origin: center -20%;
+  max-width: 1500px;
+  margin: clamp(36px, 5vw, 64px) auto -4%;
+  padding: 0 clamp(18px, 4vw, 40px);
+  perspective: 1700px;
+  perspective-origin: center -10%;
 }
 
 .hero-window {
   width: 100%;
-  max-width: 960px;
+  max-width: 100%;
   margin: 0 auto;
   background: linear-gradient(180deg, var(--panel), var(--well));
   border: 1px solid var(--line-strong);
@@ -597,10 +598,10 @@ p {
 
 /* lay the product shot back like it sits on the planet surface */
 .hero-stage .hero-window {
-  transform: rotateX(33deg);
+  transform: rotateX(30deg);
   transform-origin: center top;
-  -webkit-mask-image: linear-gradient(to bottom, #000 42%, rgba(0, 0, 0, 0.2) 86%, transparent);
-  mask-image: linear-gradient(to bottom, #000 42%, rgba(0, 0, 0, 0.2) 86%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, rgba(0, 0, 0, 0.25) 88%, transparent);
+  mask-image: linear-gradient(to bottom, #000 55%, rgba(0, 0, 0, 0.25) 88%, transparent);
 }
 
 .win-bar {
