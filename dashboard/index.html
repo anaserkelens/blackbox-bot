@@ -915,8 +915,63 @@
                 <label class="field">Kudos received · daily<input id="growth-kudos-receive-limit" type="number" min="1" max="30" /></label>
               </div>
               <div class="growth-exclusion-grid">
-                <label class="field">Excluded channels<select id="growth-excluded-channels" multiple size="5"></select></label>
-                <label class="field">Excluded roles<select id="growth-excluded-roles" multiple size="5"></select></label>
+                <fieldset class="growth-exclusion-picker" data-growth-exclusion-picker="channels">
+                  <legend>Excluded channels</legend>
+                  <div class="growth-picker-toolbar">
+                    <label class="growth-picker-search">
+                      <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                      <input
+                        id="growth-excluded-channel-search"
+                        type="search"
+                        placeholder="Find a channel"
+                        autocomplete="off"
+                        data-growth-picker-search="channels"
+                      />
+                    </label>
+                    <span id="growth-excluded-channel-count" class="growth-picker-count">0 excluded</span>
+                  </div>
+                  <div class="growth-picker-actions">
+                    <button class="secondary" type="button" data-growth-picker-action="select" data-growth-picker="channels">Select shown</button>
+                    <button class="secondary" type="button" data-growth-picker-action="clear" data-growth-picker="channels">Clear all</button>
+                  </div>
+                  <div
+                    id="growth-excluded-channel-list"
+                    class="growth-picker-list"
+                    data-growth-picker-list="channels"
+                    role="group"
+                    aria-label="Channels excluded from Community Growth"
+                  ></div>
+                  <p class="growth-picker-empty" data-growth-picker-empty="channels" hidden>No matching channels.</p>
+                </fieldset>
+
+                <fieldset class="growth-exclusion-picker" data-growth-exclusion-picker="roles">
+                  <legend>Excluded roles</legend>
+                  <div class="growth-picker-toolbar">
+                    <label class="growth-picker-search">
+                      <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                      <input
+                        id="growth-excluded-role-search"
+                        type="search"
+                        placeholder="Find a role"
+                        autocomplete="off"
+                        data-growth-picker-search="roles"
+                      />
+                    </label>
+                    <span id="growth-excluded-role-count" class="growth-picker-count">0 excluded</span>
+                  </div>
+                  <div class="growth-picker-actions">
+                    <button class="secondary" type="button" data-growth-picker-action="select" data-growth-picker="roles">Select shown</button>
+                    <button class="secondary" type="button" data-growth-picker-action="clear" data-growth-picker="roles">Clear all</button>
+                  </div>
+                  <div
+                    id="growth-excluded-role-list"
+                    class="growth-picker-list"
+                    data-growth-picker-list="roles"
+                    role="group"
+                    aria-label="Roles excluded from Community Growth"
+                  ></div>
+                  <p class="growth-picker-empty" data-growth-picker-empty="roles" hidden>No matching roles.</p>
+                </fieldset>
               </div>
               <p id="growth-settings-status" class="muted">Changes affect new growth only; existing achievements remain.</p>
             </form>

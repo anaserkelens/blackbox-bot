@@ -122,8 +122,7 @@ const growthVoiceDailyLimit = document.querySelector('#growth-voice-daily-limit'
 const growthKudosCooldown = document.querySelector('#growth-kudos-cooldown');
 const growthKudosSendLimit = document.querySelector('#growth-kudos-send-limit');
 const growthKudosReceiveLimit = document.querySelector('#growth-kudos-receive-limit');
-const growthExcludedChannels = document.querySelector('#growth-excluded-channels');
-const growthExcludedRoles = document.querySelector('#growth-excluded-roles');
+const growthExclusionPickers = [...document.querySelectorAll('[data-growth-exclusion-picker]')];
 const growthRecognitionForm = document.querySelector('#growth-recognition-form');
 const growthRecognitionMember = document.querySelector('#growth-recognition-member');
 const growthRecognitionTrait = document.querySelector('#growth-recognition-trait');
@@ -643,6 +642,11 @@ function bindEvents() {
   growthProfileSearchForm?.addEventListener('submit', handleCommunityGrowthProfileSearch);
   growthProfileSearchResults?.addEventListener('click', handleCommunityGrowthProfileClick);
   growthSettingsForm?.addEventListener('submit', handleCommunityGrowthSettingsSave);
+  growthExclusionPickers.forEach((picker) => {
+    picker.addEventListener('input', handleGrowthExclusionPickerInput);
+    picker.addEventListener('change', handleGrowthExclusionPickerChange);
+    picker.addEventListener('click', handleGrowthExclusionPickerClick);
+  });
   growthRecognitionForm?.addEventListener('submit', handleCommunityGrowthRecognition);
   growthSeasonForm?.addEventListener('submit', handleCommunityGrowthSeasonStart);
   refreshBotButton.addEventListener('click', () => {
@@ -4962,33 +4966,146 @@ function renderCommunityGrowthSettings() {
   growthKudosCooldown.value = settings.kudosPairCooldownDays;
   growthKudosSendLimit.value = settings.kudosDailySendLimit;
   growthKudosReceiveLimit.value = settings.kudosDailyReceiveLimit;
-  populateGrowthExclusionSelect(
-    growthExcludedChannels,
+  renderGrowthExclusionPicker(
+    'channels',
     state.discordChannels,
     settings.excludedChannelIds,
     (channel) => `#${channel.name}${channel.parentName ? ` · ${channel.parentName}` : ''}`,
   );
-  populateGrowthExclusionSelect(
-    growthExcludedRoles,
+  renderGrowthExclusionPicker(
+    'roles',
     state.discordRoles,
     settings.excludedRoleIds,
     (role) => `@${role.name}`,
   );
 }
 
-function populateGrowthExclusionSelect(select, items, selectedIds, createLabel) {
-  const selected = new Set(selectedIds || []);
+function renderGrowthExclusionPicker(type, items, selectedIds, createLabel) {
+  const picker = document.querySelector(`[data-growth-exclusion-picker="${type}"]`);
+  const list = picker?.querySelector(`[data-growth-picker-list="${type}"]`);
 
-  select.replaceChildren();
+  if (!picker || !list) {
+    return;
+  }
+
+  const selected = new Set(selectedIds || []);
+  const readOnly = state.session?.permissions?.configure === false;
+
+  list.replaceChildren();
 
   for (const item of items || []) {
-    const option = document.createElement('option');
+    const option = document.createElement('label');
+    const input = document.createElement('input');
+    const check = document.createElement('span');
+    const copy = document.createElement('span');
+    const name = document.createElement('strong');
+    const stateLabel = document.createElement('small');
+    const label = createLabel(item);
 
-    option.value = item.id;
-    option.textContent = createLabel(item);
-    option.selected = selected.has(item.id);
-    select.append(option);
+    option.className = 'growth-picker-option';
+    option.dataset.growthPickerOption = type;
+    option.dataset.searchText = `${label} ${item.id}`.toLocaleLowerCase();
+    input.type = 'checkbox';
+    input.value = item.id;
+    input.checked = selected.has(item.id);
+    input.disabled = readOnly;
+    input.dataset.growthPickerCheckbox = type;
+    check.className = 'growth-picker-check';
+    check.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i>';
+    copy.className = 'growth-picker-option-copy';
+    name.textContent = label;
+    stateLabel.textContent = input.checked ? 'Excluded from growth' : 'Growth enabled';
+    copy.append(name, stateLabel);
+    option.classList.toggle('is-selected', input.checked);
+    option.append(input, check, copy);
+    list.append(option);
   }
+
+  updateGrowthExclusionPicker(type);
+}
+
+function handleGrowthExclusionPickerInput(event) {
+  if (!event.target.matches('[data-growth-picker-search]')) {
+    return;
+  }
+
+  updateGrowthExclusionPicker(event.target.dataset.growthPickerSearch);
+}
+
+function handleGrowthExclusionPickerChange(event) {
+  if (!event.target.matches('[data-growth-picker-checkbox]')) {
+    return;
+  }
+
+  updateGrowthExclusionPicker(event.target.dataset.growthPickerCheckbox);
+}
+
+function handleGrowthExclusionPickerClick(event) {
+  const button = event.target.closest('[data-growth-picker-action]');
+
+  if (!button) {
+    return;
+  }
+
+  const type = button.dataset.growthPicker;
+  const picker = document.querySelector(`[data-growth-exclusion-picker="${type}"]`);
+  const checkboxes = [...picker.querySelectorAll('[data-growth-picker-checkbox]')];
+
+  if (button.dataset.growthPickerAction === 'select') {
+    checkboxes
+      .filter((checkbox) => !checkbox.closest('[data-growth-picker-option]').hidden)
+      .forEach((checkbox) => {
+        checkbox.checked = true;
+      });
+  } else {
+    checkboxes.forEach((checkbox) => {
+      checkbox.checked = false;
+    });
+  }
+
+  updateGrowthExclusionPicker(type);
+}
+
+function updateGrowthExclusionPicker(type) {
+  const picker = document.querySelector(`[data-growth-exclusion-picker="${type}"]`);
+
+  if (!picker) {
+    return;
+  }
+
+  const search = picker.querySelector(`[data-growth-picker-search="${type}"]`);
+  const count = picker.querySelector(`#growth-excluded-${type === 'channels' ? 'channel' : 'role'}-count`);
+  const empty = picker.querySelector(`[data-growth-picker-empty="${type}"]`);
+  const selectButton = picker.querySelector('[data-growth-picker-action="select"]');
+  const clearButton = picker.querySelector('[data-growth-picker-action="clear"]');
+  const query = search.value.trim().toLocaleLowerCase();
+  const options = [...picker.querySelectorAll('[data-growth-picker-option]')];
+  let visibleCount = 0;
+  let visibleUncheckedCount = 0;
+  let selectedCount = 0;
+
+  for (const option of options) {
+    const checkbox = option.querySelector('[data-growth-picker-checkbox]');
+    const visible = !query || option.dataset.searchText.includes(query);
+
+    option.hidden = !visible;
+    option.classList.toggle('is-selected', checkbox.checked);
+    option.querySelector('small').textContent = checkbox.checked
+      ? 'Excluded from growth'
+      : 'Growth enabled';
+    if (visible) {
+      visibleCount += 1;
+      if (!checkbox.checked) visibleUncheckedCount += 1;
+    }
+    if (checkbox.checked) selectedCount += 1;
+  }
+
+  count.textContent = `${selectedCount} excluded`;
+  count.classList.toggle('has-selection', selectedCount > 0);
+  empty.hidden = visibleCount > 0;
+  selectButton.disabled = visibleUncheckedCount === 0 || state.session?.permissions?.configure === false;
+  clearButton.disabled = selectedCount === 0 || state.session?.permissions?.configure === false;
+  selectButton.textContent = query ? `Select ${visibleCount} shown` : 'Select all';
 }
 
 function renderCommunityGrowthActivity() {
@@ -5198,8 +5315,8 @@ async function handleCommunityGrowthSettingsSave(event) {
     kudosPairCooldownDays: Number(growthKudosCooldown.value),
     kudosDailySendLimit: Number(growthKudosSendLimit.value),
     kudosDailyReceiveLimit: Number(growthKudosReceiveLimit.value),
-    excludedChannelIds: getSelectedValues(growthExcludedChannels),
-    excludedRoleIds: getSelectedValues(growthExcludedRoles),
+    excludedChannelIds: getGrowthExclusionValues('channels'),
+    excludedRoleIds: getGrowthExclusionValues('roles'),
   };
 
   const result = await api('/api/community-growth/settings', {
@@ -5277,8 +5394,11 @@ async function handleCommunityGrowthSeasonStart(event) {
   setSendStatus(`${result.season.name} is now active.`, 'success');
 }
 
-function getSelectedValues(select) {
-  return [...select.selectedOptions].map((option) => option.value);
+function getGrowthExclusionValues(type) {
+  const picker = document.querySelector(`[data-growth-exclusion-picker="${type}"]`);
+
+  return [...picker.querySelectorAll('[data-growth-picker-checkbox]:checked')]
+    .map((checkbox) => checkbox.value);
 }
 
 function startDashboardNotifications() {
