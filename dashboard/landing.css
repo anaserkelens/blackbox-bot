@@ -1239,6 +1239,34 @@ p {
   }
 }
 
+/* Dashboard capstone — closing "it all lives in one place" beat */
+.dashboard-capstone {
+  max-width: 720px;
+  margin: clamp(56px, 8vw, 96px) auto 0;
+  padding-top: clamp(40px, 5vw, 64px);
+  border-top: 1px solid var(--line);
+  text-align: center;
+}
+
+.dashboard-capstone .kicker {
+  margin-bottom: 18px;
+}
+
+.dashboard-capstone h3 {
+  font-size: clamp(1.5rem, 2.6vw, 2.1rem);
+  margin-bottom: 16px;
+}
+
+.dashboard-capstone > p {
+  max-width: 54ch;
+  margin: 0 auto;
+  color: var(--text-soft);
+}
+
+.dashboard-capstone .feature-visual {
+  margin-top: 32px;
+}
+
 /* ---------- Pricing ---------- */
 .price-cards {
   display: grid;
