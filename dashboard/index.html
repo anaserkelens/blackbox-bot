@@ -1319,52 +1319,6 @@
               </div>
             </aside>
           </section>
-          <form id="welcome-channel-settings-form" class="dashboard-panel feature-channel-settings welcome-channel-settings">
-            <div class="section-heading">
-              <div>
-                <p class="eyebrow">Onboarding destinations</p>
-                <h2>Community links</h2>
-                <p>These channels belong to the welcome journey, so they live beside the Welcome Message builder.</p>
-              </div>
-              <span class="status-pill">Shared welcome links</span>
-            </div>
-            <div class="config-field-grid">
-              <label class="config-field-card">
-                <span class="config-field-heading"><strong>Guidelines</strong><small>Community guidance for new members.</small></span>
-                <span class="cozy-channel-select">
-                  <span class="cozy-channel-select-icon" aria-hidden="true"><i class="fa-solid fa-hashtag"></i></span>
-                  <select id="welcome-guidelines-channel" class="discord-channel-select" data-feature-channel-setting="guidelines">
-                    <option value="">Loading Discord channels&hellip;</option>
-                  </select>
-                  <i class="fa-solid fa-chevron-down cozy-channel-select-chevron" aria-hidden="true"></i>
-                </span>
-              </label>
-              <label class="config-field-card">
-                <span class="config-field-heading"><strong>Introductions</strong><small>Where new members can say hello.</small></span>
-                <span class="cozy-channel-select">
-                  <span class="cozy-channel-select-icon" aria-hidden="true"><i class="fa-solid fa-hashtag"></i></span>
-                  <select id="welcome-introductions-channel" class="discord-channel-select" data-feature-channel-setting="introductions">
-                    <option value="">Loading Discord channels&hellip;</option>
-                  </select>
-                  <i class="fa-solid fa-chevron-down cozy-channel-select-chevron" aria-hidden="true"></i>
-                </span>
-              </label>
-              <label class="config-field-card">
-                <span class="config-field-heading"><strong>Socials</strong><small>Community social posts and creator links.</small></span>
-                <span class="cozy-channel-select">
-                  <span class="cozy-channel-select-icon" aria-hidden="true"><i class="fa-solid fa-hashtag"></i></span>
-                  <select id="welcome-socials-channel" class="discord-channel-select" data-feature-channel-setting="socials">
-                    <option value="">Loading Discord channels&hellip;</option>
-                  </select>
-                  <i class="fa-solid fa-chevron-down cozy-channel-select-chevron" aria-hidden="true"></i>
-                </span>
-              </label>
-            </div>
-            <div class="feature-channel-settings-actions">
-              <span>Optional channels can be left unselected.</span>
-              <button type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save onboarding channels</button>
-            </div>
-          </form>
         </section>
 
         <section class="tab-panel feature-page" data-panel="live-embed" data-feature-page-any="streamMonitor youtubeMonitor" hidden>
@@ -1384,6 +1338,16 @@
               <span class="config-feature-toggle"><input type="checkbox" data-feature-toggle="youtubeMonitor" data-requires-permission="configure"><i></i></span>
             </label>
           </section>
+          <div class="embed-kind-switch" role="group" aria-label="Notification type">
+            <button class="secondary is-active" type="button" data-embed-builder="live" aria-pressed="true">
+              <i class="fa-brands fa-twitch" aria-hidden="true"></i>
+              Twitch Live
+            </button>
+            <button class="secondary" type="button" data-embed-builder="youtube" aria-pressed="false">
+              <i class="fa-brands fa-youtube" aria-hidden="true"></i>
+              YouTube Upload
+            </button>
+          </div>
           <section id="embed-builder-workspace" class="live-embed-workspace">
             <form id="live-embed-form" class="live-embed-editor">
               <div class="toolbar-row">
@@ -1395,17 +1359,6 @@
                   <span id="live-embed-storage-status" class="status-pill">Checking storage</span>
                   <button id="refresh-live-embed" class="secondary" type="button">Refresh</button>
                 </div>
-              </div>
-
-              <div class="embed-kind-switch" role="group" aria-label="Notification type">
-                <button class="secondary is-active" type="button" data-embed-builder="live" aria-pressed="true">
-                  <i class="fa-brands fa-twitch" aria-hidden="true"></i>
-                  Twitch Live
-                </button>
-                <button class="secondary" type="button" data-embed-builder="youtube" aria-pressed="false">
-                  <i class="fa-brands fa-youtube" aria-hidden="true"></i>
-                  YouTube Upload
-                </button>
               </div>
 
               <section class="live-editor-section live-placeholder-guide">
@@ -1681,16 +1634,14 @@
               <div class="config-access-grid">
                 <section class="dashboard-panel">
                   <div class="config-section-heading">
-                    <div><p class="eyebrow">Staff access</p><h2>Dashboard roles</h2></div>
+                    <div><p class="eyebrow">Staff access</p><h2>Access levels</h2></div>
                   </div>
                   <div class="access-level-list">
-                    <div><strong>Founder</strong><span>Everything, including access configuration.</span></div>
-                    <div><strong>Administrator</strong><span>Configuration, publishing, moderation, and bot settings.</span></div>
+                    <div><strong>Founder / Owner</strong><span>Everything, including access configuration.</span></div>
+                    <div><strong>Staff</strong><span>Configuration, builders, publishing, moderation, and bot settings.</span></div>
                     <div><strong>Moderator</strong><span>Members, cases, tickets, and voice-room actions.</span></div>
-                    <div><strong>Editor</strong><span>Message builders, scheduling, and publishing.</span></div>
-                    <div><strong>Viewer</strong><span>Read-only overview, members, activity, and analytics.</span></div>
                   </div>
-                  <p class="config-access-note">Assign the matching Discord roles in the Roles section. Founder access also follows the configured bot owner and Founder role.</p>
+                  <p class="config-access-note">Dashboard access follows these existing Discord roles. The configured bot owner always receives Founder access.</p>
                 </section>
                 <section class="dashboard-panel">
                   <div class="config-section-heading">

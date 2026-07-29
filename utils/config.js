@@ -69,10 +69,7 @@ const config = {
   ownerUserId: readEnv('BOT_OWNER_USER_ID') || '185282790969835520',
   channels: {
     welcome: readEnv('WELCOME_CHANNEL_ID') || '1520407983354544171',
-    guidelines: readEnv('GUIDELINES_CHANNEL_ID'),
-    introductions: readEnv('INTRODUCTIONS_CHANNEL_ID'),
-    rules: readEnv('RULES_CHANNEL_ID') || readEnv('GUIDELINES_CHANNEL_ID'),
-    socials: readEnv('SOCIALS_CHANNEL_ID'),
+    rules: readEnv('RULES_CHANNEL_ID'),
     tickets: readEnv('TICKET_CHANNEL_ID'),
     ...loggingChannels,
     ticketLogs: loggingChannels.operationLog,
@@ -99,9 +96,6 @@ const config = {
     verified: readEnv('VERIFIED_ROLE_ID'),
     live: readEnv('LIVE_ROLE_ID') || '1520781346740506874',
     newUpload: readEnv('NEW_UPLOAD_ROLE_ID') || '1520828024533159936',
-    dashboardAdmin: readEnv('DASHBOARD_ADMIN_ROLE_ID'),
-    dashboardEditor: readEnv('DASHBOARD_EDITOR_ROLE_ID'),
-    dashboardViewer: readEnv('DASHBOARD_VIEWER_ROLE_ID'),
   },
   reactionRole: {
     messageId: readEnv('REACTION_ROLE_MESSAGE_ID'),

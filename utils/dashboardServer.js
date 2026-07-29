@@ -1083,7 +1083,6 @@ function isRoleCheckRelevant(key, features) {
   if (key === 'live') return features.streamMonitor;
   if (key === 'newUpload') return features.youtubeMonitor;
   if (key === 'verified') return features.reactionRoles;
-  if (key.startsWith('dashboard')) return isDiscordOauthConfigured();
   return Boolean(config.roles[key]);
 }
 
@@ -2520,38 +2519,38 @@ function resolveDashboardRole(userId, memberRoles = []) {
   const roles = new Set(Array.isArray(memberRoles) ? memberRoles : []);
 
   if (userId === config.ownerUserId || roles.has(config.roles.founder)) return 'founder';
-  if (roles.has(config.roles.dashboardAdmin) || roles.has(config.roles.staff)) return 'admin';
+  if (roles.has(config.roles.staff)) return 'staff';
   if (roles.has(config.roles.moderator)) return 'moderator';
-  if (roles.has(config.roles.dashboardEditor)) return 'editor';
-  if (roles.has(config.roles.dashboardViewer)) return 'viewer';
   return null;
 }
 
 function getSessionPermissions(session) {
-  const role = session?.user?.role || 'viewer';
-  const level = getDashboardRoleLevel(role);
+  const role = session?.user?.role || null;
+  const founder = role === 'founder';
+  const staff = role === 'staff';
+  const moderator = role === 'moderator';
 
   return {
     role,
-    view: level >= 1,
-    create: level >= 2,
-    moderate: level >= 3,
-    configure: level >= 4,
-    owner: level >= 5,
+    view: founder || staff || moderator,
+    create: founder || staff,
+    moderate: founder || staff || moderator,
+    configure: founder || staff,
+    owner: founder,
   };
 }
 
 function sessionCanAccess(session, method, pathname) {
+  const permissions = getSessionPermissions(session);
+
   if (method === 'GET') {
-    return true;
+    return permissions.view;
   }
 
-  const level = getDashboardRoleLevel(session?.user?.role);
-
   if (pathname === '/api/logout') return true;
-  if (pathname === '/api/configuration' || pathname.startsWith('/api/bot/')) return level >= 4;
-  if (pathname.startsWith('/api/moderation-cases/')) return level >= 3;
-  if (pathname.startsWith('/api/temp-voice/')) return level >= 3;
+  if (pathname === '/api/configuration' || pathname.startsWith('/api/bot/')) return permissions.configure;
+  if (pathname.startsWith('/api/moderation-cases/')) return permissions.moderate;
+  if (pathname.startsWith('/api/temp-voice/')) return permissions.moderate;
   if (
     pathname.startsWith('/api/send-message')
     || pathname.startsWith('/api/test-announcement')
@@ -2559,20 +2558,10 @@ function sessionCanAccess(session, method, pathname) {
     || pathname.startsWith('/api/saved-messages')
     || pathname.endsWith('-embed')
   ) {
-    return level >= 2;
+    return permissions.create;
   }
 
-  return level >= 4;
-}
-
-function getDashboardRoleLevel(role) {
-  return {
-    viewer: 1,
-    editor: 2,
-    moderator: 3,
-    admin: 4,
-    founder: 5,
-  }[role] || 0;
+  return permissions.configure;
 }
 
 function pruneOauthState() {

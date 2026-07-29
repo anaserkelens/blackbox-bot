@@ -120,11 +120,9 @@ const voiceRoomTriggerIdInput = document.querySelector('#voice-room-trigger-id')
 const saveVoiceRoomSettingsButton = document.querySelector('#save-voice-room-settings');
 const ticketChannelSettingsForm = document.querySelector('#ticket-channel-settings-form');
 const reactionRoleChannelSettingsForm = document.querySelector('#reaction-role-channel-settings-form');
-const welcomeChannelSettingsForm = document.querySelector('#welcome-channel-settings-form');
 const featureChannelSettingsForms = [
   ticketChannelSettingsForm,
   reactionRoleChannelSettingsForm,
-  welcomeChannelSettingsForm,
 ].filter(Boolean);
 const voiceRoomListCount = document.querySelector('#voice-room-list-count');
 const voiceRoomList = document.querySelector('#voice-room-list');
@@ -1637,14 +1635,11 @@ function getPresenceActivityNames() {
 const dashboardConfigurationDefinitions = {
   roles: {
     founder: ['Founder role', 'Full bot and dashboard ownership.'],
-    staff: ['Staff role', 'Administrator-level dashboard access.'],
+    staff: ['Staff role', 'Full dashboard access below Founder ownership.'],
     moderator: ['Moderator role', 'Cases, members, tickets, and voice operations.'],
     verified: ['Verified role', 'Role granted by the verification system.'],
     live: ['Going Live role', 'Granted to members streaming on Twitch.'],
     newUpload: ['New Upload role', 'Mentioned for YouTube upload alerts.'],
-    dashboardAdmin: ['Dashboard Administrator', 'Configuration, publishing, and moderation.'],
-    dashboardEditor: ['Dashboard Editor', 'Builders, scheduling, and publishing.'],
-    dashboardViewer: ['Dashboard Viewer', 'Read-only dashboard access.'],
   },
   features: {
     welcomeMessages: ['Welcome messages', 'Greet new members with the saved Welcome template.', 'fa-hand-sparkles'],
@@ -1868,9 +1863,6 @@ function getChannelOwnerTab(key) {
 
   return {
     welcome: 'welcome-embed',
-    guidelines: 'welcome-embed',
-    introductions: 'welcome-embed',
-    socials: 'welcome-embed',
     rules: 'reaction-roles',
     tickets: 'tickets',
     streamAnnouncements: 'live-embed',
@@ -2055,7 +2047,7 @@ function renderFeatureControls() {
 
     element.textContent = enabled
       ? 'Enabled · Bean is actively running this feature.'
-      : 'Disabled · Your setup is saved and can still be edited.';
+      : 'Disabled · Your setup is saved and locked until you enable it again.';
   });
 
   document.querySelectorAll('[data-feature-state-pill]').forEach((element) => {
@@ -2101,6 +2093,69 @@ function renderFeatureControls() {
 
   renderFeatureChannelSettings();
   renderAuditLoggingChannels();
+  renderFeaturePageAvailability();
+}
+
+function renderFeaturePageAvailability() {
+  const features = state.configuration?.features;
+
+  if (!features) {
+    return;
+  }
+
+  document.querySelectorAll('[data-feature-page], [data-feature-page-any]').forEach((page) => {
+    const enabled = isFeaturePageEditorEnabled(page, features);
+    const exemptSelector = '.feature-status-strip, .feature-page-hero, .feature-status-grid, .embed-kind-switch';
+
+    page.classList.toggle('is-active-feature-disabled', !enabled);
+
+    [...page.children].forEach((surface) => {
+      const exempt = surface.matches(exemptSelector);
+
+      surface.classList.toggle('feature-lock-surface', !exempt);
+      surface.classList.toggle('is-feature-locked', !exempt && !enabled);
+
+      if (!exempt) {
+        surface.setAttribute('aria-disabled', String(!enabled));
+      }
+    });
+
+    page.querySelectorAll('input, select, textarea, button').forEach((control) => {
+      if (control.closest(exemptSelector)) {
+        return;
+      }
+
+      if (!enabled) {
+        if (!control.disabled) {
+          control.dataset.featureDisabled = 'true';
+        }
+        control.disabled = true;
+        return;
+      }
+
+      if (control.dataset.featureDisabled === 'true') {
+        control.disabled = control.dataset.permissionDisabled === 'true';
+        delete control.dataset.featureDisabled;
+      }
+    });
+  });
+}
+
+function isFeaturePageEditorEnabled(page, features) {
+  if (page.dataset.featurePage) {
+    return Boolean(features[page.dataset.featurePage]);
+  }
+
+  if (page.dataset.panel === 'live-embed') {
+    const activeFeature = state.activeEmbedBuilder === 'youtube'
+      ? 'youtubeMonitor'
+      : 'streamMonitor';
+
+    return Boolean(features[activeFeature]);
+  }
+
+  const keys = String(page.dataset.featurePageAny || '').split(/\s+/).filter(Boolean);
+  return keys.some((key) => Boolean(features[key]));
 }
 
 function renderFeatureChannelSettings() {
@@ -2176,7 +2231,6 @@ async function handleFeatureChannelSettingsSave(event) {
     const messages = {
       tickets: 'Ticket destination saved.',
       rules: 'Reaction-role channel saved.',
-      guidelines: 'Onboarding channels saved.',
     };
 
     setSendStatus(messages[changedKeys[0]] || 'Feature destinations saved.', 'success');
@@ -2296,8 +2350,12 @@ async function handleFeatureToggleChange(input) {
   const definition = dashboardConfigurationDefinitions.features[key];
   const settings = cloneData(state.configuration);
   const enabled = input.checked;
+  const previousEnabled = Boolean(state.configuration.features[key]);
 
   settings.features[key] = enabled;
+  state.configuration.features[key] = enabled;
+  renderFeatureControls();
+  applySessionPermissions(state.session?.permissions || {});
   input.disabled = true;
 
   try {
@@ -2317,7 +2375,9 @@ async function handleFeatureToggleChange(input) {
       : '';
     setSendStatus(`${definition?.[0] || 'Feature'} ${enabled ? 'enabled' : 'disabled'}.${restartNote}`, 'success');
   } catch (error) {
+    state.configuration.features[key] = previousEnabled;
     renderFeatureControls();
+    applySessionPermissions(state.session?.permissions || {});
     throw error;
   } finally {
     input.disabled = state.session?.permissions?.configure === false;
@@ -3007,6 +3067,7 @@ function applySessionPermissions(permissions = {}) {
   setFormPermission(botPresenceForm, permissions.configure !== false);
   saveBotAvatarButton.disabled = permissions.configure === false;
   saveBotBannerButton.disabled = permissions.configure === false;
+  renderFeaturePageAvailability();
 }
 
 function setFormPermission(form, allowed) {
@@ -3027,7 +3088,7 @@ function setControlsPermission(controls, allowed) {
     }
 
     if (control.dataset.permissionDisabled === 'true') {
-      control.disabled = false;
+      control.disabled = control.dataset.featureDisabled === 'true';
       delete control.dataset.permissionDisabled;
     }
   });
@@ -6223,6 +6284,7 @@ async function loadLiveEmbedSettings(showNotification = false, kind = state.acti
   if (state.activeEmbedBuilder === kind) {
     applyLiveEmbedSettings(result.settings || {});
     renderLiveEmbedStorageStatus(result.storage);
+    renderFeaturePageAvailability();
   }
 
   if (result.storage?.hasSavedSettings) {
@@ -6266,9 +6328,11 @@ function activateEmbedBuilder(kind) {
   if (settings) {
     applyLiveEmbedSettings(settings);
     renderLiveEmbedStorageStatus(state.embedBuilderStorage[kind]);
+    renderFeaturePageAvailability();
     return;
   }
 
+  renderFeaturePageAvailability();
   loadLiveEmbedSettings(false, kind).catch((error) => setSendStatus(error.message, 'error'));
 }
 

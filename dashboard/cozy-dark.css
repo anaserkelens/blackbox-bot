@@ -5281,6 +5281,31 @@ button.member-result:hover,
   gap: 14px;
 }
 
+.feature-lock-surface {
+  transition:
+    opacity 180ms ease,
+    filter 180ms ease,
+    transform 180ms ease;
+}
+
+.feature-lock-surface.is-feature-locked {
+  opacity: 0.34;
+  filter: grayscale(0.82) saturate(0.35);
+  pointer-events: none;
+  transform: translateY(1px);
+  user-select: none;
+}
+
+.feature-page.is-active-feature-disabled .feature-page-hero,
+.feature-page.is-active-feature-disabled > .feature-status-strip {
+  border-color: rgba(211, 154, 103, 0.14);
+}
+
+.feature-page.is-active-feature-disabled .feature-page-toggle > span:first-child,
+.feature-page.is-active-feature-disabled .feature-status-copy > div {
+  opacity: 0.78;
+}
+
 .feature-status-grid {
   display: grid;
   gap: 12px;
@@ -5532,30 +5557,6 @@ button.member-result:hover,
 .feature-channel-settings > button[type="submit"] {
   width: 100%;
   margin-top: auto;
-}
-
-.welcome-channel-settings {
-  display: grid;
-  gap: 20px;
-  padding: 24px;
-}
-
-.welcome-channel-settings .config-field-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.feature-channel-settings-actions {
-  align-items: center;
-  border-top: 1px solid rgba(242, 226, 207, 0.07);
-  display: flex;
-  gap: 16px;
-  justify-content: space-between;
-  padding-top: 17px;
-}
-
-.feature-channel-settings-actions > span {
-  color: #7e7973;
-  font-size: 9px;
 }
 
 .feature-requirement-list {
@@ -6555,18 +6556,8 @@ body.notification-center-open {
     flex-direction: column;
   }
 
-  .audit-log-save-row button,
-  .feature-channel-settings-actions button {
+  .audit-log-save-row button {
     width: 100%;
-  }
-
-  .welcome-channel-settings .config-field-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .feature-channel-settings-actions {
-    align-items: stretch;
-    flex-direction: column;
   }
 
   .session-identity,

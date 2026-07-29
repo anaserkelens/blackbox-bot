@@ -3,10 +3,7 @@ const path = require('node:path');
 
 const settingsFileName = 'dashboard-settings.json';
 const channelKeys = [
-  'guidelines',
-  'introductions',
   'rules',
-  'socials',
   'tickets',
   'ticketLogs',
   'caseFiles',
@@ -30,9 +27,6 @@ const roleKeys = [
   'verified',
   'live',
   'newUpload',
-  'dashboardAdmin',
-  'dashboardEditor',
-  'dashboardViewer',
 ];
 const featureKeys = [
   'welcomeMessages',
