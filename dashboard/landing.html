@@ -60,13 +60,18 @@
     <main id="main">
       <!-- Hero -->
       <section class="hero">
+        <div class="hero-stars" aria-hidden="true"></div>
+        <div class="hero-arc" aria-hidden="true"></div>
         <div class="hero-glow" aria-hidden="true"></div>
         <div class="shell hero-inner">
           <a class="hero-badge" href="#features">
             <span class="badge-dot"></span>
             The Discord community control room
           </a>
-          <h1>Run a community <span class="grad">people want to return to.</span></h1>
+          <h1 class="hero-title">
+            <span class="line-bright">Run a community</span>
+            <span class="line-dim">people want to return to.</span>
+          </h1>
           <p class="lede center">
             Bean brings thoughtful moderation, meaningful member growth, creator notifications, and
             everyday community tools into one calm, beautifully organized dashboard.
@@ -79,8 +84,9 @@
             <a class="button ghost large" href="/login">Open Dashboard</a>
           </div>
 
-          <!-- App window mockup -->
-          <div class="hero-window" data-reveal aria-hidden="true">
+          <!-- App window mockup — tilted product shot -->
+          <div class="hero-stage" aria-hidden="true">
+            <div class="hero-window">
             <div class="win-bar">
               <span class="win-dots"><i></i><i></i><i></i></span>
               <span class="win-url"><img src="/assets/bean-icon.png" alt="" /> bean · dashboard</span>
@@ -130,6 +136,7 @@
                 </div>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </section>

@@ -436,24 +436,70 @@ p {
 /* ---------- Hero ---------- */
 .hero {
   position: relative;
-  padding: clamp(64px, 10vw, 128px) 0 clamp(40px, 6vw, 72px);
+  isolation: isolate;
+  padding: clamp(64px, 10vw, 128px) 0 clamp(48px, 7vw, 96px);
   overflow: hidden;
+}
+
+/* scattered starfield */
+.hero-stars {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 22%, rgba(236, 235, 228, 0.7), transparent),
+    radial-gradient(1px 1px at 24% 64%, rgba(236, 235, 228, 0.45), transparent),
+    radial-gradient(1.5px 1.5px at 37% 15%, rgba(236, 235, 228, 0.6), transparent),
+    radial-gradient(1px 1px at 52% 40%, rgba(236, 235, 228, 0.4), transparent),
+    radial-gradient(1.5px 1.5px at 66% 18%, rgba(236, 235, 228, 0.6), transparent),
+    radial-gradient(1px 1px at 78% 54%, rgba(236, 235, 228, 0.45), transparent),
+    radial-gradient(1.5px 1.5px at 88% 28%, rgba(236, 235, 228, 0.7), transparent),
+    radial-gradient(1px 1px at 92% 70%, rgba(236, 235, 228, 0.4), transparent),
+    radial-gradient(1px 1px at 8% 46%, rgba(236, 235, 228, 0.4), transparent),
+    radial-gradient(1px 1px at 46% 78%, rgba(236, 235, 228, 0.35), transparent),
+    radial-gradient(1.5px 1.5px at 72% 82%, rgba(236, 235, 228, 0.45), transparent),
+    radial-gradient(1px 1px at 30% 88%, rgba(236, 235, 228, 0.3), transparent);
+}
+
+/* planet-limb arc behind the headline */
+.hero-arc {
+  position: absolute;
+  left: 50%;
+  top: 150px;
+  width: min(1600px, 165vw);
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 50% 50%,
+      transparent 66%,
+      rgba(143, 161, 190, 0.05) 68%,
+      rgba(143, 161, 190, 0.34) 69.5%,
+      rgba(143, 161, 190, 0.05) 71%,
+      transparent 73%),
+    radial-gradient(circle at 50% 32%, rgba(143, 161, 190, 0.12), transparent 48%);
 }
 
 .hero-glow {
   position: absolute;
-  top: -260px;
+  top: -140px;
   left: 50%;
   transform: translateX(-50%);
-  width: min(1100px, 120vw);
-  height: 760px;
-  background: radial-gradient(closest-side, rgba(143, 161, 190, 0.3), rgba(143, 161, 190, 0.08) 55%, transparent 72%);
-  filter: blur(20px);
+  width: min(1000px, 120vw);
+  height: 680px;
+  z-index: 0;
+  background: radial-gradient(closest-side, rgba(143, 161, 190, 0.32), rgba(220, 176, 120, 0.06) 52%, transparent 72%);
+  filter: blur(22px);
   pointer-events: none;
-  z-index: -1;
 }
 
 .hero-inner {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -489,9 +535,23 @@ p {
   box-shadow: 0 0 0 4px var(--sage-soft);
 }
 
-.hero h1 {
-  max-width: 15ch;
+.hero-title {
+  display: flex;
+  flex-direction: column;
+  max-width: 16ch;
   margin-bottom: 22px;
+}
+
+.line-bright {
+  color: var(--text);
+}
+
+.line-dim {
+  background: linear-gradient(180deg, var(--text-soft), var(--bean));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 .lede {
@@ -517,15 +577,30 @@ p {
 }
 
 /* App-window mockup */
+.hero-stage {
+  width: 100%;
+  margin-top: clamp(48px, 7vw, 84px);
+  perspective: 1500px;
+  perspective-origin: center -20%;
+}
+
 .hero-window {
   width: 100%;
-  max-width: 940px;
-  margin: clamp(46px, 7vw, 80px) auto 0;
+  max-width: 960px;
+  margin: 0 auto;
   background: linear-gradient(180deg, var(--panel), var(--well));
   border: 1px solid var(--line-strong);
   border-radius: var(--r-xl);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
+}
+
+/* lay the product shot back like it sits on the planet surface */
+.hero-stage .hero-window {
+  transform: rotateX(33deg);
+  transform-origin: center top;
+  -webkit-mask-image: linear-gradient(to bottom, #000 42%, rgba(0, 0, 0, 0.2) 86%, transparent);
+  mask-image: linear-gradient(to bottom, #000 42%, rgba(0, 0, 0, 0.2) 86%, transparent);
 }
 
 .win-bar {
@@ -766,6 +841,10 @@ p {
 
   .hero-window {
     border-radius: var(--r-lg);
+  }
+
+  .hero-stage .hero-window {
+    transform: rotateX(22deg);
   }
 }
 
