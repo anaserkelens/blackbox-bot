@@ -2,12 +2,17 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 
 const { normalizeStreamEmbedSettings } = require('./streamEmbedSettings');
+const {
+  createDefaultYouTubeSources,
+  normalizeYouTubeSources,
+} = require('./youtubeChannels');
 
 const defaultYouTubeEmbedPath = path.join(__dirname, '..', 'data', 'youtube-embed.json');
 
 function createDefaultYouTubeEmbedSettings(config) {
   return {
     channelId: config.channels.youtubeAnnouncements || config.channels.streamAnnouncements || '',
+    sources: createDefaultYouTubeSources(config),
     content: config.roles.newUpload ? `<@&${config.roles.newUpload}>` : '',
     buttons: [
       {
@@ -35,7 +40,12 @@ function createDefaultYouTubeEmbedSettings(config) {
 }
 
 function normalizeYouTubeEmbedSettings(input, defaults) {
-  return normalizeStreamEmbedSettings(input, defaults);
+  const normalized = normalizeStreamEmbedSettings(input, defaults);
+
+  return {
+    ...normalized,
+    sources: normalizeYouTubeSources(input?.sources, defaults?.sources),
+  };
 }
 
 async function loadYouTubeEmbedSettings(config) {

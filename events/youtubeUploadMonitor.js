@@ -44,11 +44,21 @@ async function checkForUploads(client) {
     const result = await runYouTubeUploadCheck(client, config);
 
     if (result.initialized) {
-      console.log(`YouTube upload monitor initialized with ${result.videos.length} recent video(s).`);
+      console.log(
+        `YouTube upload monitor initialized ${result.initializedSources.length} channel(s) with ${result.videos.length} recent video(s).`,
+      );
     }
 
     for (const video of result.announced) {
-      console.log(`Announced YouTube upload: ${video.title} (${video.id}).`);
+      console.log(
+        `Announced YouTube upload from ${video.source.displayName}: ${video.title} (${video.id}).`,
+      );
+    }
+
+    for (const error of result.errors) {
+      console.error(
+        `YouTube feed check failed for ${error.displayName} (${error.channelId}): ${error.message}`,
+      );
     }
   } catch (error) {
     console.error('Error checking YouTube uploads:', error);

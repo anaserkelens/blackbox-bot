@@ -390,6 +390,20 @@ const liveImageUrlInput = document.querySelector('#live-image-url');
 const liveFooterTextInput = document.querySelector('#live-footer-text');
 const liveFooterIconUrlInput = document.querySelector('#live-footer-icon-url');
 const liveTimestampInput = document.querySelector('#live-timestamp');
+const youtubeSourcesSection = document.querySelector('#youtube-sources-section');
+const youtubeSourcesContainer = document.querySelector('#youtube-sources');
+const youtubeSourceCount = document.querySelector('#youtube-source-count');
+const addYouTubeSourceButton = document.querySelector('#add-youtube-source');
+const twitchDeliverySection = document.querySelector('#twitch-delivery-section');
+const twitchDeliverySummary = document.querySelector('#twitch-delivery-summary');
+const liveDeliveryModeInputs = [...document.querySelectorAll('input[name="live-delivery-mode"]')];
+const liveFeaturedUserField = document.querySelector('#live-featured-user-field');
+const liveFeaturedUserSearch = document.querySelector('#live-featured-user-search');
+const liveFeaturedUserId = document.querySelector('#live-featured-user-id');
+const liveFeaturedUserResults = document.querySelector('#live-featured-user-results');
+const liveFeaturedUserHelp = document.querySelector('#live-featured-user-help');
+const clearLiveFeaturedUserButton = document.querySelector('#clear-live-featured-user');
+const liveRoleIdInput = document.querySelector('#live-role-id');
 const liveFieldsContainer = document.querySelector('#live-fields');
 const liveFieldCount = document.querySelector('#live-field-count');
 const addLiveFieldButton = document.querySelector('#add-live-field');
@@ -470,7 +484,7 @@ const embedBuilderDefinitions = {
     storageKey: youtubeEmbedStorageKey,
     label: 'YouTube upload embed',
     title: 'YouTube Upload Notification Builder',
-    subtitle: 'Used when a new video is uploaded to @5nooof.',
+    subtitle: 'Used for uploads from up to three monitored YouTube channels.',
     timestampLabel: 'Show the time the video was published',
     saveHint: 'Changes apply to the next YouTube upload announcement.',
     previewSubtitle: 'Latest @5nooof video data',
@@ -560,6 +574,8 @@ const state = {
   savedMessagesRequest: null,
   voiceRoomsRefreshTimer: null,
   interfaceClockTimer: null,
+  liveFeaturedUserSearchTimer: null,
+  liveFeaturedUserRequest: 0,
 };
 
 const welcomeStarter = `# WELCOME TO UNDR CTRL
@@ -785,6 +801,15 @@ function bindEvents() {
   liveFieldsContainer.addEventListener('click', handleLiveFieldsClick);
   addLiveButton.addEventListener('click', () => addLiveEmbedButton({}, true));
   liveButtonsContainer.addEventListener('click', handleLiveButtonsClick);
+  addYouTubeSourceButton.addEventListener('click', () => addYouTubeSource({}, true));
+  youtubeSourcesContainer.addEventListener('click', handleYouTubeSourcesClick);
+  liveDeliveryModeInputs.forEach((input) => {
+    input.addEventListener('change', renderTwitchDeliveryControls);
+  });
+  liveFeaturedUserSearch.addEventListener('input', handleLiveFeaturedUserSearchInput);
+  liveFeaturedUserSearch.addEventListener('focus', handleLiveFeaturedUserSearchInput);
+  liveFeaturedUserResults.addEventListener('click', handleLiveFeaturedUserResultClick);
+  clearLiveFeaturedUserButton.addEventListener('click', clearLiveFeaturedUser);
   embedBuilderButtons.forEach((button) => {
     button.addEventListener('click', () => activateEmbedBuilder(button.dataset.embedBuilder));
   });
@@ -4349,7 +4374,7 @@ async function handleMemberSearch(event) {
   renderLoadingSkeleton(memberSearchResults, 4);
 
   try {
-    const result = await api(`/api/member-profiles?query=${encodeURIComponent(query)}`);
+    const result = await api(`/api/members?query=${encodeURIComponent(query)}`);
 
     state.memberSearchResults = Array.isArray(result.members) ? result.members : [];
     renderMemberSearchResults();
@@ -7808,7 +7833,18 @@ function renderWelcomeMessageStorageStatus(storage) {
 
 async function loadLiveEmbedSettings(showNotification = false, kind = state.activeEmbedBuilder) {
   const definition = embedBuilderDefinitions[kind];
-  let result = await api(definition.endpoint);
+  const requests = [api(definition.endpoint)];
+
+  if (kind === 'live' && state.discordRoles.length === 0) {
+    requests.push(api('/api/roles').catch(() => ({ roles: [] })));
+  }
+
+  const [initialResult, rolesResult] = await Promise.all(requests);
+  let result = initialResult;
+
+  if (rolesResult) {
+    state.discordRoles = Array.isArray(rolesResult.roles) ? rolesResult.roles : [];
+  }
 
   result = await restoreLiveEmbedBackupIfNeeded(result, kind);
   state.embedBuilderSettings[kind] = result.settings || {};
@@ -7837,6 +7873,8 @@ function activateEmbedBuilder(kind) {
   }
 
   state.activeEmbedBuilder = kind;
+  twitchDeliverySection.hidden = kind !== 'live';
+  youtubeSourcesSection.hidden = kind !== 'youtube';
   embedBuilderTitle.textContent = definition.title;
   embedBuilderSubtitle.textContent = definition.subtitle;
   embedTimestampLabel.textContent = definition.timestampLabel;
@@ -7907,8 +7945,15 @@ async function restoreLiveEmbedBackupIfNeeded(result, kind) {
 
 function applyLiveEmbedSettings(settings) {
   const embed = settings.embed || {};
+  const delivery = settings.delivery || {};
 
   setChannelSelectValue(liveChannelIdInput, settings.channelId || '');
+
+  if (state.activeEmbedBuilder === 'youtube') {
+    renderYouTubeSources(settings.sources || []);
+  } else {
+    applyTwitchDeliverySettings(delivery);
+  }
   liveContentInput.value = settings.content || '';
   liveTitleInput.value = embed.title || '';
   liveTitleUrlInput.value = embed.titleUrl || '';
@@ -8021,7 +8066,7 @@ function renderLiveEmbedStorageStatus(storage) {
 }
 
 function collectLiveEmbedSettings() {
-  return {
+  const settings = {
     channelId: liveChannelIdInput.value.trim(),
     content: liveContentInput.value,
     buttons: [...liveButtonsContainer.querySelectorAll('.live-button-block')].map((button) => ({
@@ -8061,6 +8106,344 @@ function collectLiveEmbedSettings() {
       }),
     },
   };
+
+  if (state.activeEmbedBuilder === 'live') {
+    settings.delivery = {
+      mode: getSelectedTwitchDeliveryMode(),
+      featuredUserId: liveFeaturedUserId.value.trim(),
+      liveRoleId: liveRoleIdInput.value.trim(),
+    };
+  } else {
+    settings.sources = collectYouTubeSources();
+  }
+
+  return settings;
+}
+
+function renderYouTubeSources(sources) {
+  youtubeSourcesContainer.replaceChildren();
+
+  for (const source of sources.slice(0, 3)) {
+    addYouTubeSource(source);
+  }
+
+  if (youtubeSourcesContainer.children.length === 0) {
+    addYouTubeSource();
+  }
+
+  updateYouTubeSourceControls();
+}
+
+function addYouTubeSource(source = {}, focus = false) {
+  if (youtubeSourcesContainer.children.length >= 3) {
+    setSendStatus('You can monitor up to three YouTube channels.', 'error');
+    return;
+  }
+
+  const card = document.createElement('article');
+  const index = youtubeSourcesContainer.children.length + 1;
+
+  card.className = 'youtube-source-card';
+  card.innerHTML = `
+    <header class="youtube-source-header">
+      <span class="youtube-source-number"><i class="fa-brands fa-youtube" aria-hidden="true"></i></span>
+      <span>
+        <strong>Channel ${index}</strong>
+        <small>Public YouTube upload feed</small>
+      </span>
+      <button class="icon-button remove-youtube-source" type="button" aria-label="Remove YouTube channel">
+        <i class="fa-solid fa-trash" aria-hidden="true"></i>
+      </button>
+    </header>
+    <div class="form-grid youtube-source-fields">
+      <label class="field span-2">
+        Channel ID or channel URL
+        <input
+          class="youtube-source-channel-id"
+          value="${escapeHtml(source.channelId || '')}"
+          maxlength="200"
+          placeholder="@creator, UC… or a YouTube channel URL"
+          required
+        />
+        <small>Paste a handle, channel ID, or YouTube channel URL. Bean resolves handles when you save.</small>
+      </label>
+      <label class="field">
+        Channel name
+        <input
+          class="youtube-source-display-name"
+          value="${escapeHtml(source.displayName || '')}"
+          maxlength="100"
+          placeholder="Creator or channel name"
+        />
+      </label>
+      <label class="field">
+        YouTube handle
+        <input
+          class="youtube-source-handle"
+          value="${escapeHtml(source.handle || '')}"
+          maxlength="101"
+          placeholder="@creator"
+        />
+      </label>
+      <label class="field span-2 youtube-source-optional">
+        <span>Linked Discord creator <span class="muted">(optional)</span></span>
+        <input
+          class="youtube-source-discord-user"
+          value="${escapeHtml(source.discordUserId || '')}"
+          maxlength="20"
+          inputmode="numeric"
+          pattern="\\d{17,20}"
+          placeholder="Discord user ID used by the {member} placeholder"
+        />
+      </label>
+    </div>
+  `;
+  youtubeSourcesContainer.append(card);
+  updateYouTubeSourceControls();
+
+  if (focus) {
+    card.querySelector('.youtube-source-channel-id').focus();
+    updateLiveEmbedPreview();
+    liveEmbedForm.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+}
+
+function handleYouTubeSourcesClick(event) {
+  const removeButton = event.target.closest('.remove-youtube-source');
+
+  if (!removeButton || youtubeSourcesContainer.children.length <= 1) {
+    return;
+  }
+
+  removeButton.closest('.youtube-source-card').remove();
+  updateYouTubeSourceControls();
+  updateLiveEmbedPreview();
+  liveEmbedForm.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function updateYouTubeSourceControls() {
+  const cards = [...youtubeSourcesContainer.querySelectorAll('.youtube-source-card')];
+  const count = cards.length;
+
+  youtubeSourceCount.textContent = `${count} / 3 channels`;
+  addYouTubeSourceButton.disabled = count >= 3;
+
+  cards.forEach((card, index) => {
+    card.querySelector('.youtube-source-header strong').textContent = `Channel ${index + 1}`;
+    card.querySelector('.remove-youtube-source').disabled = count <= 1;
+  });
+}
+
+function collectYouTubeSources() {
+  return [...youtubeSourcesContainer.querySelectorAll('.youtube-source-card')].map((card) => ({
+    channelId: card.querySelector('.youtube-source-channel-id').value.trim(),
+    displayName: card.querySelector('.youtube-source-display-name').value.trim(),
+    handle: card.querySelector('.youtube-source-handle').value.trim(),
+    discordUserId: card.querySelector('.youtube-source-discord-user').value.trim(),
+  }));
+}
+
+function applyTwitchDeliverySettings(delivery) {
+  const mode = delivery.mode || 'featured_with_role';
+  const modeInput = liveDeliveryModeInputs.find((input) => input.value === mode)
+    || liveDeliveryModeInputs[0];
+
+  modeInput.checked = true;
+  liveFeaturedUserId.value = delivery.featuredUserId || '';
+  liveFeaturedUserSearch.value = delivery.featuredUserId || '';
+  clearLiveFeaturedUserButton.hidden = !delivery.featuredUserId;
+  renderLiveRoleOptions(delivery.liveRoleId || '');
+  renderTwitchDeliveryControls();
+
+  if (delivery.featuredUserId) {
+    resolveLiveFeaturedUser(delivery.featuredUserId);
+  }
+}
+
+function getSelectedTwitchDeliveryMode() {
+  return liveDeliveryModeInputs.find((input) => input.checked)?.value || 'featured_with_role';
+}
+
+function renderTwitchDeliveryControls() {
+  const mode = getSelectedTwitchDeliveryMode();
+  const requiresFeaturedUser = mode === 'featured_with_role' || mode === 'featured_only';
+  const usesRole = mode === 'featured_with_role'
+    || mode === 'all_announcements'
+    || mode === 'role_only';
+  const labels = {
+    featured_with_role: 'Featured + role',
+    all_announcements: 'Announce everyone',
+    featured_only: 'Featured only',
+    role_only: 'Role only',
+  };
+
+  twitchDeliverySummary.textContent = labels[mode];
+  liveFeaturedUserField.hidden = !requiresFeaturedUser;
+  liveFeaturedUserSearch.required = requiresFeaturedUser;
+  liveFeaturedUserSearch.setCustomValidity(
+    requiresFeaturedUser && !liveFeaturedUserId.value
+      ? 'Choose a server member from the search results.'
+      : '',
+  );
+  liveRoleIdInput.required = usesRole;
+  liveRoleIdInput.closest('label').hidden = !usesRole;
+
+  liveDeliveryModeInputs.forEach((input) => {
+    input.closest('.twitch-delivery-option').classList.toggle('is-selected', input.checked);
+  });
+}
+
+function renderLiveRoleOptions(selectedRoleId) {
+  const placeholder = document.createElement('option');
+
+  placeholder.value = '';
+  placeholder.textContent = state.discordRoles.length
+    ? 'No Broadcasting role'
+    : 'No manageable roles found';
+  liveRoleIdInput.replaceChildren(placeholder);
+
+  for (const role of state.discordRoles) {
+    const option = document.createElement('option');
+
+    option.value = role.id;
+    option.textContent = `@ ${role.name}`;
+    liveRoleIdInput.append(option);
+  }
+
+  setSelectValueWithUnavailableOption(liveRoleIdInput, selectedRoleId, 'Unavailable role');
+}
+
+function handleLiveFeaturedUserSearchInput() {
+  window.clearTimeout(state.liveFeaturedUserSearchTimer);
+  const query = liveFeaturedUserSearch.value.trim();
+
+  if (
+    liveFeaturedUserId.value
+    && query !== liveFeaturedUserSearch.dataset.selectedLabel
+    && query !== liveFeaturedUserId.value
+  ) {
+    liveFeaturedUserId.value = '';
+    clearLiveFeaturedUserButton.hidden = true;
+    liveFeaturedUserSearch.setCustomValidity(
+      ['featured_with_role', 'featured_only'].includes(getSelectedTwitchDeliveryMode())
+        ? 'Choose a server member from the search results.'
+        : '',
+    );
+  }
+
+  if (query.length < 2 && !/^\d{17,20}$/.test(query)) {
+    hideLiveFeaturedUserResults();
+    return;
+  }
+
+  state.liveFeaturedUserSearchTimer = window.setTimeout(() => {
+    searchLiveFeaturedUsers(query);
+  }, 220);
+}
+
+async function searchLiveFeaturedUsers(query) {
+  const requestId = ++state.liveFeaturedUserRequest;
+
+  liveFeaturedUserResults.hidden = false;
+  liveFeaturedUserResults.innerHTML = '<p class="creator-member-result-state">Searching members…</p>';
+  liveFeaturedUserSearch.setAttribute('aria-expanded', 'true');
+
+  try {
+    const result = await api(`/api/member-profiles?query=${encodeURIComponent(query)}`);
+
+    if (requestId !== state.liveFeaturedUserRequest) {
+      return;
+    }
+
+    renderLiveFeaturedUserResults(result.members || []);
+  } catch (error) {
+    if (requestId === state.liveFeaturedUserRequest) {
+      liveFeaturedUserResults.innerHTML = `<p class="creator-member-result-state">${escapeHtml(error.message)}</p>`;
+    }
+  }
+}
+
+function renderLiveFeaturedUserResults(members) {
+  liveFeaturedUserResults.replaceChildren();
+
+  if (members.length === 0) {
+    liveFeaturedUserResults.innerHTML = '<p class="creator-member-result-state">No matching server members found.</p>';
+    return;
+  }
+
+  for (const member of members) {
+    const button = document.createElement('button');
+
+    button.type = 'button';
+    button.className = 'creator-member-result';
+    button.dataset.memberId = member.id;
+    button.dataset.memberLabel = member.displayName;
+    button.setAttribute('role', 'option');
+    button.innerHTML = `
+      ${member.avatarUrl
+        ? `<img src="${escapeHtml(member.avatarUrl)}" alt="" />`
+        : '<span class="creator-member-avatar"><i class="fa-solid fa-user" aria-hidden="true"></i></span>'}
+      <span>
+        <strong>${escapeHtml(member.displayName)}</strong>
+        <small>@${escapeHtml(member.username)} · ${escapeHtml(member.id)}</small>
+      </span>
+    `;
+    liveFeaturedUserResults.append(button);
+  }
+}
+
+function handleLiveFeaturedUserResultClick(event) {
+  const button = event.target.closest('[data-member-id]');
+
+  if (!button) {
+    return;
+  }
+
+  selectLiveFeaturedUser(button.dataset.memberId, button.dataset.memberLabel);
+}
+
+function selectLiveFeaturedUser(memberId, label) {
+  liveFeaturedUserId.value = memberId;
+  liveFeaturedUserSearch.value = label;
+  liveFeaturedUserSearch.dataset.selectedLabel = label;
+  liveFeaturedUserSearch.setCustomValidity('');
+  liveFeaturedUserHelp.textContent = `${label} will receive featured Twitch announcements.`;
+  clearLiveFeaturedUserButton.hidden = false;
+  hideLiveFeaturedUserResults();
+  liveEmbedForm.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function clearLiveFeaturedUser() {
+  liveFeaturedUserId.value = '';
+  liveFeaturedUserSearch.value = '';
+  delete liveFeaturedUserSearch.dataset.selectedLabel;
+  liveFeaturedUserHelp.textContent = 'This member receives the live announcement.';
+  liveFeaturedUserSearch.setCustomValidity(
+    ['featured_with_role', 'featured_only'].includes(getSelectedTwitchDeliveryMode())
+      ? 'Choose a server member from the search results.'
+      : '',
+  );
+  clearLiveFeaturedUserButton.hidden = true;
+  hideLiveFeaturedUserResults();
+  liveFeaturedUserSearch.focus();
+}
+
+function hideLiveFeaturedUserResults() {
+  liveFeaturedUserResults.hidden = true;
+  liveFeaturedUserSearch.setAttribute('aria-expanded', 'false');
+}
+
+async function resolveLiveFeaturedUser(memberId) {
+  try {
+    const result = await api(`/api/members?query=${encodeURIComponent(memberId)}`);
+    const member = result.members?.find((item) => item.id === memberId);
+
+    if (member && liveFeaturedUserId.value === memberId) {
+      selectLiveFeaturedUser(member.id, member.displayName);
+    }
+  } catch {
+    // The saved user ID remains usable even when the member lookup is temporarily unavailable.
+  }
 }
 
 function addLiveEmbedField(field = {}, focus = false) {
@@ -8389,20 +8772,33 @@ function appendLivePreviewButtonContent(anchor, button) {
 }
 
 function replaceLivePreviewPlaceholders(template) {
+  const isYouTube = state.activeEmbedBuilder === 'youtube';
+  const previewSource = isYouTube
+    ? collectYouTubeSources()[0] || {}
+    : {};
+  const previewHandle = previewSource.handle || '@creator';
+  const previewName = previewSource.displayName || previewHandle.replace(/^@/, '') || 'YouTube creator';
+  const previewChannelUrl = previewHandle.startsWith('@')
+    ? `https://www.youtube.com/${previewHandle}`
+    : previewSource.channelId
+      ? `https://www.youtube.com/channel/${previewSource.channelId}`
+      : 'https://www.youtube.com';
   const sharedValues = {
-    member: '<@185282790969835520>',
-    displayName: '5noof',
+    member: isYouTube
+      ? previewSource.discordUserId ? `<@${previewSource.discordUserId}>` : previewName
+      : '<@185282790969835520>',
+    displayName: isYouTube ? previewName : '5noof',
     avatarUrl: 'https://cdn.discordapp.com/embed/avatars/0.png',
   };
-  const values = state.activeEmbedBuilder === 'youtube'
+  const values = isYouTube
     ? {
         ...sharedValues,
         videoTitle: 'Go To Sleep While I Run The Best Restaurant in Town',
         videoUrl: 'https://www.youtube.com/watch?v=67rGoXhQcvA',
         videoId: '67rGoXhQcvA',
         thumbnailUrl: 'https://i.ytimg.com/vi/67rGoXhQcvA/hqdefault.jpg',
-        channelHandle: '@5nooof',
-        channelUrl: 'https://www.youtube.com/@5nooof',
+        channelHandle: previewHandle,
+        channelUrl: previewChannelUrl,
         publishedAt: '26 July 2026',
       }
     : {

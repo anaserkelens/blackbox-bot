@@ -33,9 +33,9 @@ function createYouTubeAnnouncementPayload(settings, context) {
     videoId: video.id || '',
     thumbnailUrl: video.thumbnailUrl || '',
     channelHandle: context.channelHandle || '',
-    channelUrl: context.channelHandle
+    channelUrl: context.channelUrl || (context.channelHandle
       ? `https://www.youtube.com/${String(context.channelHandle).replace(/^@?/, '@')}`
-      : '',
+      : ''),
     publishedAt: video.publishedAt || '',
     avatarUrl:
       (typeof context.member?.displayAvatarURL === 'function'

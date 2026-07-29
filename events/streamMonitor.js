@@ -2,9 +2,10 @@ const { ActivityType, Events } = require('discord.js');
 
 const { config } = require('../utils/config');
 const { createStreamAnnouncementPayload } = require('../utils/streamAnnouncement');
-const { loadStreamEmbedSettings } = require('../utils/streamEmbedSettings');
+const { getStreamEmbedRuntimeSettings } = require('../utils/streamEmbedSettings');
+const { resolveStreamActions } = require('../utils/streamMonitorDelivery');
 
-const announcedFeaturedStreams = new Set();
+const announcedStreams = new Set();
 
 module.exports = {
   name: Events.PresenceUpdate,
@@ -16,14 +17,32 @@ module.exports = {
     }
 
     const streamingActivity = findTwitchStream(newPresence);
-    const isFeaturedStreamer = member.id === config.streamMonitor.featuredUserId;
+    let settings;
 
-    if (isFeaturedStreamer) {
-      await handleFeaturedStreamer(oldPresence, member, streamingActivity, client);
+    try {
+      settings = await getStreamEmbedRuntimeSettings(config);
+    } catch (error) {
+      console.error('Failed to load Twitch live behavior:', error);
       return;
     }
 
-    await updateBroadcastingRole(member, Boolean(streamingActivity));
+    const delivery = settings.delivery || {
+      mode: 'featured_with_role',
+      featuredUserId: config.streamMonitor.featuredUserId,
+    };
+    const isFeaturedStreamer = member.id === delivery.featuredUserId;
+    const actions = resolveStreamActions(
+      delivery.mode,
+      isFeaturedStreamer,
+      Boolean(streamingActivity),
+    );
+
+    await Promise.all([
+      actions.announce
+        ? handleStreamAnnouncement(oldPresence, member, streamingActivity, client, settings)
+        : clearFinishedAnnouncement(oldPresence, member, streamingActivity),
+      updateBroadcastingRole(member, actions.assignRole),
+    ]);
   },
 };
 
@@ -36,32 +55,27 @@ function findTwitchStream(presence) {
   );
 }
 
-async function handleFeaturedStreamer(oldPresence, member, streamingActivity, client) {
+async function handleStreamAnnouncement(oldPresence, member, streamingActivity, client, settings) {
   if (!streamingActivity) {
-    const oldStreamingActivity = findTwitchStream(oldPresence || { activities: [] });
-
-    if (oldStreamingActivity?.url) {
-      announcedFeaturedStreams.delete(oldStreamingActivity.url);
-    }
-
+    clearFinishedAnnouncement(oldPresence, member, streamingActivity);
     return;
   }
 
   const streamUrl = streamingActivity.url;
+  const announcementKey = createAnnouncementKey(member.id, streamUrl);
 
-  if (announcedFeaturedStreams.has(streamUrl)) {
+  if (announcedStreams.has(announcementKey)) {
     return;
   }
 
-  announcedFeaturedStreams.add(streamUrl);
+  announcedStreams.add(announcementKey);
 
   try {
-    const settings = await loadStreamEmbedSettings(config);
     const channelId = settings.channelId || config.channels.streamAnnouncements;
     const channel = await client.channels.fetch(channelId);
 
     if (!channel?.isSendable()) {
-      throw new Error('Featured stream announcement channel is not sendable.');
+      throw new Error('Stream announcement channel is not sendable.');
     }
 
     const twitchUsername = new URL(streamUrl).pathname.split('/').filter(Boolean).pop();
@@ -76,25 +90,41 @@ async function handleFeaturedStreamer(oldPresence, member, streamingActivity, cl
 
     await channel.send(payload);
   } catch (error) {
-    console.error('Error announcing featured stream:', error);
-    announcedFeaturedStreams.delete(streamUrl);
+    console.error(`Error announcing Twitch stream for ${member.id}:`, error);
+    announcedStreams.delete(announcementKey);
   }
 }
 
-async function updateBroadcastingRole(member, isStreaming) {
+function clearFinishedAnnouncement(oldPresence, member, streamingActivity) {
+  if (streamingActivity) {
+    return;
+  }
+
+  const oldStreamingActivity = findTwitchStream(oldPresence || { activities: [] });
+
+  if (oldStreamingActivity?.url) {
+    announcedStreams.delete(createAnnouncementKey(member.id, oldStreamingActivity.url));
+  }
+}
+
+function createAnnouncementKey(memberId, streamUrl) {
+  return `${memberId}:${streamUrl}`;
+}
+
+async function updateBroadcastingRole(member, shouldHaveRole) {
   const roleId = config.roles.live;
 
-  if (!roleId || member.roles.cache.has(roleId) === isStreaming) {
+  if (!roleId || member.roles.cache.has(roleId) === shouldHaveRole) {
     return;
   }
 
   try {
-    if (isStreaming) {
+    if (shouldHaveRole) {
       await member.roles.add(roleId);
     } else {
       await member.roles.remove(roleId);
     }
   } catch (error) {
-    console.error(`Failed to ${isStreaming ? 'add' : 'remove'} Broadcasting role for ${member.id}:`, error);
+    console.error(`Failed to ${shouldHaveRole ? 'add' : 'remove'} Broadcasting role for ${member.id}:`, error);
   }
 }

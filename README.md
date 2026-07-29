@@ -188,11 +188,11 @@ The room creator can use `/room limit members:<0-99>` while connected to their t
 
 Optional systems can be enabled from their dedicated dashboard pages. Reaction roles are created there by connecting any existing Discord message link and emoji to any manageable role; no Rules channel or Verified role is required. See [.env.example](.env.example) for deployment and storage options.
 
-The stream monitor has two paths. `FEATURED_STREAMER_USER_ID` receives a Twitch announcement in `ANNOUNCEMENT_CHANNEL_ID` without receiving the live role. Other members receive `LIVE_ROLE_ID` while streaming on Twitch, with no announcement posted. Enable `STREAM_MONITOR_ENABLED` and the Discord Developer Portal Presence Intent to use it.
+The stream monitor supports four dashboard-controlled behaviors under **Creator Notifications → Twitch Live**: announce one featured creator while giving other streamers the live role (the migration default), announce every streamer and give them the live role, announce only one selected creator, or use the live role without announcements. The featured creator and Broadcasting role are selected from Discord in the dashboard; `FEATURED_STREAMER_USER_ID` and `LIVE_ROLE_ID` remain the first-run defaults. Enable `STREAM_MONITOR_ENABLED` and the Discord Developer Portal Presence Intent to use it.
 
 The dashboard Live Embed tab controls both the featured Twitch announcement and the YouTube upload notification templates, including advanced embed fields, link buttons, and embed-safe divider/spacer layout blocks. Twitch settings are stored in `stream-embed.json`; YouTube settings are stored separately in `youtube-embed.json`. Both automatically use `RAILWAY_VOLUME_MOUNT_PATH` when a volume is attached. Use `DASHBOARD_STREAM_EMBED_PATH` and `DASHBOARD_YOUTUBE_EMBED_PATH` to override those locations.
 
-The YouTube upload monitor watches `@5nooof` through YouTube's public channel feed every five minutes by default. It pings the `NEW UPLOAD` role and uses a Components V2 notification with the large video thumbnail plus a `Watch on YouTube` button. Previously seen video IDs are stored in `youtube-upload-state.json`, so restarts do not resend old uploads. Configure the channel, poll interval, role, destination, and storage with the `YOUTUBE_*` variables in `.env.example`.
+The YouTube upload monitor watches up to three dashboard-selected channels through YouTube's public channel feeds every five minutes by default. Add channel IDs, handles, or channel URLs under **Creator Notifications → YouTube Upload**; all sources share the saved destination and notification design, while duplicate history is tracked independently for every channel. It can ping the `NEW UPLOAD` role and uses a Components V2 notification with the large video thumbnail plus a `Watch on YouTube` button. Previously seen video IDs are stored in `youtube-upload-state.json`, so restarts do not resend old uploads. The `YOUTUBE_*` variables in `.env.example` provide the first-run default source, polling interval, role, destination, and storage settings.
 
 The Welcome Message tab provides a block-based Components V2 composer for automatic member greetings, matching the normal Messages layout. It supports uploaded header images, accent colors, text/divider/spacer blocks, accessory and action-row buttons, Unicode or custom server emoji on buttons, and member/server placeholders. New members are welcomed in `WELCOME_CHANNEL_ID` (default `1520407983354544171`). Settings are stored in `welcome-embed.json` on the Railway volume, or at `DASHBOARD_WELCOME_EMBED_PATH` when overridden. Enable the Server Members Intent in Discord and set `ENABLE_SERVER_MEMBERS_INTENT=true` so join events reach the bot.
 
@@ -204,7 +204,7 @@ To keep live, YouTube, and welcome embed settings across Railway restarts and re
 
 `/teststream` posts the currently saved live embed in the channel where the command is used. It is restricted at runtime to `BOT_OWNER_USER_ID`, who must also have `FOUNDER_ROLE_ID`; both IDs have UNDR CTRL defaults in `.env.example`.
 
-`/testyoutube` posts the currently saved YouTube notification using the channel's latest video when available. It has the same owner-plus-Founder restriction as `/teststream` and does not alter the upload monitor's seen-video state.
+`/testyoutube` posts the currently saved YouTube notification using the first configured channel's latest video when available. It has the same owner-plus-Founder restriction as `/teststream` and does not alter the upload monitor's seen-video state.
 
 ## Dashboard
 

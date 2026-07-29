@@ -31,7 +31,11 @@ async function execute(interaction) {
   }
 
   const settings = await loadYouTubeEmbedSettings(config);
-  const [latestVideo] = await fetchYouTubeVideos(config.youtubeMonitor.channelId).catch((error) => {
+  const source = settings.sources?.[0] || {
+    channelId: config.youtubeMonitor.channelId,
+    handle: config.youtubeMonitor.channelHandle,
+  };
+  const [latestVideo] = await fetchYouTubeVideos(source.channelId).catch((error) => {
     console.warn('Could not load the latest YouTube video for /testyoutube:', error);
     return [];
   });
@@ -45,7 +49,10 @@ async function execute(interaction) {
   const payload = createYouTubeAnnouncementPayload(settings, {
     member: interaction.member,
     video,
-    channelHandle: config.youtubeMonitor.channelHandle,
+    channelHandle: source.handle || '',
+    channelUrl: source.handle
+      ? `https://www.youtube.com/${source.handle}`
+      : `https://www.youtube.com/channel/${source.channelId}`,
     timestamp: new Date(),
   });
 

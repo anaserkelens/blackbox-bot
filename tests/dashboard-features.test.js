@@ -634,6 +634,33 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
 
   guild.members.cache.set(reviewedMemberId, reviewedMember);
 
+  const memberOptions = await fetchJson(
+    `${baseUrl}/api/members?query=${encodeURIComponent(reviewedMemberId)}`,
+    { headers },
+  );
+  const liveSettings = await fetchJson(`${baseUrl}/api/stream-embed`, { headers });
+  const updatedLiveSettings = await fetchJson(`${baseUrl}/api/stream-embed`, {
+    method: 'PUT',
+    headers,
+    body: {
+      settings: {
+        ...liveSettings.data.settings,
+        delivery: {
+          mode: 'all_announcements',
+          featuredUserId: '',
+          liveRoleId: '1520451840058064998',
+        },
+      },
+    },
+  });
+
+  assert.equal(memberOptions.response.status, 200);
+  assert.equal(memberOptions.data.members[0].id, reviewedMemberId);
+  assert.equal(liveSettings.data.settings.delivery.mode, 'featured_with_role');
+  assert.equal(updatedLiveSettings.response.status, 200);
+  assert.equal(updatedLiveSettings.data.settings.delivery.mode, 'all_announcements');
+  assert.equal(updatedLiveSettings.data.settings.delivery.liveRoleId, '1520451840058064998');
+
   const growthOverview = await fetchJson(`${baseUrl}/api/community-growth`, { headers });
   const growthSettings = await fetchJson(`${baseUrl}/api/community-growth/settings`, {
     method: 'PUT',
@@ -810,6 +837,15 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
     body: {
       settings: {
         ...youtubeEmbed.data.settings,
+        sources: [
+          ...youtubeEmbed.data.settings.sources,
+          {
+            channelId: 'UCaaaaaaaaaaaaaaaaaaaaaa',
+            handle: '@dashboardtest',
+            displayName: 'Dashboard Test Channel',
+            discordUserId: '',
+          },
+        ],
         embed: {
           ...youtubeEmbed.data.settings.embed,
           footerText: 'Saved from the dashboard test',
@@ -821,6 +857,7 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
 
   assert.equal(savedYouTubeEmbed.response.status, 200);
   assert.equal(reloadedYouTubeEmbed.data.settings.embed.footerText, 'Saved from the dashboard test');
+  assert.equal(reloadedYouTubeEmbed.data.settings.sources.length, 2);
 
   const selectedChannelId = '1520519675543293973';
   const sentMailbox = await fetchJson(`${baseUrl}/api/mailbox/send`, {

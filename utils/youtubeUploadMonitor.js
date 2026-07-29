@@ -3,75 +3,111 @@ const path = require('node:path');
 
 const { createYouTubeAnnouncementPayload } = require('./streamAnnouncement');
 const { loadYouTubeEmbedSettings } = require('./youtubeEmbedSettings');
+const { getYouTubeSourceUrl } = require('./youtubeChannels');
 
 const defaultStatePath = path.join(__dirname, '..', 'data', 'youtube-upload-state.json');
 const maximumSeenVideos = 50;
 
 async function runYouTubeUploadCheck(client, config, options = {}) {
-  const videos = await fetchYouTubeVideos(
-    config.youtubeMonitor.channelId,
-    options.fetchImpl || globalThis.fetch,
-  );
-
-  if (videos.length === 0) {
-    return { initialized: false, announced: [], videos: [] };
-  }
-
+  const settings = await loadYouTubeEmbedSettings(config);
+  const sources = settings.sources || [];
   const state = await loadYouTubeUploadState(config);
-  const currentIds = videos.map((video) => video.id);
-
-  if (!state.channelId || state.channelId !== config.youtubeMonitor.channelId) {
-    await saveYouTubeUploadState(config, {
-      channelId: config.youtubeMonitor.channelId,
-      seenVideoIds: currentIds,
-      initializedAt: new Date().toISOString(),
-      checkedAt: new Date().toISOString(),
-    });
-
-    return { initialized: true, announced: [], videos };
-  }
-
-  const seenVideoIds = new Set(state.seenVideoIds || []);
-  const newVideos = videos
-    .filter((video) => !seenVideoIds.has(video.id))
-    .sort((left, right) => new Date(left.publishedAt) - new Date(right.publishedAt));
+  const nextState = {
+    version: 2,
+    channels: { ...state.channels },
+  };
   const announced = [];
+  const videos = [];
+  const initializedSources = [];
+  const errors = [];
 
-  for (const video of newVideos) {
-    await announceYouTubeVideo(client, config, video);
-    seenVideoIds.add(video.id);
-    announced.push(video);
+  for (const source of sources) {
+    let sourceVideos;
 
-    await saveYouTubeUploadState(config, {
-      ...state,
-      channelId: config.youtubeMonitor.channelId,
-      seenVideoIds: [
-        video.id,
-        ...seenVideoIds,
-      ].filter((videoId, index, values) => values.indexOf(videoId) === index)
-        .slice(0, maximumSeenVideos),
-      checkedAt: new Date().toISOString(),
-    });
+    try {
+      sourceVideos = await fetchYouTubeVideos(
+        source.channelId,
+        options.fetchImpl || globalThis.fetch,
+      );
+    } catch (error) {
+      errors.push({
+        channelId: source.channelId,
+        displayName: source.displayName,
+        message: error.message,
+      });
+      continue;
+    }
+
+    const enrichedVideos = sourceVideos.map((video) => ({ ...video, source }));
+    videos.push(...enrichedVideos);
+
+    if (sourceVideos.length === 0) {
+      continue;
+    }
+
+    const currentIds = sourceVideos.map((video) => video.id);
+    const sourceState = nextState.channels[source.channelId];
+    const checkedAt = new Date().toISOString();
+
+    if (!sourceState) {
+      nextState.channels[source.channelId] = {
+        seenVideoIds: currentIds.slice(0, maximumSeenVideos),
+        initializedAt: checkedAt,
+        checkedAt,
+      };
+      initializedSources.push(source);
+      continue;
+    }
+
+    const seenVideoIds = new Set(sourceState.seenVideoIds || []);
+    const newVideos = sourceVideos
+      .filter((video) => !seenVideoIds.has(video.id))
+      .sort((left, right) => new Date(left.publishedAt) - new Date(right.publishedAt));
+
+    for (const video of newVideos) {
+      try {
+        await announceYouTubeVideo(client, config, video, source, settings);
+      } catch (error) {
+        errors.push({
+          channelId: source.channelId,
+          displayName: source.displayName,
+          videoId: video.id,
+          message: error.message,
+        });
+        continue;
+      }
+
+      seenVideoIds.add(video.id);
+      announced.push({ ...video, source });
+      nextState.channels[source.channelId] = {
+        ...sourceState,
+        seenVideoIds: uniqueVideoIds([video.id, ...seenVideoIds]),
+        checkedAt,
+      };
+      await saveYouTubeUploadState(config, nextState);
+    }
+
+    nextState.channels[source.channelId] = {
+      ...sourceState,
+      seenVideoIds: uniqueVideoIds([...seenVideoIds]),
+      checkedAt,
+    };
   }
 
-  const nextSeenVideoIds = [
-    ...currentIds,
-    ...seenVideoIds,
-  ].filter((videoId, index, values) => values.indexOf(videoId) === index)
-    .slice(0, maximumSeenVideos);
+  await saveYouTubeUploadState(config, nextState);
 
-  await saveYouTubeUploadState(config, {
-    ...state,
-    channelId: config.youtubeMonitor.channelId,
-    seenVideoIds: nextSeenVideoIds,
-    checkedAt: new Date().toISOString(),
-  });
-
-  return { initialized: false, announced, videos };
+  return {
+    initialized: initializedSources.length > 0,
+    initializedSources,
+    announced,
+    videos,
+    errors,
+  };
 }
 
-async function announceYouTubeVideo(client, config, video) {
-  const settings = await loadYouTubeEmbedSettings(config);
+async function announceYouTubeVideo(client, config, video, source, existingSettings = null) {
+  const settings = existingSettings || await loadYouTubeEmbedSettings(config);
+  const resolvedSource = source || settings.sources?.[0];
   const channelId = settings.channelId
     || config.channels.youtubeAnnouncements
     || config.channels.streamAnnouncements;
@@ -81,42 +117,56 @@ async function announceYouTubeVideo(client, config, video) {
     throw new Error('YouTube upload announcement channel is not sendable.');
   }
 
-  const member = await resolveFeaturedMember(client, config);
+  const member = await resolveFeaturedMember(client, config, resolvedSource);
   const payload = createYouTubeAnnouncementPayload(settings, {
     member,
     video,
-    channelHandle: config.youtubeMonitor.channelHandle,
+    channelHandle: resolvedSource?.handle || '',
+    channelUrl: resolvedSource ? getYouTubeSourceUrl(resolvedSource) : '',
     timestamp: new Date(video.publishedAt),
   });
 
   await channel.send(payload);
 }
 
-async function resolveFeaturedMember(client, config) {
+async function resolveFeaturedMember(client, config, source) {
+  const featuredUserId = source?.discordUserId;
+
+  if (!featuredUserId) {
+    const displayName = source?.displayName || source?.handle || 'YouTube creator';
+
+    return {
+      displayName,
+      toString: () => displayName,
+    };
+  }
+
   const guilds = config.guildId
     ? [client.guilds.cache.get(config.guildId)].filter(Boolean)
     : [...client.guilds.cache.values()];
 
   for (const guild of guilds) {
-    const cached = guild.members.cache.get(config.youtubeMonitor.featuredUserId);
+    const cached = guild.members.cache.get(featuredUserId);
 
     if (cached) {
       return cached;
     }
 
-    const fetched = await guild.members.fetch(config.youtubeMonitor.featuredUserId).catch(() => null);
+    const fetched = await guild.members.fetch(featuredUserId).catch(() => null);
 
     if (fetched) {
       return fetched;
     }
   }
 
-  const userId = config.youtubeMonitor.featuredUserId;
-
   return {
-    displayName: config.youtubeMonitor.channelDisplayName || 'snuf',
-    toString: () => `<@${userId}>`,
+    displayName: source?.displayName || source?.handle || 'YouTube creator',
+    toString: () => `<@${featuredUserId}>`,
   };
+}
+
+function uniqueVideoIds(values) {
+  return [...new Set(values)].slice(0, maximumSeenVideos);
 }
 
 async function fetchYouTubeVideos(channelId, fetchImpl = globalThis.fetch) {
@@ -194,26 +244,44 @@ async function loadYouTubeUploadState(config) {
 
   try {
     const state = JSON.parse(await fs.readFile(filePath, 'utf8'));
+    if (state.channels && typeof state.channels === 'object') {
+      return {
+        version: 2,
+        channels: Object.fromEntries(
+          Object.entries(state.channels)
+            .filter(([channelId]) => /^UC[\w-]{22}$/.test(channelId))
+            .map(([channelId, value]) => [channelId, normalizeChannelState(value)]),
+        ),
+      };
+    }
+
+    const legacyChannelId = String(state.channelId || '');
     return {
-      channelId: String(state.channelId || ''),
-      seenVideoIds: Array.isArray(state.seenVideoIds)
-        ? state.seenVideoIds.map(String).filter(Boolean).slice(0, maximumSeenVideos)
-        : [],
-      initializedAt: state.initializedAt || null,
-      checkedAt: state.checkedAt || null,
+      version: 2,
+      channels: legacyChannelId
+        ? { [legacyChannelId]: normalizeChannelState(state) }
+        : {},
     };
   } catch (error) {
     if (error.code === 'ENOENT') {
       return {
-        channelId: '',
-        seenVideoIds: [],
-        initializedAt: null,
-        checkedAt: null,
+        version: 2,
+        channels: {},
       };
     }
 
     throw error;
   }
+}
+
+function normalizeChannelState(value) {
+  return {
+    seenVideoIds: Array.isArray(value?.seenVideoIds)
+      ? value.seenVideoIds.map(String).filter(Boolean).slice(0, maximumSeenVideos)
+      : [],
+    initializedAt: value?.initializedAt || null,
+    checkedAt: value?.checkedAt || null,
+  };
 }
 
 async function saveYouTubeUploadState(config, state) {

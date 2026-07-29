@@ -2,10 +2,15 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 
 const defaultStreamEmbedPath = path.join(__dirname, '..', 'data', 'stream-embed.json');
+const runtimeSettingsCache = new Map();
 
 function createDefaultStreamEmbedSettings(config) {
   return {
     channelId: config.channels.streamAnnouncements || '',
+    delivery: {
+      mode: 'featured_with_role',
+      featuredUserId: config.streamMonitor.featuredUserId || '',
+    },
     content: '',
     buttons: [],
     embed: {
@@ -31,6 +36,7 @@ function normalizeStreamEmbedSettings(input, defaults) {
   const fallback = defaults && typeof defaults === 'object' ? defaults : {};
   const sourceEmbed = source.embed && typeof source.embed === 'object' ? source.embed : {};
   const fallbackEmbed = fallback.embed && typeof fallback.embed === 'object' ? fallback.embed : {};
+  const hasDeliverySettings = Boolean(source.delivery || fallback.delivery);
   const channelId = normalizeText(source.channelId ?? fallback.channelId, 24);
   const content = normalizeText(source.content ?? fallback.content, 2000);
   const fields = normalizeEmbedBlocks(sourceEmbed.fields ?? fallbackEmbed.fields);
@@ -61,9 +67,45 @@ function normalizeStreamEmbedSettings(input, defaults) {
 
   return {
     channelId,
+    ...(hasDeliverySettings
+      ? { delivery: normalizeStreamDeliverySettings(source.delivery, fallback.delivery) }
+      : {}),
     content,
     buttons,
     embed,
+  };
+}
+
+function normalizeStreamDeliverySettings(input, defaults) {
+  const source = input && typeof input === 'object' ? input : {};
+  const fallback = defaults && typeof defaults === 'object' ? defaults : {};
+  const supportedModes = new Set([
+    'featured_with_role',
+    'all_announcements',
+    'featured_only',
+    'role_only',
+  ]);
+  const requestedMode = String(source.mode || fallback.mode || 'featured_with_role').trim();
+  const mode = supportedModes.has(requestedMode) ? requestedMode : 'featured_with_role';
+  const featuredUserId = normalizeText(
+    source.featuredUserId ?? fallback.featuredUserId,
+    24,
+  );
+
+  if (
+    ['featured_with_role', 'featured_only'].includes(mode)
+    && !/^\d{17,20}$/.test(featuredUserId)
+  ) {
+    throw new Error('Choose a featured Twitch creator for the selected announcement mode.');
+  }
+
+  if (featuredUserId && !/^\d{17,20}$/.test(featuredUserId)) {
+    throw new Error('Featured Twitch creator ID must be a Discord snowflake.');
+  }
+
+  return {
+    mode,
+    featuredUserId,
   };
 }
 
@@ -169,13 +211,27 @@ async function loadStreamEmbedSettings(config) {
     raw = await fs.readFile(filePath, 'utf8');
   } catch (error) {
     if (error.code === 'ENOENT') {
+      runtimeSettingsCache.set(filePath, defaults);
       return defaults;
     }
 
     throw error;
   }
 
-  return normalizeStreamEmbedSettings(JSON.parse(raw), defaults);
+  const settings = normalizeStreamEmbedSettings(JSON.parse(raw), defaults);
+
+  runtimeSettingsCache.set(filePath, settings);
+  return settings;
+}
+
+async function getStreamEmbedRuntimeSettings(config) {
+  const { filePath } = getStreamEmbedStorageInfo(config);
+
+  if (runtimeSettingsCache.has(filePath)) {
+    return runtimeSettingsCache.get(filePath);
+  }
+
+  return loadStreamEmbedSettings(config);
 }
 
 async function saveStreamEmbedSettings(config, input) {
@@ -186,6 +242,7 @@ async function saveStreamEmbedSettings(config, input) {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   await fs.writeFile(temporaryPath, JSON.stringify(settings, null, 2));
   await fs.rename(temporaryPath, filePath);
+  runtimeSettingsCache.set(filePath, settings);
 
   return settings;
 }
@@ -246,7 +303,9 @@ module.exports = {
   createDefaultStreamEmbedSettings,
   getStreamEmbedStorageInfo,
   getStreamEmbedStorageStatus,
+  getStreamEmbedRuntimeSettings,
   loadStreamEmbedSettings,
   normalizeStreamEmbedSettings,
+  normalizeStreamDeliverySettings,
   saveStreamEmbedSettings,
 };

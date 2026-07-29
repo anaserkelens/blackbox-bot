@@ -91,6 +91,7 @@ const {
   saveYouTubeEmbedSettings,
 } = require('./youtubeEmbedSettings');
 const { getYouTubeUploadStateStorageInfo } = require('./youtubeUploadMonitor');
+const { resolveYouTubeSourceReferences } = require('./youtubeChannels');
 const {
   deleteTempVoiceRoom,
   getTempVoiceSettings,
@@ -376,6 +377,11 @@ async function handleRequest(client, request, response) {
       return;
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/members') {
+      await handleGetDiscordMemberOptions(client, url, response);
+      return;
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/configuration') {
       await handleGetDashboardConfiguration(client, response);
       return;
@@ -432,7 +438,7 @@ async function handleRequest(client, request, response) {
     }
 
     if (request.method === 'PUT' && url.pathname === '/api/stream-embed') {
-      await handleSaveStreamEmbed(request, response);
+      await handleSaveStreamEmbed(request, response, session.user);
       return;
     }
 
@@ -899,6 +905,83 @@ async function handleGetDiscordRoles(client, response) {
     guildId: guild.id,
     roles,
     defaults: { ...config.roles },
+  });
+}
+
+async function handleGetDiscordMemberOptions(client, url, response) {
+  if (!client.isReady()) {
+    sendJson(response, 503, { error: 'Bot is not ready yet.' });
+    return;
+  }
+
+  const guild = getDashboardGuild(client);
+
+  if (!guild) {
+    sendJson(response, 404, { error: 'The dashboard Discord server was not found.' });
+    return;
+  }
+
+  const query = String(url.searchParams.get('query') || '').trim();
+
+  if (query.length < 2 && !/^\d{17,20}$/.test(query)) {
+    sendJson(response, 200, { ok: true, members: [], query });
+    return;
+  }
+
+  if (query.length > 100) {
+    sendJson(response, 400, { error: 'Member searches must be 100 characters or fewer.' });
+    return;
+  }
+
+  const normalizedQuery = query.toLowerCase();
+  const members = new Map();
+
+  if (/^\d{17,20}$/.test(query)) {
+    const member = guild.members.cache.get(query)
+      || await guild.members.fetch(query).catch(() => null);
+
+    if (member) {
+      members.set(member.id, member);
+    }
+  } else {
+    for (const member of guild.members.cache.values()) {
+      const searchable = [
+        member.displayName,
+        member.user?.username,
+        member.user?.globalName,
+      ].filter(Boolean).join(' ').toLowerCase();
+
+      if (searchable.includes(normalizedQuery)) {
+        members.set(member.id, member);
+      }
+    }
+
+    if (typeof guild.members.search === 'function') {
+      const searched = await guild.members.search({ query, limit: 25 }).catch(() => null);
+
+      for (const member of searched?.values?.() || []) {
+        members.set(member.id, member);
+      }
+    }
+  }
+
+  sendJson(response, 200, {
+    ok: true,
+    query,
+    members: [...members.values()]
+      .filter((member) => !member.user?.bot)
+      .slice(0, 25)
+      .map((member) => ({
+        id: member.id,
+        displayName: member.displayName
+          || member.user?.globalName
+          || member.user?.username
+          || `Member ${member.id}`,
+        username: member.user?.username || 'Unknown user',
+        avatarUrl: member.displayAvatarURL?.({ size: 128 })
+          || member.user?.displayAvatarURL?.({ size: 128 })
+          || null,
+      })),
   });
 }
 
@@ -1458,6 +1541,10 @@ async function handleTestAnnouncement(client, request, response) {
     if (type === 'welcome') {
       payload = createWelcomeAnnouncementPayload(settings, member);
     } else if (type === 'youtube') {
+      const source = settings.sources?.[0] || {
+        channelId: config.youtubeMonitor.channelId,
+        handle: config.youtubeMonitor.channelHandle,
+      };
       payload = createYouTubeAnnouncementPayload(settings, {
         member,
         video: {
@@ -1467,7 +1554,10 @@ async function handleTestAnnouncement(client, request, response) {
           thumbnailUrl: 'https://i.ytimg.com/vi/67rGoXhQcvA/hqdefault.jpg',
           publishedAt: new Date().toISOString(),
         },
-        channelHandle: config.youtubeMonitor.channelHandle,
+        channelHandle: source.handle || '',
+        channelUrl: source.handle
+          ? `https://www.youtube.com/${source.handle}`
+          : `https://www.youtube.com/channel/${source.channelId}`,
         timestamp: new Date(),
       });
     } else {
@@ -2086,18 +2176,40 @@ async function handleGetStreamEmbed(response) {
 
   sendJson(response, 200, {
     ok: true,
-    settings,
+    settings: withStreamDeliveryRole(settings),
     storage,
   });
 }
 
-async function handleSaveStreamEmbed(request, response) {
+async function handleSaveStreamEmbed(request, response, actor) {
   const body = await readJsonBody(request, 256 * 1024);
   let settings;
 
   try {
+    const delivery = body.settings?.delivery || {};
+    const roleModes = new Set(['featured_with_role', 'all_announcements', 'role_only']);
+
+    if (roleModes.has(delivery.mode) && !/^\d{17,20}$/.test(String(delivery.liveRoleId || ''))) {
+      throw new Error('Choose a Broadcasting role for the selected Twitch behavior.');
+    }
+
+    if (delivery.liveRoleId && !/^\d{17,20}$/.test(String(delivery.liveRoleId))) {
+      throw new Error('Broadcasting role ID must be a Discord snowflake.');
+    }
+
     settings = await saveStreamEmbedSettings(config, body.settings);
     config.channels.streamAnnouncements = settings.channelId;
+
+    if (Object.hasOwn(body.settings?.delivery || {}, 'liveRoleId')) {
+      const dashboardSettings = await loadDashboardSettings(config);
+      await saveDashboardSettings(config, {
+        ...dashboardSettings,
+        roles: {
+          ...dashboardSettings.roles,
+          live: body.settings.delivery.liveRoleId || null,
+        },
+      }, actor);
+    }
   } catch (error) {
     sendJson(response, 400, { error: error.message });
     return;
@@ -2105,9 +2217,19 @@ async function handleSaveStreamEmbed(request, response) {
 
   sendJson(response, 200, {
     ok: true,
-    settings,
+    settings: withStreamDeliveryRole(settings),
     storage: await getStreamEmbedStorageStatus(config),
   });
+}
+
+function withStreamDeliveryRole(settings) {
+  return {
+    ...settings,
+    delivery: {
+      ...(settings.delivery || {}),
+      liveRoleId: config.roles.live || '',
+    },
+  };
 }
 
 async function handleGetYouTubeEmbed(response) {
@@ -2128,7 +2250,15 @@ async function handleSaveYouTubeEmbed(request, response) {
   let settings;
 
   try {
-    settings = await saveYouTubeEmbedSettings(config, body.settings);
+    const existingSettings = await loadYouTubeEmbedSettings(config);
+    const sourceInput = Array.isArray(body.settings?.sources)
+      ? body.settings.sources
+      : existingSettings.sources;
+    const resolvedSources = await resolveYouTubeSourceReferences(sourceInput);
+    settings = await saveYouTubeEmbedSettings(config, {
+      ...body.settings,
+      sources: resolvedSources,
+    });
     config.channels.youtubeAnnouncements = settings.channelId;
   } catch (error) {
     sendJson(response, 400, { error: error.message });
