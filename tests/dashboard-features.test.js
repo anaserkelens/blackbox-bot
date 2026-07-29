@@ -473,6 +473,7 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
   Object.assign(config.dashboard, {
     enabled: true,
     password: 'dashboard-test-password',
+    passwordLoginEnabled: true,
     port: 0,
     maxBodyBytes: 1024 * 1024,
     maxUploadBytes: 8 * 1024 * 1024,

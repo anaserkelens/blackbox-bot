@@ -1,12 +1,10 @@
 const loginView = document.querySelector('#login-view');
 const dashboardView = document.querySelector('#dashboard-view');
-const loginForm = document.querySelector('#login-form');
 const loginError = document.querySelector('#login-error');
-const loginButton = document.querySelector('#login-button');
-const basicLoginButton = document.querySelector('#basic-login-button');
 const discordLoginWrap = document.querySelector('#discord-login-wrap');
+const discordLoginButton = document.querySelector('#discord-login-button');
+const discordLoginStatus = document.querySelector('#discord-login-status');
 const apiStatus = document.querySelector('#api-status');
-const passwordInput = document.querySelector('#password');
 const logoutButton = document.querySelector('#logout');
 const botStatus = document.querySelector('#bot-status');
 const dashboardClock = document.querySelector('#dashboard-clock');
@@ -505,7 +503,6 @@ async function init() {
 }
 
 function bindEvents() {
-  loginForm.addEventListener('submit', handleLogin);
   logoutButton.addEventListener('click', handleLogout);
   tabButtons.forEach((button) => button.addEventListener('click', () => handlePrimaryTabClick(button)));
   dashboardView.addEventListener('click', handleDashboardNavigationClick);
@@ -676,47 +673,6 @@ function bindEvents() {
   });
 }
 
-async function handleLogin(event) {
-  if (event.submitter === basicLoginButton) {
-    passwordInput.value = passwordInput.value.trim();
-    return;
-  }
-
-  event.preventDefault();
-  loginError.textContent = '';
-  loginButton.disabled = true;
-  basicLoginButton.disabled = true;
-  loginButton.textContent = 'Checking API...';
-
-  try {
-    await api('/api/ping');
-    loginButton.textContent = 'Logging in...';
-
-    const loginResult = await api('/api/login', {
-      method: 'POST',
-      body: { password: passwordInput.value.trim() },
-    });
-
-    if (loginResult.sessionToken) {
-      setSessionToken(loginResult.sessionToken);
-    }
-
-    const session = await api('/api/session').catch(() => loginResult);
-
-    if (!session?.ok) {
-      throw new Error('Password accepted, but the dashboard session could not be verified. Refresh and try again.');
-    }
-
-    showDashboard(session);
-  } catch (error) {
-    loginError.textContent = error.message;
-  } finally {
-    loginButton.disabled = false;
-    basicLoginButton.disabled = false;
-    loginButton.textContent = 'Log in';
-  }
-}
-
 async function checkApiStatus() {
   setApiStatus(`Checking API on ${window.location.origin}...`, '');
 
@@ -726,11 +682,27 @@ async function checkApiStatus() {
     const botText = ping.botReady || health.botReady ? `Bot online${ping.tag ? `: ${ping.tag}` : ''}` : 'Bot not ready';
 
     setGuildName(ping.guildName);
-    discordLoginWrap.hidden = !ping.discordOauthEnabled;
+    renderDiscordLoginAvailability(ping);
     setApiStatus(`API connected. ${botText}.`, 'success');
   } catch (error) {
     setApiStatus(`API check failed on ${window.location.origin}: ${error.message}`, 'error');
   }
+}
+
+function renderDiscordLoginAvailability(ping) {
+  const enabled = Boolean(ping.discordOauthEnabled);
+  const missing = Array.isArray(ping.discordOauthStatus?.missing)
+    ? ping.discordOauthStatus.missing
+    : [];
+
+  discordLoginWrap.hidden = false;
+  discordLoginWrap.classList.toggle('is-unavailable', !enabled);
+  discordLoginButton.hidden = !enabled;
+  discordLoginStatus.textContent = enabled
+    ? 'Your server role decides what you can view and change.'
+    : missing.length
+      ? `Discord sign-in is not active in this deployment. Missing: ${missing.join(', ')}.`
+      : 'Discord sign-in is not active in this deployment. Restart Bean after checking its OAuth variables.';
 }
 
 async function handleLogout() {
@@ -2745,7 +2717,6 @@ function showLogin() {
 
   const loginErrorCode = new URLSearchParams(window.location.search).get('loginError');
   const loginMessages = {
-    invalid: 'Invalid dashboard password.',
     oauth: 'Discord login could not be completed. Please try again.',
     'oauth-disabled': 'Discord login has not been configured for this dashboard.',
     access: 'Your Discord roles do not grant dashboard access.',
@@ -2755,8 +2726,6 @@ function showLogin() {
     loginError.textContent = loginMessages[loginErrorCode];
     window.history.replaceState({}, '', '/');
   }
-
-  passwordInput.focus();
 }
 
 function showDashboard(session) {

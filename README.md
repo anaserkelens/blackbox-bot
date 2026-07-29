@@ -28,7 +28,9 @@ A Discord.js bot for the UNDR CTRL community, ready to run locally and deploy to
    DISCORD_GUILD_ID=...
    WELCOME_CHANNEL_ID=...
    AUTO_REGISTER_COMMANDS=true
-   DASHBOARD_PASSWORD=...
+   DASHBOARD_DISCORD_OAUTH_ENABLED=true
+   DASHBOARD_PUBLIC_URL=https://your-dashboard-domain
+   DISCORD_CLIENT_SECRET=...
    ```
 
 3. Start the bot:
@@ -87,7 +89,6 @@ https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=412605
    PRESENCE_TEXTS
    PRESENCE_TEXT
    PRESENCE_ROTATION_SECONDS
-   DASHBOARD_PASSWORD
    DASHBOARD_MAX_BODY_MB
    DASHBOARD_MAX_UPLOAD_MB
    DASHBOARD_SETTINGS_PATH
@@ -171,7 +172,7 @@ To keep live, YouTube, and welcome embed settings across Railway restarts and re
 
 ## Dashboard
 
-Set `DASHBOARD_PASSWORD` in Railway to enable the browser dashboard. Railway will expose it at your service URL:
+Configure Discord OAuth to enable the browser dashboard. Railway will expose it at your service URL:
 
 ```text
 https://your-service.up.railway.app/
@@ -179,7 +180,7 @@ https://your-service.up.railway.app/
 
 The Settings workspace includes a persistent Configuration Center for channels, roles, storage, Discord permissions, privileged intents, dashboard access, and audited change history. Every bot system now owns its enable switch on its dedicated feature page; disabled systems remain accessible but appear muted in the sidebar. Settings write to `dashboard-settings.json` on the Railway volume, or to `DASHBOARD_SETTINGS_PATH` when explicitly configured. Saved channel and role choices are available to active systems immediately. Gateway intent changes and enabling a monitor that was disabled during startup still require updating the Discord Developer Portal/Railway variables when applicable and restarting Bean.
 
-Discord sign-in can replace or complement the shared password. Set `DASHBOARD_DISCORD_OAUTH_ENABLED=true`, `DASHBOARD_PUBLIC_URL`, and `DISCORD_CLIENT_SECRET`, then add `DASHBOARD_PUBLIC_URL/auth/discord/callback` to the application's OAuth2 redirects in the Discord Developer Portal. Access follows the bot owner, Founder, Staff, Moderator, Dashboard Administrator, Dashboard Editor, and Dashboard Viewer roles. Read and write permissions are enforced by the API, not only hidden in the interface.
+The dashboard is Discord-only. Set `DASHBOARD_DISCORD_OAUTH_ENABLED=true`, `DASHBOARD_PUBLIC_URL`, and `DISCORD_CLIENT_SECRET`, then add `DASHBOARD_PUBLIC_URL/auth/discord/callback` to the application's OAuth2 redirects in the Discord Developer Portal. Access follows the bot owner, Founder, Staff, Moderator, Dashboard Administrator, Dashboard Editor, and Dashboard Viewer roles. Read and write permissions are enforced by the API, not only hidden in the interface.
 
 The dashboard header includes a persistent notification inbox for cases, failed scheduled posts, bot errors, and join spikes. Message, Mailbox, Welcome, Twitch, and YouTube builders keep browser version history with autosave, undo, redo, and duplication. Welcome and creator-notification drafts can be test-sent from the dashboard without resolving real member or role pings. Staff filters, the current workspace, and compact-density preference are remembered per browser.
 

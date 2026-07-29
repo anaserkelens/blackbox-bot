@@ -93,8 +93,8 @@ function startDashboard(client) {
     return null;
   }
 
-  if (!config.dashboard.password && !isDiscordOauthConfigured()) {
-    console.log('Dashboard disabled. Set DASHBOARD_PASSWORD or configure Discord OAuth.');
+  if (!isDiscordOauthConfigured() && !isPasswordLoginConfigured()) {
+    console.log('Dashboard disabled. Configure Discord OAuth.');
     return null;
   }
 
@@ -216,12 +216,15 @@ async function handleRequest(client, request, response) {
   }
 
   if (request.method === 'GET' && url.pathname === '/api/ping') {
+    const discordOauthStatus = getDiscordOauthStatus();
+
     sendJson(response, 200, {
       ok: true,
       botReady: client.isReady(),
       tag: client.user?.tag || null,
       guildName: getDashboardGuildName(client),
-      discordOauthEnabled: isDiscordOauthConfigured(),
+      discordOauthEnabled: discordOauthStatus.enabled,
+      discordOauthStatus,
     });
     return;
   }
@@ -237,11 +240,21 @@ async function handleRequest(client, request, response) {
   }
 
   if (request.method === 'POST' && url.pathname === '/login') {
+    if (!isPasswordLoginConfigured()) {
+      redirect(response, '/?loginError=oauth-disabled');
+      return;
+    }
+
     await handleClassicLogin(client, request, response);
     return;
   }
 
   if (request.method === 'POST' && url.pathname === '/api/login') {
+    if (!isPasswordLoginConfigured()) {
+      sendJson(response, 404, { error: 'Password login is disabled.' });
+      return;
+    }
+
     await handleLogin(client, request, response);
     return;
   }
@@ -2319,10 +2332,13 @@ function parseCookies(request) {
 function getAuthenticatedSession(request) {
   const cookie = parseCookies(request)[sessionCookieName];
   const bearerToken = readBearerToken(request);
-  const expected = createSessionValue();
 
-  if (matchesSessionValue(cookie, expected) || matchesSessionValue(bearerToken, expected)) {
-    return createPasswordSession();
+  if (isPasswordLoginConfigured()) {
+    const expected = createSessionValue();
+
+    if (matchesSessionValue(cookie, expected) || matchesSessionValue(bearerToken, expected)) {
+      return createPasswordSession();
+    }
   }
 
   const token = cookie || bearerToken;
@@ -2381,7 +2397,11 @@ function isSecureRequest(request) {
 }
 
 function isDashboardPassword(value) {
-  return Boolean(config.dashboard.password) && value.trim() === config.dashboard.password;
+  return isPasswordLoginConfigured() && value.trim() === config.dashboard.password;
+}
+
+function isPasswordLoginConfigured() {
+  return config.dashboard.passwordLoginEnabled === true && Boolean(config.dashboard.password);
 }
 
 function createPasswordSession() {
@@ -2399,13 +2419,26 @@ function createPasswordSession() {
 }
 
 function isDiscordOauthConfigured() {
-  return Boolean(
-    config.dashboard.discordOauth?.enabled
-    && config.dashboard.discordOauth?.clientSecret
-    && config.dashboard.publicUrl
-    && config.clientId
-    && config.guildId
-  );
+  return getDiscordOauthStatus().enabled;
+}
+
+function getDiscordOauthStatus() {
+  const requirements = [
+    ['DASHBOARD_DISCORD_OAUTH_ENABLED=true', config.dashboard.discordOauth?.enabled === true],
+    ['DASHBOARD_PUBLIC_URL', Boolean(config.dashboard.publicUrl)],
+    ['DISCORD_CLIENT_SECRET', Boolean(config.dashboard.discordOauth?.clientSecret)],
+    ['DISCORD_CLIENT_ID', Boolean(config.clientId)],
+    ['DISCORD_GUILD_ID', Boolean(config.guildId)],
+  ];
+  const missing = requirements
+    .filter(([, ready]) => !ready)
+    .map(([name]) => name);
+
+  return {
+    enabled: missing.length === 0,
+    missing,
+    redirectUri: config.dashboard.publicUrl ? getDiscordOauthRedirectUri() : null,
+  };
 }
 
 function getDiscordOauthRedirectUri() {

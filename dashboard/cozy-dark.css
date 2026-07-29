@@ -4712,6 +4712,20 @@ button.member-result:hover,
   font-size: 10px;
 }
 
+.discord-login-wrap.is-unavailable > span {
+  display: none;
+}
+
+.discord-login-wrap.is-unavailable small {
+  border: 1px solid rgba(215, 154, 97, 0.18);
+  border-radius: 12px;
+  background: rgba(215, 154, 97, 0.065);
+  color: #c99a70;
+  line-height: 1.5;
+  padding: 10px 12px;
+  text-align: left;
+}
+
 .notification-trigger {
   position: relative;
   width: 40px;
@@ -5856,12 +5870,14 @@ button.member-result:hover,
   inset: 0;
 }
 
-.notification-backdrop {
+.notification-backdrop,
+.notification-backdrop:hover {
   position: absolute;
   inset: 0;
   border: 0;
   border-radius: 0;
   background: rgba(4, 5, 8, 0.62);
+  box-shadow: none;
   backdrop-filter: blur(3px);
 }
 

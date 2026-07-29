@@ -18,7 +18,7 @@
   <body>
     <main class="shell">
       <section id="login-view" class="login-panel" hidden>
-        <form id="login-form" class="login-form" method="post" action="/login">
+        <div class="login-form">
           <div class="brand-lockup">
             <img class="bean-mark" src="/assets/bean-icon.png" alt="" />
             <div>
@@ -26,28 +26,17 @@
               <h1>Bean Dashboard</h1>
             </div>
           </div>
-          <p class="login-welcome">Come on in. Your community control room is warm and ready.</p>
-          <label>
-            Dashboard password
-            <input id="password" name="password" type="password" autocomplete="current-password" required />
-          </label>
-          <div class="login-actions">
-            <button id="login-button" type="submit">Log in</button>
-            <button id="basic-login-button" class="secondary" type="submit" formaction="/login" formmethod="post">
-              Basic login
-            </button>
-          </div>
+          <p class="login-welcome">Come on in. Continue with Discord to enter your community control room.</p>
           <div id="discord-login-wrap" class="discord-login-wrap" hidden>
-            <span>or</span>
-            <a class="discord-login-button" href="/auth/discord">
+            <a id="discord-login-button" class="discord-login-button" href="/auth/discord">
               <i class="fa-brands fa-discord" aria-hidden="true"></i>
               Continue with Discord
             </a>
-            <small>Your server role decides what you can view and change.</small>
+            <small id="discord-login-status">Your server role decides what you can view and change.</small>
           </div>
           <p id="api-status" class="api-status" role="status">Checking dashboard API...</p>
           <p id="login-error" class="error" role="status"></p>
-        </form>
+        </div>
       </section>
 
       <section id="dashboard-view" class="dashboard" hidden>
