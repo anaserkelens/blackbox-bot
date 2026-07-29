@@ -5541,7 +5541,238 @@ button.is-feature-disabled {
   grid-column: 1 / -1;
 }
 
-/* ---------- 29. Read-only, permission & binding states ---------- */
+/* ---------- 29. Bean Protection ---------- */
+.protection-page {
+  gap: 1.2rem;
+}
+
+.protection-hero {
+  background:
+    radial-gradient(680px 300px at 88% -20%, rgba(237, 66, 69, 0.12), transparent 62%),
+    radial-gradient(520px 260px at 8% 120%, rgba(88, 101, 242, 0.1), transparent 60%),
+    var(--panel);
+}
+
+.protection-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.protection-metric-card {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1rem 1.1rem;
+}
+
+.protection-metric-card > span,
+.protection-incident-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: var(--bean-soft);
+  color: var(--bean-bright);
+  flex: none;
+}
+
+.protection-metric-card small,
+.protection-metric-card p {
+  color: var(--text-faint);
+  font-size: 0.72rem;
+}
+
+.protection-metric-card strong {
+  display: block;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+
+.protection-raid-card {
+  display: grid;
+  gap: 1rem;
+  border-color: rgba(237, 66, 69, 0.18);
+}
+
+.protection-raid-controls {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) auto auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.danger-button {
+  background: rgba(237, 66, 69, 0.16);
+  border-color: rgba(237, 66, 69, 0.36);
+  color: #ff9da0;
+}
+
+.danger-button:hover {
+  background: rgba(237, 66, 69, 0.24);
+  border-color: rgba(237, 66, 69, 0.52);
+  filter: none;
+}
+
+.protection-workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.75fr);
+  gap: 1.2rem;
+  align-items: start;
+}
+
+.protection-settings-card,
+.protection-native-card {
+  display: grid;
+  gap: 1rem;
+}
+
+.protection-toggle-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.protection-toggle-list .toggle-row {
+  min-width: 0;
+  justify-content: space-between;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--raised);
+}
+
+.protection-toggle-list .toggle-row > span:first-child {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.14rem;
+  flex: 1;
+}
+
+.protection-toggle-list .toggle-row strong {
+  display: block;
+  color: var(--text);
+  font-size: 0.78rem;
+}
+
+.protection-toggle-list .toggle-row small {
+  display: block;
+  color: var(--text-faint);
+  font-size: 0.7rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.protection-threshold-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.protection-destination-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.protection-native-card {
+  position: sticky;
+  top: 7rem;
+}
+
+.protection-native-card > p {
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+
+.protection-native-rules {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.protection-native-rules > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--raised);
+  font-size: 0.78rem;
+}
+
+.protection-native-rules > div span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.protection-native-rules strong.ready {
+  color: var(--sage);
+}
+
+.protection-native-rules strong.offline {
+  color: var(--clay);
+}
+
+.protection-incidents-card {
+  display: grid;
+  gap: 1rem;
+}
+
+.protection-incident-list {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.protection-incident-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--raised);
+}
+
+.protection-incident-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.2rem;
+  flex: 1;
+}
+
+.protection-incident-copy > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.protection-incident-copy > div p {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-weight: 650;
+}
+
+.protection-incident-copy > div span {
+  color: var(--bean-bright);
+  font-size: 0.68rem;
+  font-family: var(--font-mono);
+}
+
+.protection-incident-copy > strong {
+  font-size: 0.8rem;
+}
+
+.protection-incident-copy > p,
+.protection-incident-copy > small {
+  color: var(--text-faint);
+  font-size: 0.74rem;
+}
+
+/* ---------- 30. Read-only, permission & binding states ---------- */
 .is-read-only,
 [data-requires-permission].is-read-only {
   opacity: 0.5;
@@ -5566,7 +5797,7 @@ button.is-feature-disabled {
   opacity: 0.55;
 }
 
-/* ---------- 30. Responsive ---------- */
+/* ---------- 31. Responsive ---------- */
 @media (max-width: 1280px) {
   .overview-insight-grid,
   .analytics-grid {
@@ -5576,6 +5807,7 @@ button.is-feature-disabled {
   .workspace,
   .live-embed-workspace,
   .reaction-role-workspace,
+  .protection-workspace-grid,
   .feature-page-grid,
   .voice-room-layout {
     grid-template-columns: minmax(0, 1fr);
@@ -5585,6 +5817,14 @@ button.is-feature-disabled {
   .mailbox-preview-panel,
   .live-embed-preview-panel {
     position: static;
+  }
+
+  .protection-native-card {
+    position: static;
+  }
+
+  .protection-threshold-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .case-filter-grid {
@@ -5709,6 +5949,11 @@ button.is-feature-disabled {
   }
 
   .health-metric-grid,
+  .protection-metric-grid,
+  .protection-toggle-list,
+  .protection-threshold-grid,
+  .protection-destination-grid,
+  .protection-raid-controls,
   .form-grid,
   .reaction-role-form-grid {
     grid-template-columns: minmax(0, 1fr);

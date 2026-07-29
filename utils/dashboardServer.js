@@ -6,6 +6,13 @@ const path = require('node:path');
 const { ChannelType, PermissionFlagsBits } = require('discord.js');
 
 const { getActivityFeed, getActivityFeedStorageInfo } = require('./activityFeed');
+const {
+  getProtectionOverview,
+  getProtectionStorageInfo,
+  saveProtectionSettings,
+  setRaidMode,
+  syncNativeAutoModerationRules,
+} = require('./beanProtection');
 const { config } = require('./config');
 const {
   featureKeys,
@@ -123,6 +130,7 @@ function startDashboard(client) {
   logModerationCasesStorage();
   logTempVoiceStorage();
   logReactionRoleStorage();
+  logProtectionStorage();
 
   const server = http.createServer((request, response) => {
     handleRequest(client, request, response).catch((error) => {
@@ -223,6 +231,18 @@ function logReactionRoleStorage() {
 
   if (!storage.persistent) {
     console.warn('Reaction-role mappings will reset after redeploys unless a Railway volume is attached.');
+  }
+}
+
+function logProtectionStorage() {
+  const storage = getProtectionStorageInfo(config);
+
+  console.log(
+    `Bean Protection storage: ${storage.filePath} (${storage.persistent ? 'persistent' : 'ephemeral'}, ${storage.source}).`,
+  );
+
+  if (!storage.persistent) {
+    console.warn('Bean Protection incidents and raid state will reset after redeploys unless a Railway volume is attached.');
   }
 }
 
@@ -441,6 +461,26 @@ async function handleRequest(client, request, response) {
 
     if (request.method === 'GET' && url.pathname === '/api/dashboard-notifications') {
       await handleGetDashboardNotifications(client, url, response);
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/protection') {
+      await handleGetProtection(client, response);
+      return;
+    }
+
+    if (request.method === 'PUT' && url.pathname === '/api/protection/settings') {
+      await handleSaveProtectionSettings(client, request, response, session.user);
+      return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/protection/raid') {
+      await handleSetProtectionRaidMode(client, request, response, session.user);
+      return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/protection/sync') {
+      await handleSyncProtectionRules(client, response, session.user);
       return;
     }
 
@@ -1029,15 +1069,15 @@ async function getConfigurationDiagnostics(client, settings) {
       key: 'members',
       label: 'Server Members intent',
       enabled: Boolean(config.intents.members),
-      required: settings.features.welcomeMessages,
-      reason: 'automatic welcome messages',
+      required: settings.features.welcomeMessages || settings.features.beanProtection,
+      reason: 'automatic welcomes and join-raid detection',
     },
     {
       key: 'messageContent',
       label: 'Message Content intent',
       enabled: Boolean(config.intents.messageContent),
-      required: settings.features.inviteModeration || settings.features.detailedLogging,
-      reason: 'invite moderation and detailed message logs',
+      required: settings.features.inviteModeration || settings.features.detailedLogging || settings.features.beanProtection,
+      reason: 'invite moderation, Bean Protection, and detailed message logs',
     },
     {
       key: 'presences',
@@ -1519,6 +1559,88 @@ async function handleGetDashboardNotifications(client, url, response) {
   sendJson(response, 200, { ok: true, ...result });
 }
 
+async function handleGetProtection(client, response) {
+  const overview = await getProtectionOverview(client, config);
+
+  sendJson(response, 200, { ok: true, ...overview });
+}
+
+async function handleSaveProtectionSettings(client, request, response, actor) {
+  const body = await readJsonBody(request, config.dashboard.maxBodyBytes);
+
+  try {
+    await saveProtectionSettings(config, body.settings, actor);
+    const overview = await getProtectionOverview(client, config);
+
+    await sendStructuredLog(client, overview.settings.alertChannelId || config.channels.operationLog, {
+      title: 'Bean Protection Settings Updated',
+      emoji: '🛡️',
+      color: colors.info,
+      summary: `**${actor?.displayName || 'A dashboard user'}** updated Bean Protection.`,
+      referenceId: `PROTECTION-CONFIG-${Date.now()}`,
+      fields: [
+        { name: 'Dashboard Role', value: actor?.role || 'Staff' },
+        { name: 'Flood Threshold', value: `${overview.settings.floodMessageLimit} messages / ${overview.settings.floodWindowSeconds}s` },
+        { name: 'Join Threshold', value: `${overview.settings.joinLimit} joins / ${overview.settings.joinWindowSeconds}s` },
+      ],
+      activity: false,
+    }, config).catch((error) => console.error('Failed to log protection configuration:', error));
+
+    sendJson(response, 200, { ok: true, ...overview });
+  } catch (error) {
+    sendJson(response, 400, { error: error.message });
+  }
+}
+
+async function handleSetProtectionRaidMode(client, request, response, actor) {
+  const body = await readJsonBody(request, config.dashboard.maxBodyBytes);
+
+  if (typeof body.active !== 'boolean') {
+    sendJson(response, 400, { error: 'Raid mode requires an active boolean.' });
+    return;
+  }
+
+  const guild = getDashboardGuild(client);
+
+  if (!guild) {
+    sendJson(response, 404, { error: 'The dashboard Discord server was not found.' });
+    return;
+  }
+
+  try {
+    await setRaidMode(client, config, {
+      active: body.active,
+      guildId: guild.id,
+      actor,
+      reason: String(body.reason || '').trim() || `Raid mode ${body.active ? 'enabled' : 'disabled'} from the dashboard.`,
+      source: 'dashboard',
+    });
+    const overview = await getProtectionOverview(client, config);
+
+    sendJson(response, 200, { ok: true, ...overview });
+  } catch (error) {
+    sendJson(response, 400, { error: error.message });
+  }
+}
+
+async function handleSyncProtectionRules(client, response, actor) {
+  const guild = getDashboardGuild(client);
+
+  if (!guild) {
+    sendJson(response, 404, { error: 'The dashboard Discord server was not found.' });
+    return;
+  }
+
+  try {
+    const result = await syncNativeAutoModerationRules(guild, config, actor);
+    const overview = await getProtectionOverview(client, config);
+
+    sendJson(response, 200, { ok: true, result, ...overview });
+  } catch (error) {
+    sendJson(response, 400, { error: error.message });
+  }
+}
+
 async function getDashboardStorageHealth() {
   const presence = await getPresenceSettingsStorageStatus(config).catch(() => null);
   const stores = [
@@ -1533,6 +1655,7 @@ async function getDashboardStorageHealth() {
     ['Welcome Message', getWelcomeEmbedStorageInfo(config)],
     ['Presence', presence],
     ['Dashboard Configuration', getDashboardSettingsStorageInfo(config)],
+    ['Bean Protection', getProtectionStorageInfo(config)],
   ];
 
   return Promise.all(stores.map(async ([name, storage]) => {
@@ -2660,6 +2783,8 @@ function sessionCanAccess(session, method, pathname) {
   if (pathname === '/api/configuration' || pathname.startsWith('/api/bot/')) return permissions.configure;
   if (pathname.startsWith('/api/moderation-cases/')) return permissions.moderate;
   if (pathname.startsWith('/api/temp-voice/')) return permissions.moderate;
+  if (pathname === '/api/protection/raid') return permissions.moderate;
+  if (pathname.startsWith('/api/protection/')) return permissions.configure;
   if (
     pathname.startsWith('/api/send-message')
     || pathname.startsWith('/api/test-announcement')

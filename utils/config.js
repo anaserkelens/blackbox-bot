@@ -139,6 +139,7 @@ const config = {
     welcomeEmbedPath: readEnv('DASHBOARD_WELCOME_EMBED_PATH'),
     moderationCasesPath: readEnv('MODERATION_CASES_PATH'),
     tempVoicePath: readEnv('TEMP_VOICE_PATH'),
+    protectionPath: readEnv('BEAN_PROTECTION_PATH'),
     reactionRolesPath: readEnv('DASHBOARD_REACTION_ROLES_PATH'),
     mailboxSchedulePath: readEnv('MAILBOX_SCHEDULE_PATH'),
     activityPath: readEnv('DASHBOARD_ACTIVITY_PATH'),
@@ -149,6 +150,18 @@ const config = {
       enabled: readBoolean('DASHBOARD_DISCORD_OAUTH_ENABLED', false),
       clientSecret: readEnv('DISCORD_CLIENT_SECRET'),
     },
+  },
+  protection: {
+    enabled: readBoolean('BEAN_PROTECTION_ENABLED', false),
+    alertChannelId: readEnv('PROTECTION_ALERT_CHANNEL_ID') || loggingChannels.caseFiles,
+    quarantineRoleId: readEnv('QUARANTINE_ROLE_ID'),
+    floodMessageLimit: Math.min(20, Math.max(3, readInteger('PROTECTION_FLOOD_MESSAGE_LIMIT', 6))),
+    floodWindowSeconds: Math.min(60, Math.max(3, readInteger('PROTECTION_FLOOD_WINDOW_SECONDS', 8))),
+    duplicateMessageLimit: Math.min(10, Math.max(2, readInteger('PROTECTION_DUPLICATE_MESSAGE_LIMIT', 3))),
+    duplicateWindowSeconds: Math.min(120, Math.max(5, readInteger('PROTECTION_DUPLICATE_WINDOW_SECONDS', 20))),
+    joinLimit: Math.min(50, Math.max(3, readInteger('PROTECTION_JOIN_LIMIT', 5))),
+    joinWindowSeconds: Math.min(900, Math.max(30, readInteger('PROTECTION_JOIN_WINDOW_SECONDS', 300))),
+    autoRaidMode: readBoolean('PROTECTION_AUTO_RAID_MODE', false),
   },
 };
 

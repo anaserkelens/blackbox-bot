@@ -118,6 +118,10 @@
             </nav>
             <p class="nav-section-label">Operate</p>
             <nav id="feature-nav-list" class="nav-feature-list" aria-label="Feature tools">
+              <button type="button" data-tab-link="bean-protection" data-feature-nav="beanProtection">
+                <i class="fa-solid fa-shield-heart" aria-hidden="true"></i>
+                <span>Bean Protection</span>
+              </button>
               <button type="button" data-tab-link="invite-moderation" data-feature-nav="inviteModeration">
                 <i class="fa-solid fa-link-slash" aria-hidden="true"></i>
                 <span>Invite filter</span>
@@ -983,6 +987,147 @@
               <span id="voice-room-list-count" class="muted">0 rooms</span>
             </div>
             <div id="voice-room-list" class="voice-room-list"></div>
+          </section>
+        </section>
+
+        <section class="tab-panel feature-page protection-page" data-panel="bean-protection" data-feature-page="beanProtection" hidden>
+          <section class="dashboard-panel feature-page-hero protection-hero">
+            <div class="feature-page-heading">
+              <span><i class="fa-solid fa-shield-heart" aria-hidden="true"></i></span>
+              <div>
+                <p class="eyebrow">Layered community defense</p>
+                <h1>Bean Protection</h1>
+                <p>Discord blocks immediate violations. Bean adds behavioral detection, case history, progressive escalation, and raid response.</p>
+              </div>
+            </div>
+            <label class="feature-page-toggle feature-page-toggle-large">
+              <span><strong>Protection engine</strong><small data-feature-status-copy="beanProtection">Loading current status…</small></span>
+              <span class="config-feature-toggle"><input type="checkbox" data-feature-toggle="beanProtection" data-requires-permission="configure"><i></i></span>
+            </label>
+          </section>
+
+          <section class="protection-metric-grid">
+            <article class="dashboard-panel protection-metric-card">
+              <span><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span>
+              <div><small>Last 24 hours</small><strong id="protection-incident-count">0</strong><p>Recorded incidents</p></div>
+            </article>
+            <article class="dashboard-panel protection-metric-card">
+              <span><i class="fa-brands fa-discord" aria-hidden="true"></i></span>
+              <div><small>Discord AutoMod</small><strong id="protection-native-count">0</strong><p>Bean-managed rules</p></div>
+            </article>
+            <article class="dashboard-panel protection-metric-card">
+              <span><i class="fa-solid fa-user-lock" aria-hidden="true"></i></span>
+              <div><small>Quarantined</small><strong id="protection-quarantine-count">0</strong><p>Members in 24 hours</p></div>
+            </article>
+          </section>
+
+          <section class="dashboard-panel protection-raid-card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Emergency control</p>
+                <h2>Raid mode</h2>
+                <p>When active, every new arrival receives the configured quarantine role. Existing quarantines are preserved when raid mode ends.</p>
+              </div>
+              <span id="protection-raid-pill" class="status-pill">Checking</span>
+            </div>
+            <div class="protection-raid-controls">
+              <label class="field">
+                Staff reason
+                <input id="protection-raid-reason" type="text" maxlength="500" placeholder="Why are you changing raid mode?" />
+              </label>
+              <button id="enable-protection-raid" class="danger-button" type="button" data-requires-permission="moderate">
+                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Enable raid mode
+              </button>
+              <button id="disable-protection-raid" class="secondary" type="button" data-requires-permission="moderate">
+                <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Disable
+              </button>
+            </div>
+            <p id="protection-raid-summary" class="muted">Loading current raid state…</p>
+          </section>
+
+          <div class="protection-workspace-grid">
+            <form id="protection-settings-form" class="dashboard-panel protection-settings-card">
+              <div class="section-heading">
+                <div><p class="eyebrow">Behavioral rules</p><h2>Detection and escalation</h2></div>
+                <button id="save-protection-settings" type="submit" data-requires-permission="configure">
+                  <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save
+                </button>
+              </div>
+
+              <div class="protection-toggle-list">
+                <label class="toggle-row">
+                  <span><strong>Record Discord AutoMod</strong><small>Convert native actions into Bean cases and incidents.</small></span>
+                  <span class="config-feature-toggle"><input id="protection-native-logging" type="checkbox" /><i></i></span>
+                </label>
+                <label class="toggle-row">
+                  <span><strong>Member notices</strong><small>DM members with the reason and case reference.</small></span>
+                  <span class="config-feature-toggle"><input id="protection-dm-notifications" type="checkbox" /><i></i></span>
+                </label>
+                <label class="toggle-row">
+                  <span><strong>Message flooding</strong><small>Detect excessive posting across a short window.</small></span>
+                  <span class="config-feature-toggle"><input id="protection-flood-enabled" type="checkbox" /><i></i></span>
+                </label>
+                <label class="toggle-row">
+                  <span><strong>Repeated messages</strong><small>Detect members posting the same content repeatedly.</small></span>
+                  <span class="config-feature-toggle"><input id="protection-duplicate-enabled" type="checkbox" /><i></i></span>
+                </label>
+                <label class="toggle-row">
+                  <span><strong>Join-spike detection</strong><small>Alert staff when many members arrive together.</small></span>
+                  <span class="config-feature-toggle"><input id="protection-join-enabled" type="checkbox" /><i></i></span>
+                </label>
+                <label class="toggle-row">
+                  <span><strong>Automatic raid mode</strong><small>Activate quarantine automatically when the join threshold is reached.</small></span>
+                  <span class="config-feature-toggle"><input id="protection-auto-raid" type="checkbox" /><i></i></span>
+                </label>
+              </div>
+
+              <div class="form-grid protection-threshold-grid">
+                <label class="field">Flood messages<input id="protection-flood-limit" type="number" min="3" max="20" required /></label>
+                <label class="field">Flood window (seconds)<input id="protection-flood-window" type="number" min="3" max="60" required /></label>
+                <label class="field">Duplicate messages<input id="protection-duplicate-limit" type="number" min="2" max="10" required /></label>
+                <label class="field">Duplicate window (seconds)<input id="protection-duplicate-window" type="number" min="5" max="120" required /></label>
+                <label class="field">Join threshold<input id="protection-join-limit" type="number" min="3" max="50" required /></label>
+                <label class="field">Join window (seconds)<input id="protection-join-window" type="number" min="30" max="900" required /></label>
+                <label class="field">Second incident timeout (minutes)<input id="protection-second-timeout" type="number" min="1" max="1440" required /></label>
+                <label class="field">Repeat timeout (minutes)<input id="protection-repeat-timeout" type="number" min="5" max="40320" required /></label>
+              </div>
+
+              <div class="form-grid protection-destination-grid">
+                <label class="field">
+                  Alert and case channel
+                  <select id="protection-alert-channel" class="discord-channel-select" required></select>
+                </label>
+                <label class="field">
+                  Quarantine role
+                  <select id="protection-quarantine-role"></select>
+                </label>
+              </div>
+            </form>
+
+            <section class="dashboard-panel protection-native-card">
+              <div class="section-heading">
+                <div><p class="eyebrow">First line of defense</p><h2>Discord AutoMod</h2></div>
+                <span id="protection-native-pill" class="status-pill">Checking</span>
+              </div>
+              <p>Bean manages a Discord spam rule and mention-raid rule. Discord blocks matching messages even if Bean briefly disconnects.</p>
+              <div id="protection-native-rules" class="protection-native-rules"></div>
+              <button id="sync-protection-rules" type="button" data-requires-permission="configure">
+                <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i> Sync Discord rules
+              </button>
+              <p class="muted">Sync only creates or updates rules whose names begin with “Bean Protection ·”. Your other AutoMod rules stay untouched.</p>
+            </section>
+          </div>
+
+          <section class="dashboard-panel protection-incidents-card">
+            <div class="section-heading">
+              <div><p class="eyebrow">Recent evidence</p><h2>Protection incidents</h2></div>
+              <button id="refresh-protection" class="secondary icon-button" type="button" aria-label="Refresh protection incidents">
+                <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+              </button>
+            </div>
+            <div id="protection-incident-list" class="protection-incident-list">
+              <p class="muted">Loading protection history…</p>
+            </div>
           </section>
         </section>
 

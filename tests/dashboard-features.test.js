@@ -113,6 +113,19 @@ function createClient() {
     cache: channelCache,
     fetch: async () => channelCache,
   };
+  guild.roles = {
+    cache: new Map([[
+      '1520451840058064998',
+      {
+        id: '1520451840058064998',
+        name: 'Quarantine',
+        position: 1,
+        editable: true,
+        managed: false,
+      },
+    ]]),
+    fetch: async () => guild.roles.cache,
+  };
 
   return {
     sent,
@@ -484,6 +497,7 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
     youtubeUploadStatePath: path.join(temporaryDirectory, 'api-youtube-state.json'),
     welcomeEmbedPath: path.join(temporaryDirectory, 'api-welcome.json'),
     moderationCasesPath: path.join(temporaryDirectory, 'api-cases.json'),
+    protectionPath: path.join(temporaryDirectory, 'api-protection.json'),
     tempVoicePath: path.join(temporaryDirectory, 'api-voice.json'),
     mailboxSchedulePath: path.join(temporaryDirectory, 'api-schedule.json'),
     activityPath: path.join(temporaryDirectory, 'api-activity.json'),
@@ -516,7 +530,7 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
   assert.equal(health.response.status, 200);
   assert.equal(health.data.discord.latencyMs, 42);
   assert.equal(health.data.api.healthy, true);
-  assert.equal(health.data.storage.length, 11);
+  assert.equal(health.data.storage.length, 12);
   assert.equal(health.data.errors[0].source, 'Dashboard test');
 
   const analytics = await fetchJson(`${baseUrl}/api/analytics?days=30`, { headers });
@@ -566,6 +580,42 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
   assert.equal(updatedConfiguration.response.status, 200);
   assert.equal(updatedConfiguration.data.settings.channels.mailbox, '1520519675543293973');
   assert.equal(updatedConfiguration.data.settings.audit[0].actor.role, 'founder');
+
+  const protection = await fetchJson(`${baseUrl}/api/protection`, { headers });
+  const updatedProtection = await fetchJson(`${baseUrl}/api/protection/settings`, {
+    method: 'PUT',
+    headers,
+    body: {
+      settings: {
+        ...protection.data.settings,
+        alertChannelId: '1520519675543293973',
+        quarantineRoleId: '1520451840058064998',
+        floodMessageLimit: 7,
+      },
+    },
+  });
+
+  assert.equal(protection.response.status, 200);
+  assert.equal(updatedProtection.response.status, 200);
+  assert.equal(updatedProtection.data.settings.alertChannelId, '1520519675543293973');
+  assert.equal(updatedProtection.data.settings.quarantineRoleId, '1520451840058064998');
+  assert.equal(updatedProtection.data.settings.floodMessageLimit, 7);
+
+  const enabledRaidMode = await fetchJson(`${baseUrl}/api/protection/raid`, {
+    method: 'POST',
+    headers,
+    body: { active: true, reason: 'Dashboard API test.' },
+  });
+  const disabledRaidMode = await fetchJson(`${baseUrl}/api/protection/raid`, {
+    method: 'POST',
+    headers,
+    body: { active: false, reason: 'Dashboard API test complete.' },
+  });
+
+  assert.equal(enabledRaidMode.response.status, 200);
+  assert.equal(enabledRaidMode.data.raid.active, true);
+  assert.equal(disabledRaidMode.response.status, 200);
+  assert.equal(disabledRaidMode.data.raid.active, false);
 
   const welcomeTest = await fetchJson(`${baseUrl}/api/test-announcement`, {
     method: 'POST',

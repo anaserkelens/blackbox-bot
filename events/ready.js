@@ -2,6 +2,7 @@ const { Events } = require('discord.js');
 
 const { config } = require('../utils/config');
 const { getModerationCasesStorageInfo } = require('../utils/moderationCases');
+const { getProtectionStorageInfo } = require('../utils/beanProtection');
 const { startPresenceRotation } = require('../utils/presenceManager');
 const { getPresenceSettingsStorageInfo, loadPresenceSettings } = require('../utils/presenceSettings');
 const { getTempVoiceStorageInfo } = require('../utils/tempVoiceRooms');
@@ -17,6 +18,7 @@ async function execute(client) {
   const presenceStorage = getPresenceSettingsStorageInfo(config);
   const moderationCasesStorage = getModerationCasesStorageInfo(config);
   const tempVoiceStorage = getTempVoiceStorageInfo(config);
+  const protectionStorage = getProtectionStorageInfo(config);
   let presence;
 
   console.log(
@@ -58,6 +60,7 @@ async function execute(client) {
       { name: 'Presence Storage', value: `${presenceStorage.persistent ? 'Persistent' : 'Ephemeral'} via ${presenceStorage.source}` },
       { name: 'Moderation Case Storage', value: `${moderationCasesStorage.persistent ? 'Persistent' : 'Ephemeral'} via ${moderationCasesStorage.source}` },
       { name: 'Temporary Voice Storage', value: `${tempVoiceStorage.persistent ? 'Persistent' : 'Ephemeral'} via ${tempVoiceStorage.source}` },
+      { name: 'Bean Protection Storage', value: `${protectionStorage.persistent ? 'Persistent' : 'Ephemeral'} via ${protectionStorage.source}` },
     ],
   }).catch((error) => console.error('Failed to send startup operation log:', error));
 

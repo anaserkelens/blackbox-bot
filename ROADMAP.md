@@ -2,12 +2,10 @@
 
 ## Saved for later
 
-- AutoMod and anti-raid protection
-  - Spam and flood detection
-  - Mass-join protection
-  - Suspicious-link blocking
-  - Mention limits
-  - Automatic server lockdown
+- Bean Protection follow-ups
+  - Suspicious-link reputation checks
+  - Optional staff-confirmed channel lockdown
+  - Quarantine review and bulk-release workflow
 - Ticket system upgrades
   - HTML transcripts
   - Claiming and transferring tickets
@@ -38,6 +36,11 @@
 - Dashboard Bot Health panel for uptime, Discord latency, API, storage, and recent errors
 - Unified Dashboard Activity Feed for joins, departures, cases, Mailbox posts, and temporary rooms
 - Searchable Dashboard Member Profiles with cases, warnings, rooms, joins, and Bean interactions
+- Hybrid Discord AutoMod and Bean behavioral protection
+- Progressive flood and duplicate-message escalation with moderation cases
+- Join-spike detection, persistent raid mode, and quarantine-role enforcement
+- `/protection` and `/raid` staff commands
+- Dashboard Protection workspace with Discord rule sync, thresholds, raid controls, and incident history
 - Live Dashboard notifications for cases, Mailbox failures, bot errors, and unusual join activity
 - Dashboard Analytics for growth, voice hours, Mailbox engagement, moderation patterns, and active members
 - Member-aware Activity Feed with general bot-operation entries removed

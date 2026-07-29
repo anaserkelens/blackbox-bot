@@ -125,6 +125,37 @@ const addReactionRoleButton = document.querySelector('#add-reaction-role');
 const refreshReactionRolesButton = document.querySelector('#refresh-reaction-roles');
 const reactionRoleCount = document.querySelector('#reaction-role-count');
 const reactionRoleList = document.querySelector('#reaction-role-list');
+const protectionSettingsForm = document.querySelector('#protection-settings-form');
+const saveProtectionSettingsButton = document.querySelector('#save-protection-settings');
+const refreshProtectionButton = document.querySelector('#refresh-protection');
+const syncProtectionRulesButton = document.querySelector('#sync-protection-rules');
+const enableProtectionRaidButton = document.querySelector('#enable-protection-raid');
+const disableProtectionRaidButton = document.querySelector('#disable-protection-raid');
+const protectionRaidReasonInput = document.querySelector('#protection-raid-reason');
+const protectionRaidPill = document.querySelector('#protection-raid-pill');
+const protectionRaidSummary = document.querySelector('#protection-raid-summary');
+const protectionIncidentCount = document.querySelector('#protection-incident-count');
+const protectionNativeCount = document.querySelector('#protection-native-count');
+const protectionQuarantineCount = document.querySelector('#protection-quarantine-count');
+const protectionNativePill = document.querySelector('#protection-native-pill');
+const protectionNativeRules = document.querySelector('#protection-native-rules');
+const protectionIncidentList = document.querySelector('#protection-incident-list');
+const protectionNativeLoggingInput = document.querySelector('#protection-native-logging');
+const protectionDmNotificationsInput = document.querySelector('#protection-dm-notifications');
+const protectionFloodEnabledInput = document.querySelector('#protection-flood-enabled');
+const protectionDuplicateEnabledInput = document.querySelector('#protection-duplicate-enabled');
+const protectionJoinEnabledInput = document.querySelector('#protection-join-enabled');
+const protectionAutoRaidInput = document.querySelector('#protection-auto-raid');
+const protectionFloodLimitInput = document.querySelector('#protection-flood-limit');
+const protectionFloodWindowInput = document.querySelector('#protection-flood-window');
+const protectionDuplicateLimitInput = document.querySelector('#protection-duplicate-limit');
+const protectionDuplicateWindowInput = document.querySelector('#protection-duplicate-window');
+const protectionJoinLimitInput = document.querySelector('#protection-join-limit');
+const protectionJoinWindowInput = document.querySelector('#protection-join-window');
+const protectionSecondTimeoutInput = document.querySelector('#protection-second-timeout');
+const protectionRepeatTimeoutInput = document.querySelector('#protection-repeat-timeout');
+const protectionAlertChannelInput = document.querySelector('#protection-alert-channel');
+const protectionQuarantineRoleInput = document.querySelector('#protection-quarantine-role');
 const voiceRoomListCount = document.querySelector('#voice-room-list-count');
 const voiceRoomList = document.querySelector('#voice-room-list');
 const tabButtons = [...document.querySelectorAll('.tab-button')];
@@ -413,6 +444,7 @@ const state = {
   discordRoles: [],
   reactionRoles: [],
   reactionRoleStorage: null,
+  protection: null,
   configurationChannels: [],
   configurationDirty: false,
   builderManagers: new Map(),
@@ -550,6 +582,13 @@ function bindEvents() {
     loadReactionRoles(true).catch((error) => setSendStatus(error.message, 'error'));
   });
   reactionRoleList?.addEventListener('click', handleReactionRoleListClick);
+  protectionSettingsForm?.addEventListener('submit', handleProtectionSettingsSave);
+  refreshProtectionButton?.addEventListener('click', () => {
+    loadProtection(true).catch((error) => setSendStatus(error.message, 'error'));
+  });
+  syncProtectionRulesButton?.addEventListener('click', handleProtectionRuleSync);
+  enableProtectionRaidButton?.addEventListener('click', () => handleProtectionRaidChange(true));
+  disableProtectionRaidButton?.addEventListener('click', () => handleProtectionRaidChange(false));
   featureChannelSettingsForms.forEach((form) => {
     form.addEventListener('submit', handleFeatureChannelSettingsSave);
   });
@@ -1620,6 +1659,7 @@ const dashboardConfigurationDefinitions = {
     temporaryVoice: ['Temporary voice rooms', 'Create member-owned rooms from the configured lobby.', 'fa-headphones'],
     tickets: ['Ticket system', 'Let members create private support tickets.', 'fa-ticket'],
     reactionRoles: ['Reaction roles', 'Map reactions on any Discord message to self-serve roles.', 'fa-icons'],
+    beanProtection: ['Bean Protection', 'Combine Discord AutoMod with behavioral detection, escalation, and raid response.', 'fa-shield-heart'],
     detailedLogging: ['Detailed audit logging', 'Record message, member, voice, role, and channel changes.', 'fa-clipboard-list'],
   },
 };
@@ -2211,6 +2251,268 @@ async function handleFeatureChannelSettingsSave(event) {
       submitButton.innerHTML = originalLabel;
     }
   }
+}
+
+async function loadProtection(showNotification = false) {
+  if (!protectionSettingsForm) {
+    return;
+  }
+
+  const [result, rolesResult, optionsResult] = await Promise.all([
+    api('/api/protection'),
+    api('/api/roles').catch(() => ({ roles: state.discordRoles })),
+    api('/api/configuration-options').catch(() => ({ channels: state.configurationChannels })),
+  ]);
+
+  state.protection = result;
+  state.discordRoles = Array.isArray(rolesResult.roles) ? rolesResult.roles : state.discordRoles;
+  state.configurationChannels = Array.isArray(optionsResult.channels)
+    ? optionsResult.channels
+    : state.configurationChannels;
+  renderProtection();
+  applySessionPermissions(state.session?.permissions || {});
+
+  if (showNotification) {
+    setSendStatus('Bean Protection status refreshed.', 'success');
+  }
+}
+
+function renderProtection() {
+  const overview = state.protection;
+
+  if (!overview?.settings) {
+    return;
+  }
+
+  const settings = overview.settings;
+  const raid = overview.raid || {};
+
+  protectionNativeLoggingInput.checked = Boolean(settings.nativeLoggingEnabled);
+  protectionDmNotificationsInput.checked = Boolean(settings.dmNotificationsEnabled);
+  protectionFloodEnabledInput.checked = Boolean(settings.floodEnabled);
+  protectionDuplicateEnabledInput.checked = Boolean(settings.duplicateEnabled);
+  protectionJoinEnabledInput.checked = Boolean(settings.joinDetectionEnabled);
+  protectionAutoRaidInput.checked = Boolean(settings.autoRaidMode);
+  protectionFloodLimitInput.value = settings.floodMessageLimit;
+  protectionFloodWindowInput.value = settings.floodWindowSeconds;
+  protectionDuplicateLimitInput.value = settings.duplicateMessageLimit;
+  protectionDuplicateWindowInput.value = settings.duplicateWindowSeconds;
+  protectionJoinLimitInput.value = settings.joinLimit;
+  protectionJoinWindowInput.value = settings.joinWindowSeconds;
+  protectionSecondTimeoutInput.value = settings.secondIncidentTimeoutMinutes;
+  protectionRepeatTimeoutInput.value = settings.repeatIncidentTimeoutMinutes;
+
+  renderConfigurationChannelSelect(
+    protectionAlertChannelInput,
+    'protectionAlerts',
+    settings.alertChannelId || '',
+  );
+  renderProtectionRoleSelect(settings.quarantineRoleId);
+
+  protectionIncidentCount.textContent = String(overview.metrics?.incidents24h || 0);
+  protectionNativeCount.textContent = String(overview.native?.beanRules?.length || 0);
+  protectionQuarantineCount.textContent = String(overview.metrics?.quarantined24h || 0);
+  protectionRaidPill.textContent = raid.active ? 'Active' : 'Inactive';
+  protectionRaidPill.classList.toggle('offline', Boolean(raid.active));
+  protectionRaidPill.classList.toggle('ready', !raid.active);
+  protectionRaidSummary.textContent = raid.active
+    ? `Enabled ${raid.changedAt ? formatDateTime(raid.changedAt) : 'recently'} · ${raid.reason || 'No reason recorded.'}`
+    : raid.changedAt
+      ? `Disabled ${formatDateTime(raid.changedAt)} · ${raid.reason || 'No reason recorded.'}`
+      : 'Raid mode has never been enabled.';
+
+  const nativeRules = Array.isArray(overview.native?.beanRules) ? overview.native.beanRules : [];
+
+  protectionNativePill.textContent = overview.native?.available
+    ? `${nativeRules.length} synced`
+    : 'Unavailable';
+  protectionNativePill.classList.toggle('ready', nativeRules.length >= 2);
+  protectionNativePill.classList.toggle('offline', !overview.native?.available || nativeRules.length < 2);
+  protectionNativeRules.innerHTML = nativeRules.length
+    ? nativeRules.map((rule) => `
+      <div>
+        <span><i class="fa-solid fa-shield" aria-hidden="true"></i>${escapeHtml(rule.name)}</span>
+        <strong class="${rule.enabled ? 'ready' : 'offline'}">${rule.enabled ? 'Enabled' : 'Disabled'}</strong>
+      </div>
+    `).join('')
+    : '<p class="muted">No Bean-managed Discord AutoMod rules are synced yet.</p>';
+
+  renderProtectionIncidents(overview.incidents || []);
+  applySessionPermissions(state.session?.permissions || {});
+  const canModerate = state.session?.permissions?.moderate !== false;
+
+  enableProtectionRaidButton.disabled = !canModerate || Boolean(raid.active);
+  disableProtectionRaidButton.disabled = !canModerate || !raid.active;
+}
+
+function renderProtectionRoleSelect(selectedRoleId) {
+  const placeholder = document.createElement('option');
+
+  placeholder.value = '';
+  placeholder.textContent = state.discordRoles.length
+    ? 'No quarantine role selected'
+    : 'No manageable roles found';
+  protectionQuarantineRoleInput.replaceChildren(placeholder);
+
+  for (const role of state.discordRoles) {
+    const option = document.createElement('option');
+
+    option.value = role.id;
+    option.textContent = `@${role.name}`;
+    option.selected = role.id === selectedRoleId;
+    protectionQuarantineRoleInput.append(option);
+  }
+}
+
+function renderProtectionIncidents(incidents) {
+  protectionIncidentList.replaceChildren();
+
+  if (!incidents.length) {
+    protectionIncidentList.innerHTML = '<p class="muted">No protection incidents have been recorded.</p>';
+    return;
+  }
+
+  for (const incident of incidents.slice(0, 50)) {
+    const item = document.createElement('article');
+    const reference = incident.caseReference
+      ? `<span>${escapeHtml(incident.caseReference)}</span>`
+      : '';
+    const member = incident.userId
+      ? `<strong>${escapeHtml(incident.userTag || incident.userId)}</strong><small>${escapeHtml(incident.userId)}</small>`
+      : '<strong>Server-wide event</strong>';
+
+    item.className = 'protection-incident-item';
+    item.innerHTML = `
+      <span class="protection-incident-icon"><i class="${protectionIncidentIcon(incident.type)}" aria-hidden="true"></i></span>
+      <div class="protection-incident-copy">
+        <div><p>${escapeHtml(humanizeProtectionType(incident.type))}</p>${reference}</div>
+        ${member}
+        <p>${escapeHtml(incident.summary)}</p>
+        <small>${escapeHtml(humanizeProtectionType(incident.source))} · ${escapeHtml(formatDateTime(incident.createdAt))}</small>
+      </div>
+    `;
+    protectionIncidentList.append(item);
+  }
+}
+
+async function handleProtectionSettingsSave(event) {
+  event.preventDefault();
+
+  if (!state.protection?.settings) {
+    await loadProtection(false);
+  }
+
+  const settings = {
+    ...state.protection.settings,
+    nativeLoggingEnabled: protectionNativeLoggingInput.checked,
+    dmNotificationsEnabled: protectionDmNotificationsInput.checked,
+    floodEnabled: protectionFloodEnabledInput.checked,
+    floodMessageLimit: Number.parseInt(protectionFloodLimitInput.value, 10),
+    floodWindowSeconds: Number.parseInt(protectionFloodWindowInput.value, 10),
+    duplicateEnabled: protectionDuplicateEnabledInput.checked,
+    duplicateMessageLimit: Number.parseInt(protectionDuplicateLimitInput.value, 10),
+    duplicateWindowSeconds: Number.parseInt(protectionDuplicateWindowInput.value, 10),
+    joinDetectionEnabled: protectionJoinEnabledInput.checked,
+    joinLimit: Number.parseInt(protectionJoinLimitInput.value, 10),
+    joinWindowSeconds: Number.parseInt(protectionJoinWindowInput.value, 10),
+    autoRaidMode: protectionAutoRaidInput.checked,
+    secondIncidentTimeoutMinutes: Number.parseInt(protectionSecondTimeoutInput.value, 10),
+    repeatIncidentTimeoutMinutes: Number.parseInt(protectionRepeatTimeoutInput.value, 10),
+    alertChannelId: protectionAlertChannelInput.value || null,
+    quarantineRoleId: protectionQuarantineRoleInput.value || null,
+  };
+  const originalLabel = saveProtectionSettingsButton.innerHTML;
+
+  saveProtectionSettingsButton.disabled = true;
+  saveProtectionSettingsButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Saving&hellip;';
+
+  try {
+    state.protection = await api('/api/protection/settings', {
+      method: 'PUT',
+      body: { settings },
+    });
+    renderProtection();
+    setSendStatus('Bean Protection settings saved.', 'success');
+  } catch (error) {
+    setSendStatus(error.message, 'error');
+  } finally {
+    saveProtectionSettingsButton.disabled = state.session?.permissions?.configure === false;
+    saveProtectionSettingsButton.innerHTML = originalLabel;
+  }
+}
+
+async function handleProtectionRaidChange(active) {
+  const reason = protectionRaidReasonInput.value.trim();
+
+  if (!reason) {
+    setSendStatus('Add a staff reason before changing raid mode.', 'error');
+    protectionRaidReasonInput.focus();
+    return;
+  }
+
+  const button = active ? enableProtectionRaidButton : disableProtectionRaidButton;
+  const originalLabel = button.innerHTML;
+
+  button.disabled = true;
+  button.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Updating&hellip;';
+
+  try {
+    state.protection = await api('/api/protection/raid', {
+      method: 'POST',
+      body: { active, reason },
+    });
+    protectionRaidReasonInput.value = '';
+    renderProtection();
+    setSendStatus(
+      active
+        ? 'Raid mode enabled. New members will be quarantined.'
+        : 'Raid mode disabled. Existing quarantine roles were preserved.',
+      'success',
+    );
+  } catch (error) {
+    setSendStatus(error.message, 'error');
+  } finally {
+    button.innerHTML = originalLabel;
+    renderProtection();
+  }
+}
+
+async function handleProtectionRuleSync() {
+  const originalLabel = syncProtectionRulesButton.innerHTML;
+
+  syncProtectionRulesButton.disabled = true;
+  syncProtectionRulesButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Syncing&hellip;';
+
+  try {
+    const result = await api('/api/protection/sync', { method: 'POST', body: {} });
+
+    state.protection = result;
+    renderProtection();
+    setSendStatus(
+      `Discord AutoMod synced: ${result.result.created.length} created, ${result.result.updated.length} updated.`,
+      'success',
+    );
+  } catch (error) {
+    setSendStatus(error.message, 'error');
+  } finally {
+    syncProtectionRulesButton.disabled = state.session?.permissions?.configure === false;
+    syncProtectionRulesButton.innerHTML = originalLabel;
+  }
+}
+
+function protectionIncidentIcon(type) {
+  if (type.includes('raid')) return 'fa-solid fa-triangle-exclamation';
+  if (type.includes('quarantine')) return 'fa-solid fa-user-lock';
+  if (type.includes('automod')) return 'fa-brands fa-discord';
+  if (type.includes('duplicate') || type.includes('flood')) return 'fa-solid fa-comments';
+  return 'fa-solid fa-shield';
+}
+
+function humanizeProtectionType(value) {
+  return String(value || '')
+    .replaceAll('_', ' ')
+    .replaceAll('-', ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 async function loadReactionRoles(showNotification = false) {
@@ -4357,6 +4659,10 @@ function setActiveTab(tab) {
 
   if (nextTab === 'reaction-roles' && !dashboardView.hidden) {
     loadReactionRoles(false).catch((error) => setSendStatus(error.message, 'error'));
+  }
+
+  if (nextTab === 'bean-protection' && !dashboardView.hidden) {
+    loadProtection(false).catch((error) => setSendStatus(error.message, 'error'));
   }
 
   if (nextTab === 'cases' && !dashboardView.hidden) {

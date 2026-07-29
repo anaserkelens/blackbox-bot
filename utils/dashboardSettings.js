@@ -34,6 +34,7 @@ const featureKeys = [
   'temporaryVoice',
   'tickets',
   'reactionRoles',
+  'beanProtection',
   'detailedLogging',
 ];
 
@@ -159,6 +160,7 @@ function getFeatureDefaults(config) {
       && config.legacyReactionRole?.emojiId
       && config.legacyReactionRole?.roleId
     ),
+    beanProtection: Boolean(config.protection?.enabled),
     detailedLogging: true,
   };
 }

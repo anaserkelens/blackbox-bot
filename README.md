@@ -9,8 +9,8 @@ A Discord.js bot for the UNDR CTRL community, ready to run locally and deploy to
 - Keeps secrets in environment variables instead of files.
 - Uses the same folder shape as the reference bot: `commands`, `events`, `images`, and `utils`.
 - Includes a protected browser dashboard for sending Components v2 messages instantly.
-- Includes `/ping`, `/about`, `/server`, `/help`, `/clear`, `/warn`, `/kick`, `/ban`, `/timeout`, `/ticketsetup`, `/setupreactionrole`, `/teststream`, and `/testwelcome`.
-- Includes optional event systems for tickets, member logs, message logs, channel logs, scheduled event logs, moderation logs, user logs, invite moderation, reaction roles, and stream monitoring.
+- Includes `/ping`, `/about`, `/server`, `/help`, `/clear`, `/warn`, `/kick`, `/ban`, `/timeout`, `/protection`, `/raid`, `/ticketsetup`, `/setupreactionrole`, `/teststream`, and `/testwelcome`.
+- Includes optional event systems for Bean Protection, tickets, member logs, message logs, channel logs, scheduled event logs, moderation logs, user logs, invite moderation, reaction roles, and stream monitoring.
 
 ## Local Setup
 
@@ -140,6 +140,18 @@ The ledger is stored at `RAILWAY_VOLUME_MOUNT_PATH/moderation-cases.json` when a
 
 The dashboard Cases tab provides staff-facing search and filters for case number, member, moderator, reason, action, status, and date. It includes case totals, 30-day activity, repeat-member indicators, member timelines, full reason-correction history, and audited case revocation. Dashboard corrections and revocations update the same persistent ledger and post a Components V2 audit entry in `#case-files`.
 
+## Bean Protection
+
+Bean Protection complements Discord AutoMod instead of replacing it. Discord remains responsible for blocking native spam and mention raids immediately. Bean listens for those executions, converts them into moderation cases, sends optional member notices, and preserves the incident in the Protection workspace.
+
+With the Message Content intent enabled, Bean also detects per-member message floods and repeated-message spam. The first custom incident deletes the triggering message and records a warning. Repeated incidents inside the configured escalation window become progressively longer timeouts. Founder, Staff, Moderator, Administrator, Manage Messages, and Moderate Members accounts are exempt from behavioral enforcement.
+
+Join-spike detection requires the Server Members intent. Staff can use `/raid enable reason:<text>`, `/raid disable reason:<text>`, and `/raid status`; while raid mode is active, every new arrival receives the configured quarantine role. Disabling raid mode deliberately preserves existing quarantine roles for staff review. Automatic raid mode is off by default and cannot be enabled until Bean can manage the selected quarantine role.
+
+`/protection status` shows the current engine, raid, and Discord AutoMod state. `/protection incidents` shows recent evidence, while `/protection sync` creates or updates only the two rules named `Bean Protection · Discord Spam` and `Bean Protection · Mention Raids`. Syncing requires Manage Server and Bean also needs Manage Server; unrelated Discord AutoMod rules are never modified.
+
+Protection settings, raid state, and the latest 250 incidents are stored at `RAILWAY_VOLUME_MOUNT_PATH/bean-protection.json` when a volume is attached, or at `BEAN_PROTECTION_PATH` when overridden. The dedicated dashboard workspace controls detection thresholds, escalation times, alerts, member DMs, Discord rule sync, raid mode, and incident history.
+
 ## Temporary Voice Rooms
 
 When a member joins the create lobby (`TEMP_VOICE_TRIGGER_CHANNEL_ID`, default `1520514900978307226`), Bean immediately creates a public voice channel named `— DISPLAY NAME'S ROOM` under the lobby's category, gives its creator room-management permission, and moves them inside. The server-specific display name is preferred, with the global name and username used only as fallbacks. There is no DM, button, or naming form.
@@ -178,7 +190,7 @@ Configure Discord OAuth to enable the browser dashboard. Railway will expose it 
 https://your-service.up.railway.app/
 ```
 
-The Settings workspace includes a persistent Configuration Center for general channels, roles, storage, Discord permissions, privileged intents, dashboard access, and audited change history. Every bot system now owns its enable switch on its dedicated feature page; disabled systems remain accessible but appear muted in the sidebar. The Audit Logs page owns the case, member-entry, message, voice, operation, system, and ticket log destinations instead of mixing them into general channel settings. Settings write to `dashboard-settings.json` on the Railway volume, or to `DASHBOARD_SETTINGS_PATH` when explicitly configured. Saved channel and role choices are available to active systems immediately. Gateway intent changes and enabling a monitor that was disabled during startup still require updating the Discord Developer Portal/Railway variables when applicable and restarting Bean.
+The Settings workspace includes a persistent Configuration Center for general channels, roles, storage, Discord permissions, privileged intents, dashboard access, and audited change history. Every bot system now owns its enable switch on its dedicated feature page; disabled systems remain accessible but appear muted in the sidebar. Bean Protection has its own workspace for native AutoMod sync, behavioral thresholds, escalation, raid controls, quarantine configuration, and recent incidents. The Audit Logs page owns the case, member-entry, message, voice, operation, system, and ticket log destinations instead of mixing them into general channel settings. Settings write to `dashboard-settings.json` on the Railway volume, or to `DASHBOARD_SETTINGS_PATH` when explicitly configured. Saved channel and role choices are available to active systems immediately. Gateway intent changes and enabling a monitor that was disabled during startup still require updating the Discord Developer Portal/Railway variables when applicable and restarting Bean.
 
 The dashboard is Discord-only. Set `DASHBOARD_DISCORD_OAUTH_ENABLED=true`, `DASHBOARD_PUBLIC_URL`, and `DISCORD_CLIENT_SECRET`, then add `DASHBOARD_PUBLIC_URL/auth/discord/callback` to the application's OAuth2 redirects in the Discord Developer Portal. Access follows the bot owner, Founder, Staff, and Moderator roles. Read and write permissions are enforced by the API, not only hidden in the interface.
 
