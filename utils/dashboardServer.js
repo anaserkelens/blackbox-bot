@@ -20,6 +20,15 @@ const {
 } = require('./beanProtection');
 const { config } = require('./config');
 const {
+  getCommunityGrowthOverview,
+  getCommunityGrowthProfile,
+  getCommunityGrowthStorageInfo,
+  grantCommunityGrowthRecognition,
+  saveCommunityGrowthSettings,
+  searchCommunityGrowthProfiles,
+  startCommunityGrowthSeason,
+} = require('./communityGrowth');
+const {
   featureKeys,
   getDashboardSettingsStorageInfo,
   loadDashboardSettings,
@@ -136,6 +145,7 @@ function startDashboard(client) {
   logTempVoiceStorage();
   logReactionRoleStorage();
   logProtectionStorage();
+  logCommunityGrowthStorage();
 
   const server = http.createServer((request, response) => {
     handleRequest(client, request, response).catch((error) => {
@@ -248,6 +258,18 @@ function logProtectionStorage() {
 
   if (!storage.persistent) {
     console.warn('Bean Protection incidents and raid state will reset after redeploys unless a Railway volume is attached.');
+  }
+}
+
+function logCommunityGrowthStorage() {
+  const storage = getCommunityGrowthStorageInfo(config);
+
+  console.log(
+    `Community Growth storage: ${storage.filePath} (${storage.persistent ? 'persistent' : 'ephemeral'}, ${storage.source}).`,
+  );
+
+  if (!storage.persistent) {
+    console.warn('Community Growth profiles will reset after redeploys unless a Railway volume is attached.');
   }
 }
 
@@ -461,6 +483,39 @@ async function handleRequest(client, request, response) {
 
     if (request.method === 'GET' && url.pathname === '/api/analytics') {
       await handleGetAnalytics(client, url, response);
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/community-growth') {
+      await handleGetCommunityGrowth(client, response);
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/community-growth/profiles') {
+      await handleSearchCommunityGrowthProfiles(client, url, response);
+      return;
+    }
+
+    if (request.method === 'GET' && /^\/api\/community-growth\/profiles\/\d{17,20}$/.test(url.pathname)) {
+      await handleGetCommunityGrowthProfile(client, url.pathname, response);
+      return;
+    }
+
+    if (request.method === 'PUT' && url.pathname === '/api/community-growth/settings') {
+      await handleSaveCommunityGrowthSettings(client, request, response, session.user);
+      return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/community-growth/season') {
+      await handleStartCommunityGrowthSeason(client, request, response, session.user);
+      return;
+    }
+
+    if (
+      request.method === 'POST'
+      && /^\/api\/community-growth\/profiles\/\d{17,20}\/recognition$/.test(url.pathname)
+    ) {
+      await handleCommunityGrowthRecognition(client, request, url.pathname, response, session.user);
       return;
     }
 
@@ -1613,6 +1668,145 @@ async function handleGetDashboardNotifications(client, url, response) {
   sendJson(response, 200, { ok: true, ...result });
 }
 
+async function handleGetCommunityGrowth(client, response) {
+  const guild = getDashboardGuild(client);
+
+  if (!guild) {
+    sendJson(response, 404, { error: 'The dashboard Discord server was not found.' });
+    return;
+  }
+
+  const overview = await getCommunityGrowthOverview(config, guild.id);
+  sendJson(response, 200, { ok: true, ...overview });
+}
+
+async function handleSearchCommunityGrowthProfiles(client, url, response) {
+  const guild = getDashboardGuild(client);
+
+  if (!guild) {
+    sendJson(response, 404, { error: 'The dashboard Discord server was not found.' });
+    return;
+  }
+
+  const query = String(url.searchParams.get('query') || '').trim();
+
+  if (query.length > 100) {
+    sendJson(response, 400, { error: 'Profile searches must be 100 characters or fewer.' });
+    return;
+  }
+
+  const profiles = await searchCommunityGrowthProfiles(config, guild.id, query, {
+    includePrivate: true,
+    limit: Number.parseInt(url.searchParams.get('limit'), 10) || 50,
+  });
+  sendJson(response, 200, { ok: true, profiles, query });
+}
+
+async function handleGetCommunityGrowthProfile(client, pathname, response) {
+  const guild = getDashboardGuild(client);
+
+  if (!guild) {
+    sendJson(response, 404, { error: 'The dashboard Discord server was not found.' });
+    return;
+  }
+
+  const userId = pathname.slice('/api/community-growth/profiles/'.length);
+  const member = await guild.members.fetch(userId).catch(() => null);
+  const profile = await getCommunityGrowthProfile(config, guild.id, userId, member ? {
+    displayName: member.displayName,
+    username: member.user.username,
+    avatarUrl: member.user.displayAvatarURL?.({ size: 256 }),
+  } : null);
+
+  if (!profile) {
+    sendJson(response, 404, { error: 'No Community Growth profile was found.' });
+    return;
+  }
+
+  sendJson(response, 200, { ok: true, profile });
+}
+
+async function handleSaveCommunityGrowthSettings(client, request, response, actor) {
+  const body = await readJsonBody(request, config.dashboard.maxBodyBytes);
+
+  try {
+    await saveCommunityGrowthSettings(config, body.settings, actor);
+    const guild = getDashboardGuild(client);
+    const overview = await getCommunityGrowthOverview(config, guild?.id || config.guildId);
+
+    sendJson(response, 200, { ok: true, ...overview });
+  } catch (error) {
+    sendJson(response, 400, { error: error.message });
+  }
+}
+
+async function handleStartCommunityGrowthSeason(client, request, response, actor) {
+  const guild = getDashboardGuild(client);
+
+  if (!guild) {
+    sendJson(response, 404, { error: 'The dashboard Discord server was not found.' });
+    return;
+  }
+
+  const body = await readJsonBody(request, config.dashboard.maxBodyBytes);
+
+  try {
+    const result = await startCommunityGrowthSeason(config, {
+      guildId: guild.id,
+      name: body.name,
+      startsAt: body.startsAt,
+      endsAt: body.endsAt,
+      actor,
+    });
+    const overview = await getCommunityGrowthOverview(config, guild.id);
+
+    sendJson(response, 200, { ok: true, result, ...overview });
+  } catch (error) {
+    sendJson(response, 400, { error: error.message });
+  }
+}
+
+async function handleCommunityGrowthRecognition(client, request, pathname, response, actor) {
+  const guild = getDashboardGuild(client);
+
+  if (!guild) {
+    sendJson(response, 404, { error: 'The dashboard Discord server was not found.' });
+    return;
+  }
+
+  const userId = pathname
+    .slice('/api/community-growth/profiles/'.length)
+    .replace('/recognition', '');
+  const member = await guild.members.fetch(userId).catch(() => null);
+
+  if (!member) {
+    sendJson(response, 404, { error: 'That member is no longer in the configured server.' });
+    return;
+  }
+
+  const body = await readJsonBody(request, config.dashboard.maxBodyBytes);
+
+  try {
+    const profile = await grantCommunityGrowthRecognition(config, {
+      guildId: guild.id,
+      userId,
+      displayName: member.displayName,
+      username: member.user.username,
+      avatarUrl: member.user.displayAvatarURL?.({ size: 256 }),
+      trait: body.trait,
+      points: body.points,
+      reason: body.reason,
+      badgeId: body.badgeId,
+      actor,
+    });
+    const overview = await getCommunityGrowthOverview(config, guild.id);
+
+    sendJson(response, 200, { ok: true, profile, ...overview });
+  } catch (error) {
+    sendJson(response, 400, { error: error.message });
+  }
+}
+
 async function handleGetProtection(client, response) {
   const overview = await getProtectionOverview(client, config);
 
@@ -1807,6 +2001,7 @@ async function getDashboardStorageHealth() {
     ['Presence', presence],
     ['Dashboard Configuration', getDashboardSettingsStorageInfo(config)],
     ['Bean Protection', getProtectionStorageInfo(config)],
+    ['Community Growth', getCommunityGrowthStorageInfo(config)],
   ];
 
   return Promise.all(stores.map(async ([name, storage]) => {
@@ -2938,6 +3133,10 @@ function sessionCanAccess(session, method, pathname) {
   if (pathname === '/api/protection/emergency') return permissions.moderate;
   if (pathname.startsWith('/api/protection/quarantine')) return permissions.moderate;
   if (pathname.startsWith('/api/protection/')) return permissions.configure;
+  if (/^\/api\/community-growth\/profiles\/\d{17,20}\/recognition$/.test(pathname)) {
+    return permissions.moderate;
+  }
+  if (pathname.startsWith('/api/community-growth/')) return permissions.configure;
   if (
     pathname.startsWith('/api/send-message')
     || pathname.startsWith('/api/test-announcement')

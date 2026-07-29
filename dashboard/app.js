@@ -73,6 +73,69 @@ const analyticsPresenceStatus = document.querySelector('#analytics-presence-stat
 const analyticsMemberBreakdown = document.querySelector('#analytics-member-breakdown');
 const analyticsMailboxStatus = document.querySelector('#analytics-mailbox-status');
 const analyticsMailboxBreakdown = document.querySelector('#analytics-mailbox-breakdown');
+const refreshCommunityGrowthButton = document.querySelector('#refresh-community-growth');
+const growthSystemStatus = document.querySelector('#growth-system-status');
+const growthActiveProfiles = document.querySelector('#growth-active-profiles');
+const growthProfileCaption = document.querySelector('#growth-profile-caption');
+const growthSeasonTotal = document.querySelector('#growth-season-total');
+const growthSeasonCaption = document.querySelector('#growth-season-caption');
+const growthSeasonKudos = document.querySelector('#growth-season-kudos');
+const growthActivitySeven = document.querySelector('#growth-activity-seven');
+const growthTraitGrid = document.querySelector('#growth-trait-grid');
+const growthLeaderboardTrait = document.querySelector('#growth-leaderboard-trait');
+const growthLeaderboardList = document.querySelector('#growth-leaderboard-list');
+const growthProfileEmpty = document.querySelector('#growth-profile-empty');
+const growthProfileContent = document.querySelector('#growth-profile-content');
+const growthProfileAvatarFallback = document.querySelector('#growth-profile-avatar-fallback');
+const growthProfileAvatar = document.querySelector('#growth-profile-avatar');
+const growthProfileStage = document.querySelector('#growth-profile-stage');
+const growthProfileName = document.querySelector('#growth-profile-name');
+const growthProfileTitle = document.querySelector('#growth-profile-title');
+const growthProfileVisibility = document.querySelector('#growth-profile-visibility');
+const growthProfileBio = document.querySelector('#growth-profile-bio');
+const growthProfileTraits = document.querySelector('#growth-profile-traits');
+const growthProfileLifetime = document.querySelector('#growth-profile-lifetime');
+const growthProfileSeason = document.querySelector('#growth-profile-season');
+const growthProfileKudos = document.querySelector('#growth-profile-kudos');
+const growthProfileBadgeCount = document.querySelector('#growth-profile-badge-count');
+const growthProfileBadges = document.querySelector('#growth-profile-badges');
+const growthProfileSearchForm = document.querySelector('#growth-profile-search-form');
+const growthProfileSearchInput = document.querySelector('#growth-profile-search');
+const growthProfileSearchResults = document.querySelector('#growth-profile-search-results');
+const growthSettingsForm = document.querySelector('#growth-settings-form');
+const growthSettingsStatus = document.querySelector('#growth-settings-status');
+const growthEnabled = document.querySelector('#growth-enabled');
+const growthMessageEnabled = document.querySelector('#growth-message-enabled');
+const growthReactionEnabled = document.querySelector('#growth-reaction-enabled');
+const growthVoiceEnabled = document.querySelector('#growth-voice-enabled');
+const growthKudosEnabled = document.querySelector('#growth-kudos-enabled');
+const growthLeaderboardEnabled = document.querySelector('#growth-leaderboard-enabled');
+const growthMinMessageLength = document.querySelector('#growth-min-message-length');
+const growthMinUniqueWords = document.querySelector('#growth-min-unique-words');
+const growthMessageCooldown = document.querySelector('#growth-message-cooldown');
+const growthMessageDailyLimit = document.querySelector('#growth-message-daily-limit');
+const growthMessageChannelLimit = document.querySelector('#growth-message-channel-limit');
+const growthReactionDailyLimit = document.querySelector('#growth-reaction-daily-limit');
+const growthReactionMessageLimit = document.querySelector('#growth-reaction-message-limit');
+const growthVoiceMinimum = document.querySelector('#growth-voice-minimum');
+const growthVoiceDailyLimit = document.querySelector('#growth-voice-daily-limit');
+const growthKudosCooldown = document.querySelector('#growth-kudos-cooldown');
+const growthKudosSendLimit = document.querySelector('#growth-kudos-send-limit');
+const growthKudosReceiveLimit = document.querySelector('#growth-kudos-receive-limit');
+const growthExcludedChannels = document.querySelector('#growth-excluded-channels');
+const growthExcludedRoles = document.querySelector('#growth-excluded-roles');
+const growthRecognitionForm = document.querySelector('#growth-recognition-form');
+const growthRecognitionMember = document.querySelector('#growth-recognition-member');
+const growthRecognitionTrait = document.querySelector('#growth-recognition-trait');
+const growthRecognitionPoints = document.querySelector('#growth-recognition-points');
+const growthRecognitionBadge = document.querySelector('#growth-recognition-badge');
+const growthRecognitionReason = document.querySelector('#growth-recognition-reason');
+const growthSeasonForm = document.querySelector('#growth-season-form');
+const growthSeasonName = document.querySelector('#growth-season-name');
+const growthSeasonEnd = document.querySelector('#growth-season-end');
+const growthNewSeasonName = document.querySelector('#growth-new-season-name');
+const growthNewSeasonEnd = document.querySelector('#growth-new-season-end');
+const growthRecentActivity = document.querySelector('#growth-recent-activity');
 const guildNameElements = [...document.querySelectorAll('[data-guild-name]')];
 const savedMessagesContainer = document.querySelector('#saved-messages');
 const savedMessageCount = document.querySelector('#saved-message-count');
@@ -450,6 +513,9 @@ const state = {
   selectedMemberId: null,
   memberProfile: null,
   analytics: null,
+  communityGrowth: null,
+  communityGrowthProfiles: [],
+  selectedGrowthProfileId: null,
   notificationTimer: null,
   notificationCursor: null,
   seenNotifications: new Set(),
@@ -569,6 +635,16 @@ function bindEvents() {
   refreshAnalyticsButton.addEventListener('click', () => {
     loadDashboardAnalytics(true).catch((error) => setSendStatus(error.message, 'error'));
   });
+  refreshCommunityGrowthButton?.addEventListener('click', () => {
+    loadCommunityGrowth(true).catch((error) => setSendStatus(error.message, 'error'));
+  });
+  growthLeaderboardTrait?.addEventListener('change', renderCommunityGrowthLeaderboard);
+  growthLeaderboardList?.addEventListener('click', handleCommunityGrowthProfileClick);
+  growthProfileSearchForm?.addEventListener('submit', handleCommunityGrowthProfileSearch);
+  growthProfileSearchResults?.addEventListener('click', handleCommunityGrowthProfileClick);
+  growthSettingsForm?.addEventListener('submit', handleCommunityGrowthSettingsSave);
+  growthRecognitionForm?.addEventListener('submit', handleCommunityGrowthRecognition);
+  growthSeasonForm?.addEventListener('submit', handleCommunityGrowthSeasonStart);
   refreshBotButton.addEventListener('click', () => {
     refreshBotSettings(true).catch((error) => setSendStatus(error.message, 'error'));
   });
@@ -4013,6 +4089,9 @@ function applySessionPermissions(permissions = {}) {
   setFormPermission(voiceRoomSettingsForm, permissions.moderate !== false);
   setFormPermission(auditLogSettingsForm, permissions.configure !== false);
   setFormPermission(reactionRoleForm, permissions.configure !== false);
+  setFormPermission(growthSettingsForm, permissions.configure !== false);
+  setFormPermission(growthSeasonForm, permissions.configure !== false);
+  setFormPermission(growthRecognitionForm, permissions.moderate !== false);
   featureChannelSettingsForms.forEach((form) => {
     setFormPermission(form, permissions.configure !== false);
   });
@@ -4703,6 +4782,505 @@ function formatAnalyticsHour(hour) {
   });
 }
 
+async function loadCommunityGrowth(showNotification = false) {
+  if (!refreshCommunityGrowthButton) {
+    return;
+  }
+
+  refreshCommunityGrowthButton.disabled = true;
+
+  try {
+    const [overview, profilesResult, channelsResult, rolesResult] = await Promise.all([
+      api('/api/community-growth'),
+      api('/api/community-growth/profiles?limit=100'),
+      state.discordChannels.length
+        ? Promise.resolve({ channels: state.discordChannels })
+        : api('/api/channels').catch(() => ({ channels: [] })),
+      state.discordRoles.length
+        ? Promise.resolve({ roles: state.discordRoles })
+        : api('/api/roles').catch(() => ({ roles: [] })),
+    ]);
+
+    state.communityGrowth = overview;
+    state.communityGrowthProfiles = Array.isArray(profilesResult.profiles)
+      ? profilesResult.profiles
+      : [];
+    state.discordChannels = Array.isArray(channelsResult.channels)
+      ? channelsResult.channels
+      : state.discordChannels;
+    state.discordRoles = Array.isArray(rolesResult.roles)
+      ? rolesResult.roles
+      : state.discordRoles;
+    renderCommunityGrowth();
+
+    if (state.selectedGrowthProfileId) {
+      await loadCommunityGrowthProfile(state.selectedGrowthProfileId, false).catch(() => {
+        state.selectedGrowthProfileId = null;
+        renderCommunityGrowthProfile(null);
+      });
+    }
+
+    if (showNotification) {
+      setSendStatus('Community Growth refreshed.', 'success');
+    }
+  } finally {
+    refreshCommunityGrowthButton.disabled = false;
+  }
+}
+
+function renderCommunityGrowth() {
+  const growth = state.communityGrowth;
+
+  if (!growth) {
+    return;
+  }
+
+  growthSystemStatus.textContent = growth.settings.enabled ? 'Growth active' : 'Growth paused';
+  growthSystemStatus.classList.toggle('ready', growth.settings.enabled);
+  growthSystemStatus.classList.toggle('offline', !growth.settings.enabled);
+  growthActiveProfiles.textContent = Number(growth.metrics.activeProfiles || 0).toLocaleString();
+  growthProfileCaption.textContent = `${Number(growth.metrics.visibleProfiles || 0).toLocaleString()} public · ${Number(growth.metrics.profiles || 0).toLocaleString()} total`;
+  growthSeasonTotal.textContent = Number(growth.metrics.seasonGrowth || 0).toLocaleString();
+  growthSeasonCaption.textContent = growth.season.name;
+  growthSeasonKudos.textContent = Number(growth.metrics.seasonKudos || 0).toLocaleString();
+  growthActivitySeven.textContent = Number(growth.metrics.activity7d || 0).toLocaleString();
+  growthSeasonName.textContent = growth.season.name;
+  growthSeasonEnd.textContent = `Ends ${formatDateTime(growth.season.endsAt)}`;
+
+  const suggestedEnd = new Date();
+  suggestedEnd.setDate(suggestedEnd.getDate() + Number(growth.settings.seasonLengthDays || 90));
+  growthNewSeasonEnd.value = suggestedEnd.toISOString().slice(0, 10);
+
+  renderCommunityGrowthTraits();
+  renderCommunityGrowthLeaderboard();
+  renderCommunityGrowthSettings();
+  renderCommunityGrowthActivity();
+}
+
+function renderCommunityGrowthTraits() {
+  const growth = state.communityGrowth;
+  const icons = {
+    presence: 'fa-calendar-check',
+    spark: 'fa-wand-magic-sparkles',
+    support: 'fa-hand-holding-heart',
+    community: 'fa-people-group',
+    trust: 'fa-shield-heart',
+  };
+
+  growthTraitGrid.replaceChildren();
+
+  for (const [trait, details] of Object.entries(growth.traits || {})) {
+    const card = document.createElement('article');
+    const icon = document.createElement('span');
+    const name = document.createElement('strong');
+    const description = document.createElement('p');
+
+    card.className = 'growth-trait-card';
+    icon.innerHTML = `<i class="fa-solid ${icons[trait] || 'fa-seedling'}" aria-hidden="true"></i>`;
+    name.textContent = details.name;
+    description.textContent = details.description;
+    card.append(icon, name, description);
+    growthTraitGrid.append(card);
+  }
+}
+
+function renderCommunityGrowthLeaderboard() {
+  const growth = state.communityGrowth;
+
+  if (!growth) return;
+
+  const trait = growthLeaderboardTrait.value;
+  const profiles = [...state.communityGrowthProfiles]
+    .filter((profile) => profile.visible)
+    .map((profile) => ({
+      ...profile,
+      leaderboardScore: trait === 'total'
+        ? profile.seasonTotal
+        : Number(profile.seasonTraits?.[trait] || 0),
+    }))
+    .filter((profile) => profile.leaderboardScore > 0)
+    .sort((left, right) => right.leaderboardScore - left.leaderboardScore || right.seasonTotal - left.seasonTotal)
+    .slice(0, 15);
+
+  growthLeaderboardList.replaceChildren();
+
+  if (!growth.settings.publicLeaderboards) {
+    growthLeaderboardList.innerHTML = '<div class="growth-empty-state">Public leaderboards are disabled. Staff can still inspect profiles and recognize contributions.</div>';
+    return;
+  }
+  if (!profiles.length) {
+    growthLeaderboardList.innerHTML = '<div class="growth-empty-state">The garden is ready. Meaningful participation will appear here.</div>';
+    return;
+  }
+
+  profiles.forEach((profile, index) => {
+    const button = document.createElement('button');
+    const rank = document.createElement('span');
+    const avatar = createGrowthAvatar(profile);
+    const copy = document.createElement('span');
+    const name = document.createElement('strong');
+    const title = document.createElement('small');
+    const score = document.createElement('strong');
+
+    button.type = 'button';
+    button.className = 'growth-leader-row';
+    button.classList.toggle('is-selected', profile.userId === state.selectedGrowthProfileId);
+    button.dataset.growthMemberId = profile.userId;
+    rank.className = 'growth-leader-rank';
+    rank.textContent = String(index + 1).padStart(2, '0');
+    copy.className = 'growth-leader-copy';
+    name.textContent = profile.displayName;
+    title.textContent = `${profile.stage.name} · ${profile.title}`;
+    score.className = 'growth-leader-score';
+    score.textContent = profile.leaderboardScore.toLocaleString();
+    copy.append(name, title);
+    button.append(rank, avatar, copy, score);
+    growthLeaderboardList.append(button);
+  });
+}
+
+function renderCommunityGrowthSettings() {
+  const settings = state.communityGrowth?.settings;
+
+  if (!settings) return;
+
+  growthEnabled.checked = settings.enabled;
+  growthMessageEnabled.checked = settings.messageGrowthEnabled;
+  growthReactionEnabled.checked = settings.reactionGrowthEnabled;
+  growthVoiceEnabled.checked = settings.voiceGrowthEnabled;
+  growthKudosEnabled.checked = settings.kudosEnabled;
+  growthLeaderboardEnabled.checked = settings.publicLeaderboards;
+  growthMinMessageLength.value = settings.minimumMessageLength;
+  growthMinUniqueWords.value = settings.minimumUniqueWords;
+  growthMessageCooldown.value = settings.messageCooldownSeconds;
+  growthMessageDailyLimit.value = settings.messageDailyLimit;
+  growthMessageChannelLimit.value = settings.messageChannelDailyLimit;
+  growthReactionDailyLimit.value = settings.reactionDailyLimit;
+  growthReactionMessageLimit.value = settings.reactionPerMessageLimit;
+  growthVoiceMinimum.value = settings.voiceMinimumMinutes;
+  growthVoiceDailyLimit.value = settings.voiceDailyLimit;
+  growthKudosCooldown.value = settings.kudosPairCooldownDays;
+  growthKudosSendLimit.value = settings.kudosDailySendLimit;
+  growthKudosReceiveLimit.value = settings.kudosDailyReceiveLimit;
+  populateGrowthExclusionSelect(
+    growthExcludedChannels,
+    state.discordChannels,
+    settings.excludedChannelIds,
+    (channel) => `#${channel.name}${channel.parentName ? ` · ${channel.parentName}` : ''}`,
+  );
+  populateGrowthExclusionSelect(
+    growthExcludedRoles,
+    state.discordRoles,
+    settings.excludedRoleIds,
+    (role) => `@${role.name}`,
+  );
+}
+
+function populateGrowthExclusionSelect(select, items, selectedIds, createLabel) {
+  const selected = new Set(selectedIds || []);
+
+  select.replaceChildren();
+
+  for (const item of items || []) {
+    const option = document.createElement('option');
+
+    option.value = item.id;
+    option.textContent = createLabel(item);
+    option.selected = selected.has(item.id);
+    select.append(option);
+  }
+}
+
+function renderCommunityGrowthActivity() {
+  const activity = state.communityGrowth?.recentActivity || [];
+  const icons = {
+    message: 'fa-message',
+    reaction: 'fa-heart',
+    voice: 'fa-headphones',
+    kudos: 'fa-hand-holding-heart',
+    'good-standing': 'fa-shield-heart',
+    'staff-recognition': 'fa-award',
+    season: 'fa-calendar-star',
+    settings: 'fa-sliders',
+  };
+
+  growthRecentActivity.replaceChildren();
+
+  if (!activity.length) {
+    growthRecentActivity.innerHTML = '<div class="growth-empty-state">Meaningful growth moments will settle here.</div>';
+    return;
+  }
+
+  for (const item of activity.slice(0, 12)) {
+    const row = document.createElement('article');
+    const icon = document.createElement('span');
+    const copy = document.createElement('div');
+    const name = document.createElement('strong');
+    const summary = document.createElement('small');
+    const time = document.createElement('time');
+
+    row.className = 'growth-activity-item';
+    icon.innerHTML = `<i class="fa-solid ${icons[item.type] || 'fa-seedling'}" aria-hidden="true"></i>`;
+    name.textContent = item.displayName || 'Community';
+    summary.textContent = item.points
+      ? `+${item.points} ${capitalizeDashboardText(item.trait)} · ${item.summary}`
+      : item.summary;
+    time.dateTime = item.createdAt;
+    time.textContent = formatDateTime(item.createdAt);
+    copy.append(name, summary);
+    row.append(icon, copy, time);
+    growthRecentActivity.append(row);
+  }
+}
+
+async function handleCommunityGrowthProfileSearch(event) {
+  event.preventDefault();
+  const query = growthProfileSearchInput.value.trim();
+
+  if (query.length < 2) {
+    setSendStatus('Use at least two characters to search growth profiles.', 'error');
+    return;
+  }
+
+  const result = await api(`/api/community-growth/profiles?query=${encodeURIComponent(query)}&limit=20`);
+
+  renderCommunityGrowthSearchResults(result.profiles || []);
+}
+
+function renderCommunityGrowthSearchResults(profiles) {
+  growthProfileSearchResults.replaceChildren();
+
+  if (!profiles.length) {
+    growthProfileSearchResults.innerHTML = '<div class="growth-empty-state">No matching growth profiles found.</div>';
+    return;
+  }
+
+  for (const profile of profiles) {
+    const button = document.createElement('button');
+    const name = document.createElement('strong');
+    const detail = document.createElement('span');
+
+    button.type = 'button';
+    button.className = 'growth-search-result';
+    button.dataset.growthMemberId = profile.userId;
+    name.textContent = profile.displayName;
+    detail.textContent = `${profile.stage.name} · ${profile.seasonTotal} this season${profile.visible ? '' : ' · Private'}`;
+    button.append(name, detail);
+    growthProfileSearchResults.append(button);
+  }
+}
+
+function handleCommunityGrowthProfileClick(event) {
+  const button = event.target.closest('[data-growth-member-id]');
+
+  if (!button) return;
+
+  loadCommunityGrowthProfile(button.dataset.growthMemberId, true)
+    .catch((error) => setSendStatus(error.message, 'error'));
+}
+
+async function loadCommunityGrowthProfile(memberId, scrollIntoView = false) {
+  const result = await api(`/api/community-growth/profiles/${encodeURIComponent(memberId)}`);
+
+  state.selectedGrowthProfileId = result.profile.userId;
+  renderCommunityGrowthProfile(result.profile);
+  renderCommunityGrowthLeaderboard();
+  growthRecognitionMember.value = result.profile.userId;
+
+  if (scrollIntoView && window.innerWidth < 1180) {
+    growthProfileContent.closest('.growth-profile-panel')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  }
+}
+
+function renderCommunityGrowthProfile(profile) {
+  growthProfileEmpty.hidden = Boolean(profile);
+  growthProfileContent.hidden = !profile;
+
+  if (!profile) return;
+
+  growthProfileStage.textContent = `${profile.stage.name} · ${profile.season.name}`;
+  growthProfileName.textContent = profile.displayName;
+  growthProfileTitle.textContent = `@${profile.username} · ${profile.title}`;
+  growthProfileVisibility.textContent = profile.visible ? 'Public' : 'Private';
+  growthProfileVisibility.classList.toggle('ready', profile.visible);
+  growthProfileVisibility.classList.toggle('offline', !profile.visible);
+  growthProfileBio.textContent = profile.bio || 'No profile bio yet.';
+  growthProfileLifetime.textContent = profile.total.toLocaleString();
+  growthProfileSeason.textContent = profile.seasonTotal.toLocaleString();
+  growthProfileKudos.textContent = profile.kudosReceived.toLocaleString();
+  growthProfileBadgeCount.textContent = profile.badges.length.toLocaleString();
+  growthProfileAvatar.hidden = !profile.avatarUrl;
+  growthProfileAvatarFallback.hidden = Boolean(profile.avatarUrl);
+
+  if (profile.avatarUrl) {
+    growthProfileAvatar.src = profile.avatarUrl;
+    growthProfileAvatar.alt = `${profile.displayName}'s avatar`;
+  } else {
+    growthProfileAvatar.removeAttribute('src');
+  }
+
+  const maximum = Math.max(10, ...Object.values(profile.traits));
+  growthProfileTraits.replaceChildren();
+
+  for (const [trait, score] of Object.entries(profile.traits)) {
+    const row = document.createElement('div');
+    const label = document.createElement('span');
+    const track = document.createElement('span');
+    const bar = document.createElement('i');
+    const value = document.createElement('strong');
+
+    row.className = 'growth-profile-trait';
+    label.textContent = capitalizeDashboardText(trait);
+    track.className = 'growth-trait-track';
+    bar.style.width = `${Math.max(2, score / maximum * 100)}%`;
+    value.textContent = `${score} · ${profile.seasonTraits[trait]} season`;
+    track.append(bar);
+    row.append(label, track, value);
+    growthProfileTraits.append(row);
+  }
+
+  growthProfileBadges.replaceChildren();
+
+  if (!profile.badges.length) {
+    growthProfileBadges.innerHTML = '<span class="muted">No achievements yet.</span>';
+  } else {
+    for (const badge of profile.badges) {
+      const item = document.createElement('span');
+
+      item.className = 'growth-badge';
+      item.title = badge.description;
+      item.innerHTML = '<i class="fa-solid fa-award" aria-hidden="true"></i>';
+      item.append(document.createTextNode(badge.name));
+      growthProfileBadges.append(item);
+    }
+  }
+}
+
+function createGrowthAvatar(profile) {
+  if (profile.avatarUrl) {
+    const image = document.createElement('img');
+
+    image.className = 'growth-leader-avatar';
+    image.src = profile.avatarUrl;
+    image.alt = '';
+    return image;
+  }
+
+  const fallback = document.createElement('span');
+
+  fallback.className = 'growth-leader-avatar';
+  fallback.innerHTML = '<i class="fa-solid fa-user" aria-hidden="true"></i>';
+  return fallback;
+}
+
+async function handleCommunityGrowthSettingsSave(event) {
+  event.preventDefault();
+
+  const settings = {
+    enabled: growthEnabled.checked,
+    messageGrowthEnabled: growthMessageEnabled.checked,
+    reactionGrowthEnabled: growthReactionEnabled.checked,
+    voiceGrowthEnabled: growthVoiceEnabled.checked,
+    kudosEnabled: growthKudosEnabled.checked,
+    publicLeaderboards: growthLeaderboardEnabled.checked,
+    minimumMessageLength: Number(growthMinMessageLength.value),
+    minimumUniqueWords: Number(growthMinUniqueWords.value),
+    messageCooldownSeconds: Number(growthMessageCooldown.value),
+    messageDailyLimit: Number(growthMessageDailyLimit.value),
+    messageChannelDailyLimit: Number(growthMessageChannelLimit.value),
+    reactionDailyLimit: Number(growthReactionDailyLimit.value),
+    reactionPerMessageLimit: Number(growthReactionMessageLimit.value),
+    voiceMinimumMinutes: Number(growthVoiceMinimum.value),
+    voiceDailyLimit: Number(growthVoiceDailyLimit.value),
+    kudosPairCooldownDays: Number(growthKudosCooldown.value),
+    kudosDailySendLimit: Number(growthKudosSendLimit.value),
+    kudosDailyReceiveLimit: Number(growthKudosReceiveLimit.value),
+    excludedChannelIds: getSelectedValues(growthExcludedChannels),
+    excludedRoleIds: getSelectedValues(growthExcludedRoles),
+  };
+
+  const result = await api('/api/community-growth/settings', {
+    method: 'PUT',
+    body: { settings },
+  });
+
+  state.communityGrowth = result;
+  renderCommunityGrowth();
+  growthSettingsStatus.textContent = `Saved ${formatDateTime(new Date())}. New scoring uses these guardrails immediately.`;
+  setSendStatus('Community Growth settings saved.', 'success');
+}
+
+async function handleCommunityGrowthRecognition(event) {
+  event.preventDefault();
+  const memberId = growthRecognitionMember.value.trim();
+
+  if (!/^\d{17,20}$/.test(memberId)) {
+    setSendStatus('Enter a valid Discord member ID for recognition.', 'error');
+    return;
+  }
+
+  const result = await api(
+    `/api/community-growth/profiles/${encodeURIComponent(memberId)}/recognition`,
+    {
+      method: 'POST',
+      body: {
+        trait: growthRecognitionTrait.value,
+        points: Number(growthRecognitionPoints.value),
+        badgeId: growthRecognitionBadge.value,
+        reason: growthRecognitionReason.value.trim(),
+      },
+    },
+  );
+
+  state.communityGrowth = result;
+  state.selectedGrowthProfileId = result.profile.userId;
+  state.communityGrowthProfiles = state.communityGrowthProfiles
+    .filter((profile) => profile.userId !== result.profile.userId)
+    .concat(result.profile);
+  renderCommunityGrowth();
+  renderCommunityGrowthProfile(result.profile);
+  growthRecognitionReason.value = '';
+  growthRecognitionBadge.value = '';
+  setSendStatus(`Recognition granted to ${result.profile.displayName}.`, 'success');
+}
+
+async function handleCommunityGrowthSeasonStart(event) {
+  event.preventDefault();
+  const name = growthNewSeasonName.value.trim();
+  const endsAt = growthNewSeasonEnd.value
+    ? new Date(`${growthNewSeasonEnd.value}T23:59:59`).toISOString()
+    : null;
+
+  if (!window.confirm(`Start “${name}”? Current seasonal scores will reset, while lifetime growth and achievements remain.`)) {
+    return;
+  }
+
+  const result = await api('/api/community-growth/season', {
+    method: 'POST',
+    body: { name, endsAt },
+  });
+
+  state.communityGrowth = result;
+  state.communityGrowthProfiles = state.communityGrowthProfiles.map((profile) => ({
+    ...profile,
+    season: result.season,
+    seasonTotal: 0,
+    seasonTraits: Object.fromEntries(Object.keys(profile.seasonTraits || {}).map((trait) => [trait, 0])),
+  }));
+  state.selectedGrowthProfileId = null;
+  renderCommunityGrowth();
+  renderCommunityGrowthProfile(null);
+  growthNewSeasonName.value = '';
+  setSendStatus(`${result.season.name} is now active.`, 'success');
+}
+
+function getSelectedValues(select) {
+  return [...select.selectedOptions].map((option) => option.value);
+}
+
 function startDashboardNotifications() {
   if (state.notificationTimer) {
     return;
@@ -5171,6 +5749,10 @@ function setActiveTab(tab) {
 
   if (nextTab === 'analytics' && !dashboardView.hidden) {
     loadDashboardAnalytics(false).catch((error) => setSendStatus(error.message, 'error'));
+  }
+
+  if (nextTab === 'community-growth' && !dashboardView.hidden) {
+    loadCommunityGrowth(false).catch((error) => setSendStatus(error.message, 'error'));
   }
 
   if (nextTab === 'mailbox' && !dashboardView.hidden) {

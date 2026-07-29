@@ -140,6 +140,7 @@ const config = {
     moderationCasesPath: readEnv('MODERATION_CASES_PATH'),
     tempVoicePath: readEnv('TEMP_VOICE_PATH'),
     protectionPath: readEnv('BEAN_PROTECTION_PATH'),
+    communityGrowthPath: readEnv('COMMUNITY_GROWTH_PATH'),
     reactionRolesPath: readEnv('DASHBOARD_REACTION_ROLES_PATH'),
     mailboxSchedulePath: readEnv('MAILBOX_SCHEDULE_PATH'),
     activityPath: readEnv('DASHBOARD_ACTIVITY_PATH'),

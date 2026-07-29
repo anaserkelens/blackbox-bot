@@ -9,8 +9,8 @@ A Discord.js bot for the UNDR CTRL community, ready to run locally and deploy to
 - Keeps secrets in environment variables instead of files.
 - Uses the same folder shape as the reference bot: `commands`, `events`, `images`, and `utils`.
 - Includes a protected browser dashboard for sending Components v2 messages instantly.
-- Includes `/ping`, `/about`, `/server`, `/help`, `/clear`, `/warn`, `/kick`, `/ban`, `/timeout`, `/protection`, `/raid`, `/emergency`, `/quarantine`, `/ticketsetup`, `/setupreactionrole`, `/teststream`, and `/testwelcome`.
-- Includes optional event systems for Bean Protection, tickets, member logs, message logs, channel logs, scheduled event logs, moderation logs, user logs, invite moderation, reaction roles, and stream monitoring.
+- Includes `/ping`, `/about`, `/server`, `/help`, `/profile`, `/achievements`, `/kudos`, `/community`, `/clear`, `/warn`, `/kick`, `/ban`, `/timeout`, `/protection`, `/raid`, `/emergency`, `/quarantine`, `/ticketsetup`, `/setupreactionrole`, `/teststream`, and `/testwelcome`.
+- Includes optional event systems for Community Growth, Bean Protection, tickets, member logs, message logs, channel logs, scheduled event logs, moderation logs, user logs, invite moderation, reaction roles, and stream monitoring.
 
 ## Local Setup
 
@@ -101,6 +101,7 @@ https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=412605
    DASHBOARD_WELCOME_EMBED_PATH
    MAILBOX_SCHEDULE_PATH
    DASHBOARD_ACTIVITY_PATH
+   COMMUNITY_GROWTH_PATH
    MODERATION_CASES_PATH
    TEMP_VOICE_PATH
    TEMP_VOICE_TRIGGER_CHANNEL_ID
@@ -158,6 +159,23 @@ Before activation, Bean snapshots raid state, verification level, and every affe
 
 Protection settings, raid state, emergency snapshots and history, the latest 250 incidents, and up to 500 quarantine reviews are stored at `RAILWAY_VOLUME_MOUNT_PATH/bean-protection.json` when a volume is attached, or at `BEAN_PROTECTION_PATH` when overridden. The dedicated dashboard workspace controls detection thresholds, escalation times, alerts, member DMs, Discord rule sync, emergency profiles, raid mode, quarantine review, and incident history.
 
+## Community Growth
+
+Community Growth replaces ordinary message-count XP with five independent signals: **Presence**, **Spark**, **Support**, **Community**, and **Trust**. Profiles earn themed stages and descriptive titles, but there is no public “level 37” grind. Lifetime growth and achievements remain permanent while seasonal scores can start fresh.
+
+- Meaningful messages grant limited Presence only after length, unique-word, cooldown, duplicate-content, per-channel, and daily checks.
+- Reactions grant Spark only once per reactor per message, only on recent messages, and only up to the configured per-message and daily limits.
+- Voice sessions grant Presence and Community only after the configured minimum session length and daily cap.
+- `/kudos member:<user> reason:<text>` grants Support and Community with giver, recipient, pair-cooldown, and daily limits.
+- A positive active day can grant one Trust point when the member has no active moderation case from the last 30 days.
+- Staff recognition covers meaningful work Bean cannot observe, such as hosting an event, welcoming newcomers, or making a creative contribution.
+
+Members can use `/profile`, `/achievements`, `/community leaderboard`, `/community season`, and `/community customize`. Right-clicking a member also exposes **Apps → View Bean Profile**. Members can customize their bio and accent color or keep their profile private; private profiles never appear on leaderboards.
+
+The dashboard Growth workspace includes current-season metrics, all five trait explanations, sortable leaderboards, private staff profile search, achievements, quality controls, channel and role exclusions, staff recognition, special badges, seasonal resets, and a recent-growth audit timeline. Starting a season archives the previous leaders and resets seasonal traits only.
+
+Community Growth uses `RAILWAY_VOLUME_MOUNT_PATH/community-growth.json` automatically when a Railway volume is attached. Set `COMMUNITY_GROWTH_PATH` to override the location. Meaningful-message scoring requires `ENABLE_MESSAGE_CONTENT_INTENT=true`; reaction and voice scoring continue without it.
+
 ## Temporary Voice Rooms
 
 When a member joins the create lobby (`TEMP_VOICE_TRIGGER_CHANNEL_ID`, default `1520514900978307226`), Bean immediately creates a public voice channel named `— DISPLAY NAME'S ROOM` under the lobby's category, gives its creator room-management permission, and moves them inside. The server-specific display name is preferred, with the global name and username used only as fallbacks. There is no DM, button, or naming form.
@@ -196,7 +214,7 @@ Configure Discord OAuth to enable the browser dashboard. Railway will expose it 
 https://your-service.up.railway.app/
 ```
 
-The Settings workspace includes a persistent Configuration Center for general channels, roles, storage, Discord permissions, privileged intents, dashboard access, and audited change history. Every bot system now owns its enable switch on its dedicated feature page; disabled systems remain accessible but appear muted in the sidebar. Bean Protection has its own workspace for native AutoMod sync, behavioral thresholds, escalation, raid controls, quarantine review and bulk release, quarantine configuration, and recent incidents. The Audit Logs page owns the case, member-entry, message, voice, operation, system, and ticket log destinations instead of mixing them into general channel settings. Settings write to `dashboard-settings.json` on the Railway volume, or to `DASHBOARD_SETTINGS_PATH` when explicitly configured. Saved channel and role choices are available to active systems immediately. Gateway intent changes and enabling a monitor that was disabled during startup still require updating the Discord Developer Portal/Railway variables when applicable and restarting Bean.
+The Settings workspace includes a persistent Configuration Center for general channels, roles, storage, Discord permissions, privileged intents, dashboard access, and audited change history. Every bot system now owns its enable switch on its dedicated feature page; disabled systems remain accessible but appear muted in the sidebar. Bean Protection has its own workspace for native AutoMod sync, behavioral thresholds, escalation, raid controls, quarantine review and bulk release, quarantine configuration, and recent incidents. Community Growth has a dedicated workspace for profiles, anti-farming controls, leaderboards, recognition, achievements, exclusions, and seasons. The Audit Logs page owns the case, member-entry, message, voice, operation, system, and ticket log destinations instead of mixing them into general channel settings. Settings write to `dashboard-settings.json` on the Railway volume, or to `DASHBOARD_SETTINGS_PATH` when explicitly configured. Saved channel and role choices are available to active systems immediately. Gateway intent changes and enabling a monitor that was disabled during startup still require updating the Discord Developer Portal/Railway variables when applicable and restarting Bean.
 
 The dashboard is Discord-only. Set `DASHBOARD_DISCORD_OAUTH_ENABLED=true`, `DASHBOARD_PUBLIC_URL`, and `DISCORD_CLIENT_SECRET`, then add `DASHBOARD_PUBLIC_URL/auth/discord/callback` to the application's OAuth2 redirects in the Discord Developer Portal. Access follows the bot owner, Founder, Staff, and Moderator roles. Read and write permissions are enforced by the API, not only hidden in the interface.
 

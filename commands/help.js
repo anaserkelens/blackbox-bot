@@ -12,6 +12,7 @@ async function execute(interaction) {
     interaction.guild?.ownerId === interaction.user.id ||
     interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
   const commandList = [...interaction.client.commands.values()]
+    .filter((command) => !command.hiddenFromHelp)
     .filter((command) => !command.ownerOnly || interaction.user.id === config.ownerUserId)
     .filter((command) => !command.adminOnly || canUseAdminCommands)
     .map((command) => `/${command.data.name} - ${command.data.description}`)

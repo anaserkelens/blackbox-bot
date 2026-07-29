@@ -19,6 +19,12 @@
 
 ## Completed
 
+- Community Growth profiles built around Presence, Spark, Support, Community, and Trust
+- Anti-farming message, reaction, voice, and kudos guardrails
+- Themed growth stages, profile titles, automatic achievements, and staff-awarded badges
+- `/profile`, `/achievements`, `/kudos`, `/community`, and the View Bean Profile context action
+- Seasonal progress with archived leaders and permanent lifetime achievements
+- Dashboard Growth workspace with profiles, leaderboards, settings, exclusions, recognition, seasons, and activity
 - Persistent moderation case ledger
 - Sequential case numbers
 - `/case`, `/history`, and `/reason`

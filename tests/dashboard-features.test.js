@@ -81,7 +81,7 @@ function createClient() {
     },
     members: {
       cache: new Map(),
-      fetch: async () => null,
+      fetch: async (id) => guild.members.cache.get(id) || null,
       search: async () => new Map(),
     },
     voiceStates: { cache: new Map() },
@@ -506,6 +506,7 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
     welcomeEmbedPath: path.join(temporaryDirectory, 'api-welcome.json'),
     moderationCasesPath: path.join(temporaryDirectory, 'api-cases.json'),
     protectionPath: path.join(temporaryDirectory, 'api-protection.json'),
+    communityGrowthPath: path.join(temporaryDirectory, 'api-community-growth.json'),
     tempVoicePath: path.join(temporaryDirectory, 'api-voice.json'),
     mailboxSchedulePath: path.join(temporaryDirectory, 'api-schedule.json'),
     activityPath: path.join(temporaryDirectory, 'api-activity.json'),
@@ -538,7 +539,7 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
   assert.equal(health.response.status, 200);
   assert.equal(health.data.discord.latencyMs, 42);
   assert.equal(health.data.api.healthy, true);
-  assert.equal(health.data.storage.length, 12);
+  assert.equal(health.data.storage.length, 13);
   assert.equal(health.data.errors[0].source, 'Dashboard test');
 
   const analytics = await fetchJson(`${baseUrl}/api/analytics?days=30`, { headers });
@@ -632,6 +633,52 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
   };
 
   guild.members.cache.set(reviewedMemberId, reviewedMember);
+
+  const growthOverview = await fetchJson(`${baseUrl}/api/community-growth`, { headers });
+  const growthSettings = await fetchJson(`${baseUrl}/api/community-growth/settings`, {
+    method: 'PUT',
+    headers,
+    body: {
+      settings: {
+        ...growthOverview.data.settings,
+        minimumMessageLength: 30,
+        messageDailyLimit: 8,
+      },
+    },
+  });
+  const growthRecognition = await fetchJson(
+    `${baseUrl}/api/community-growth/profiles/${reviewedMemberId}/recognition`,
+    {
+      method: 'POST',
+      headers,
+      body: {
+        trait: 'community',
+        points: 5,
+        badgeId: 'welcome_wagon',
+        reason: 'Helped welcome new members during the dashboard API test.',
+      },
+    },
+  );
+  const growthProfile = await fetchJson(
+    `${baseUrl}/api/community-growth/profiles/${reviewedMemberId}`,
+    { headers },
+  );
+  const growthSeason = await fetchJson(`${baseUrl}/api/community-growth/season`, {
+    method: 'POST',
+    headers,
+    body: {
+      name: 'Dashboard Test Season',
+      endsAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+  });
+
+  assert.equal(growthOverview.response.status, 200);
+  assert.equal(growthSettings.data.settings.minimumMessageLength, 30);
+  assert.equal(growthRecognition.data.profile.traits.community, 5);
+  assert.ok(growthRecognition.data.profile.badges.some((badge) => badge.id === 'welcome_wagon'));
+  assert.equal(growthProfile.data.profile.userId, reviewedMemberId);
+  assert.equal(growthSeason.data.season.name, 'Dashboard Test Season');
+  assert.equal(growthSeason.data.profile, undefined);
   guild.members.fetch = async (memberId) => guild.members.cache.get(memberId) || null;
   guild.members.ban = async () => null;
 

@@ -13,7 +13,7 @@ async function execute(interaction) {
     return;
   }
 
-  if (!interaction.isChatInputCommand()) {
+  if (!interaction.isChatInputCommand() && !interaction.isUserContextMenuCommand()) {
     return;
   }
 
@@ -30,7 +30,7 @@ async function execute(interaction) {
   if (interaction.guildId && interaction.user && !interaction.user.bot) {
     await recordActivity(config, {
       type: 'interaction',
-      title: `/${interaction.commandName}`,
+      title: interaction.isChatInputCommand() ? `/${interaction.commandName}` : interaction.commandName,
       summary: `${interaction.member?.displayName || interaction.user.globalName || interaction.user.username} used a Bean command.`,
       referenceId: `INTERACTION-${interaction.id}`,
       memberId: interaction.user.id,
@@ -40,6 +40,7 @@ async function execute(interaction) {
       visibleInFeed: false,
       metadata: {
         commandName: interaction.commandName,
+        commandType: interaction.isChatInputCommand() ? 'slash' : 'user-context',
         channelId: interaction.channelId || '',
       },
     }).catch((error) => console.error('Failed to record member interaction:', error));
