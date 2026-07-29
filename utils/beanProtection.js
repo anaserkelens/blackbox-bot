@@ -6,6 +6,8 @@ const {
   AutoModerationActionType,
   AutoModerationRuleEventType,
   AutoModerationRuleTriggerType,
+  ChannelType,
+  GuildVerificationLevel,
   PermissionFlagsBits,
 } = require('discord.js');
 
@@ -32,6 +34,67 @@ const {
 const protectionFileName = 'bean-protection.json';
 const maximumIncidents = 250;
 const maximumQuarantineReviews = 500;
+const maximumEmergencyHistory = 50;
+const emergencyPermissionFields = [
+  ['sendMessages', PermissionFlagsBits.SendMessages, 'SendMessages'],
+  ['addReactions', PermissionFlagsBits.AddReactions, 'AddReactions'],
+  ['createPublicThreads', PermissionFlagsBits.CreatePublicThreads, 'CreatePublicThreads'],
+  ['createPrivateThreads', PermissionFlagsBits.CreatePrivateThreads, 'CreatePrivateThreads'],
+  ['sendMessagesInThreads', PermissionFlagsBits.SendMessagesInThreads, 'SendMessagesInThreads'],
+];
+const emergencyProfiles = Object.freeze({
+  watch: Object.freeze({
+    id: 'watch',
+    name: 'Watch',
+    description: 'Tighten behavioral thresholds and raise verification without quarantining or locking channels.',
+    verificationLevel: GuildVerificationLevel.Medium,
+    raidMode: false,
+    lockdown: false,
+    overrides: Object.freeze({
+      floodMessageLimit: 5,
+      floodWindowSeconds: 8,
+      duplicateMessageLimit: 3,
+      duplicateWindowSeconds: 15,
+      joinLimit: 5,
+      joinWindowSeconds: 180,
+      nativeMentionLimit: 5,
+    }),
+  }),
+  raid: Object.freeze({
+    id: 'raid',
+    name: 'Raid',
+    description: 'Enable quarantine, raise verification, and use strict behavioral thresholds.',
+    verificationLevel: GuildVerificationLevel.High,
+    raidMode: true,
+    lockdown: false,
+    overrides: Object.freeze({
+      floodMessageLimit: 4,
+      floodWindowSeconds: 6,
+      duplicateMessageLimit: 2,
+      duplicateWindowSeconds: 12,
+      joinLimit: 4,
+      joinWindowSeconds: 120,
+      nativeMentionLimit: 4,
+    }),
+  }),
+  lockdown: Object.freeze({
+    id: 'lockdown',
+    name: 'Lockdown',
+    description: 'Enable quarantine, require the highest verification, and pause public conversation.',
+    verificationLevel: GuildVerificationLevel.VeryHigh,
+    raidMode: true,
+    lockdown: true,
+    overrides: Object.freeze({
+      floodMessageLimit: 3,
+      floodWindowSeconds: 5,
+      duplicateMessageLimit: 2,
+      duplicateWindowSeconds: 10,
+      joinLimit: 3,
+      joinWindowSeconds: 60,
+      nativeMentionLimit: 3,
+    }),
+  }),
+});
 const messageWindows = new Map();
 const joinWindows = new Map();
 const enforcementCooldowns = new Map();
@@ -41,6 +104,7 @@ const processedNativeExecutions = new Map();
 const storeCache = new Map();
 let mutationQueue = Promise.resolve();
 let lastTrackerPruneAt = 0;
+let emergencySweepRunning = false;
 
 function getProtectionStorageInfo(config) {
   if (config.dashboard?.protectionPath) {
@@ -86,6 +150,463 @@ async function saveProtectionSettings(config, input, actor = null) {
     store.settings.updatedBy = normalizeActor(actor);
     return store.settings;
   });
+}
+
+function getEmergencyProfiles() {
+  return Object.values(emergencyProfiles).map((profile) => clone(profile));
+}
+
+function getEffectiveProtectionSettings(store) {
+  const settings = store?.settings || {};
+  const profile = store?.emergency?.active
+    ? emergencyProfiles[store.emergency.profile]
+    : null;
+
+  if (!profile) {
+    return settings;
+  }
+
+  const effective = { ...settings };
+  const lowerIsStricter = [
+    'floodMessageLimit',
+    'duplicateMessageLimit',
+    'joinLimit',
+    'nativeMentionLimit',
+  ];
+  const higherIsStricter = [
+    'floodWindowSeconds',
+    'duplicateWindowSeconds',
+    'joinWindowSeconds',
+  ];
+
+  for (const key of lowerIsStricter) {
+    effective[key] = Math.min(settings[key], profile.overrides[key]);
+  }
+
+  for (const key of higherIsStricter) {
+    effective[key] = Math.max(settings[key], profile.overrides[key]);
+  }
+
+  return effective;
+}
+
+async function activateEmergencySafetyProfile(client, config, options = {}) {
+  const profile = emergencyProfiles[String(options.profile || '').trim().toLowerCase()];
+  const actor = normalizeActor(options.actor);
+  const reason = normalizeText(options.reason, 1000);
+  const durationMinutes = clampInteger(options.durationMinutes, 5, 1440, 60);
+  const guild = getConfiguredGuild(client, config);
+
+  if (!profile) {
+    throw new Error('Choose the Watch, Raid, or Lockdown emergency profile.');
+  }
+
+  if (!actor?.id) {
+    throw new Error('A valid staff member is required.');
+  }
+
+  if (!reason) {
+    throw new Error('An emergency activation reason is required.');
+  }
+
+  if (profile.lockdown && options.confirmed !== true) {
+    throw new Error('Lockdown requires explicit staff confirmation.');
+  }
+
+  if (!guild) {
+    throw new Error('The configured Discord server is unavailable.');
+  }
+
+  const currentStore = await loadProtectionStore(config);
+
+  if (currentStore.emergency.active) {
+    throw new Error(`${currentStore.emergency.profileName || 'An emergency profile'} is already active.`);
+  }
+
+  if (profile.raidMode) {
+    const roleId = currentStore.settings.quarantineRoleId;
+    const role = roleId ? guild.roles?.cache?.get?.(roleId) : null;
+
+    if (!roleId) {
+      throw new Error('Configure a quarantine role before activating this profile.');
+    }
+
+    if (!role || !role.editable) {
+      throw new Error('Bean cannot manage the configured quarantine role.');
+    }
+  }
+
+  const startedAt = new Date().toISOString();
+  const emergencyId = `EMERGENCY-${crypto.randomUUID()}`;
+  const targetVerificationLevel = Math.max(
+    Number(guild.verificationLevel) || GuildVerificationLevel.None,
+    profile.verificationLevel,
+  );
+  const channelSnapshots = profile.lockdown
+    ? collectLockdownChannelSnapshots(guild, config, currentStore.settings)
+    : [];
+  const snapshot = {
+    verificationLevel: Number(guild.verificationLevel) || GuildVerificationLevel.None,
+    raid: currentStore.raid,
+    channels: channelSnapshots,
+  };
+  const applied = {
+    verificationLevel: targetVerificationLevel,
+    raidActive: profile.raidMode ? true : currentStore.raid.active,
+    lockedChannelIds: channelSnapshots.map((channel) => channel.channelId),
+  };
+
+  await mutateStore(config, (store) => {
+    store.emergency = {
+      ...store.emergency,
+      id: emergencyId,
+      active: true,
+      status: 'applying',
+      profile: profile.id,
+      profileName: profile.name,
+      reason,
+      actor,
+      startedAt,
+      expiresAt: new Date(Date.now() + durationMinutes * 60 * 1000).toISOString(),
+      durationMinutes,
+      snapshot,
+      applied,
+      lastRestore: null,
+    };
+    return store.emergency;
+  });
+
+  const warnings = [];
+
+  try {
+    if (Number(guild.verificationLevel) !== targetVerificationLevel) {
+      await guild.setVerificationLevel(
+        targetVerificationLevel,
+        createAuditReason(reason, options.actor, emergencyId),
+      );
+    }
+
+    if (profile.raidMode && !currentStore.raid.active) {
+      await setRaidMode(client, config, {
+        active: true,
+        guildId: guild.id,
+        actor: options.actor,
+        reason: `${profile.name} profile: ${reason}`,
+        source: 'emergency-profile',
+      });
+    }
+
+    for (const channelSnapshot of channelSnapshots) {
+      const channel = guild.channels?.cache?.get?.(channelSnapshot.channelId);
+
+      if (!channel?.permissionOverwrites?.edit) {
+        throw new Error(`Bean cannot lock #${channelSnapshot.channelName || channelSnapshot.channelId}.`);
+      }
+
+      await channel.permissionOverwrites.edit(
+        guild.roles.everyone,
+        Object.fromEntries(emergencyPermissionFields.map(([, , apiField]) => [apiField, false])),
+        { reason: createAuditReason(reason, options.actor, emergencyId) },
+      );
+    }
+
+    if (guild.autoModerationRules) {
+      await syncNativeAutoModerationRules(guild, config, options.actor)
+        .catch((error) => warnings.push(`Discord AutoMod sync: ${error.message}`));
+    }
+  } catch (error) {
+    await restoreEmergencySafetyProfile(client, config, {
+      actor: options.actor,
+      reason: `Automatic rollback after activation failed: ${error.message}`,
+      force: true,
+    }).catch((rollbackError) => {
+      console.error('Emergency profile rollback failed:', rollbackError);
+    });
+    throw new Error(`${profile.name} activation failed: ${error.message}`);
+  }
+
+  const activated = await mutateStore(config, (store) => {
+    store.emergency.status = 'active';
+    store.emergency.warnings = warnings;
+    store.incidents.unshift(normalizeIncident({
+      type: 'emergency_profile_activated',
+      source: 'bean',
+      guildId: guild.id,
+      actorId: actor.id,
+      actorName: actor.displayName,
+      summary: `${profile.name}: ${reason}`,
+      metadata: {
+        emergencyId,
+        profile: profile.id,
+        durationMinutes,
+        lockedChannels: channelSnapshots.length,
+      },
+      createdAt: startedAt,
+    }));
+    store.incidents = store.incidents.filter(Boolean).slice(0, maximumIncidents);
+    return store.emergency;
+  });
+
+  await sendEmergencyProfileLog(client, config, activated, {
+    action: 'emergency-activated',
+    title: `${profile.name} Safety Profile Activated`,
+    color: profile.lockdown ? colors.danger : colors.warning,
+    summary: reason,
+    guildId: guild.id,
+    fields: [
+      { name: 'Activated By', value: actor.displayName },
+      { name: 'Duration', value: formatDuration(durationMinutes * 60 * 1000) },
+      { name: 'Verification', value: verificationLevelName(targetVerificationLevel) },
+      { name: 'Raid Mode', value: applied.raidActive ? 'Active' : 'Unchanged' },
+      { name: 'Locked Channels', value: String(channelSnapshots.length) },
+      ...(warnings.length ? [{ name: 'Warnings', value: warnings.join('\n') }] : []),
+    ],
+  });
+
+  return activated;
+}
+
+async function restoreEmergencySafetyProfile(client, config, options = {}) {
+  const actor = normalizeActor(options.actor);
+  const reason = normalizeText(options.reason, 1000);
+  const currentStore = await loadProtectionStore(config);
+  const emergency = currentStore.emergency;
+  const guild = getConfiguredGuild(client, config);
+
+  if (!emergency.active) {
+    throw new Error('No emergency safety profile is active.');
+  }
+
+  if (!actor?.id) {
+    throw new Error('A valid staff member is required.');
+  }
+
+  if (!reason) {
+    throw new Error('A restoration reason is required.');
+  }
+
+  if (!guild) {
+    throw new Error('The configured Discord server is unavailable.');
+  }
+
+  if (emergency.status === 'restoring' && options.force !== true) {
+    throw new Error('The emergency profile is already being restored.');
+  }
+
+  await mutateStore(config, (store) => {
+    store.emergency.status = 'restoring';
+    return store.emergency;
+  });
+
+  const restoredChannels = [];
+  const skippedDrift = [];
+  const missingChannels = [];
+  const failures = [];
+
+  for (const channelSnapshot of emergency.snapshot?.channels || []) {
+    const channel = guild.channels?.cache?.get?.(channelSnapshot.channelId);
+
+    if (!channel?.permissionOverwrites?.edit) {
+      missingChannels.push(channelSnapshot.channelId);
+      continue;
+    }
+
+    const patch = {};
+
+    for (const [field, permission, apiField] of emergencyPermissionFields) {
+      const currentValue = getChannelOverwriteValue(channel, guild.roles.everyone.id, permission);
+
+      if (currentValue === false) {
+        patch[apiField] = channelSnapshot.permissions[field];
+      } else {
+        skippedDrift.push(`${channelSnapshot.channelId}:${field}`);
+      }
+    }
+
+    if (!Object.keys(patch).length) {
+      continue;
+    }
+
+    try {
+      await channel.permissionOverwrites.edit(
+        guild.roles.everyone,
+        patch,
+        { reason: createAuditReason(reason, options.actor, emergency.id) },
+      );
+      restoredChannels.push(channelSnapshot.channelId);
+    } catch (error) {
+      failures.push(`#${channelSnapshot.channelName || channelSnapshot.channelId}: ${error.message}`);
+    }
+  }
+
+  const currentVerificationLevel = Number(guild.verificationLevel);
+  let verificationRestored = false;
+
+  if (
+    currentVerificationLevel === emergency.applied?.verificationLevel
+    && currentVerificationLevel !== emergency.snapshot?.verificationLevel
+  ) {
+    try {
+      await guild.setVerificationLevel(
+        emergency.snapshot.verificationLevel,
+        createAuditReason(reason, options.actor, emergency.id),
+      );
+      verificationRestored = true;
+    } catch (error) {
+      failures.push(`Verification level: ${error.message}`);
+    }
+  } else if (currentVerificationLevel !== emergency.applied?.verificationLevel) {
+    skippedDrift.push('guild:verificationLevel');
+  }
+
+  const latestStore = await loadProtectionStore(config);
+  let raidRestored = false;
+
+  if (
+    latestStore.raid.active === emergency.applied?.raidActive
+    && latestStore.raid.active !== emergency.snapshot?.raid?.active
+  ) {
+    try {
+      await setRaidMode(client, config, {
+        active: emergency.snapshot.raid.active,
+        guildId: guild.id,
+        actor: options.actor,
+        reason: `Restored after ${emergency.profileName}: ${reason}`,
+        source: 'emergency-restore',
+      });
+      raidRestored = true;
+    } catch (error) {
+      failures.push(`Raid mode: ${error.message}`);
+    }
+  } else if (latestStore.raid.active !== emergency.applied?.raidActive) {
+    skippedDrift.push('bean:raidMode');
+  }
+
+  const restoredAt = new Date().toISOString();
+  const result = {
+    restoredAt,
+    restoredChannels,
+    skippedDrift,
+    missingChannels,
+    failures,
+    verificationRestored,
+    raidRestored,
+  };
+
+  if (failures.length) {
+    await mutateStore(config, (store) => {
+      store.emergency.status = 'failed';
+      store.emergency.lastRestore = result;
+      return store.emergency;
+    });
+    throw new Error(`Emergency restoration needs attention: ${failures.join('; ')}`);
+  }
+
+  const restoredEmergency = await mutateStore(config, (store) => {
+    const historyEntry = {
+      id: emergency.id,
+      profile: emergency.profile,
+      profileName: emergency.profileName,
+      reason: emergency.reason,
+      actor: emergency.actor,
+      startedAt: emergency.startedAt,
+      expiresAt: emergency.expiresAt,
+      restoredAt,
+      restoredBy: actor,
+      restoreReason: reason,
+      result,
+    };
+
+    store.emergency = {
+      ...createInactiveEmergencyState(),
+      history: [historyEntry, ...(store.emergency.history || [])].slice(0, maximumEmergencyHistory),
+      lastRestore: result,
+    };
+    store.incidents.unshift(normalizeIncident({
+      type: 'emergency_profile_restored',
+      source: 'bean',
+      guildId: guild.id,
+      actorId: actor.id,
+      actorName: actor.displayName,
+      summary: `${emergency.profileName}: ${reason}`,
+      metadata: {
+        emergencyId: emergency.id,
+        profile: emergency.profile,
+        restoredChannels: restoredChannels.length,
+        driftSkipped: skippedDrift.length,
+      },
+      createdAt: restoredAt,
+    }));
+    store.incidents = store.incidents.filter(Boolean).slice(0, maximumIncidents);
+    return store.emergency;
+  });
+
+  if (guild.autoModerationRules) {
+    await syncNativeAutoModerationRules(guild, config, options.actor)
+      .catch((error) => {
+        result.failures.push(`Discord AutoMod sync: ${error.message}`);
+      });
+  }
+
+  await sendEmergencyProfileLog(client, config, emergency, {
+    action: 'emergency-restored',
+    title: `${emergency.profileName} Safety Profile Restored`,
+    color: colors.success,
+    summary: reason,
+    guildId: guild.id,
+    fields: [
+      { name: 'Restored By', value: actor.displayName },
+      { name: 'Channels Restored', value: String(restoredChannels.length) },
+      { name: 'Drift Preserved', value: String(skippedDrift.length) },
+      { name: 'Missing Channels', value: String(missingChannels.length) },
+      { name: 'Verification Restored', value: verificationRestored ? 'Yes' : 'Unchanged' },
+      { name: 'Raid Mode Restored', value: raidRestored ? 'Yes' : 'Unchanged' },
+    ],
+  });
+
+  return { emergency: restoredEmergency, result };
+}
+
+async function processEmergencyExpiration(client, config) {
+  if (emergencySweepRunning) {
+    return null;
+  }
+
+  emergencySweepRunning = true;
+
+  try {
+    const store = await loadProtectionStore(config);
+    const expiresAt = new Date(store.emergency.expiresAt || '').getTime();
+    const startedAt = new Date(store.emergency.startedAt || '').getTime();
+    const interruptedActivation = store.emergency.status === 'applying'
+      && Number.isFinite(startedAt)
+      && Date.now() - startedAt >= 2 * 60 * 1000;
+    const interruptedRestore = store.emergency.status === 'restoring';
+
+    if (
+      !store.emergency.active
+      || !Number.isFinite(expiresAt)
+      || (
+        !interruptedActivation
+        && !interruptedRestore
+        && expiresAt > Date.now()
+      )
+    ) {
+      return null;
+    }
+
+    return restoreEmergencySafetyProfile(client, config, {
+      actor: client.user,
+      reason: interruptedActivation
+        ? `${store.emergency.profileName} activation was interrupted and rolled back automatically.`
+        : interruptedRestore
+          ? `${store.emergency.profileName} restoration was interrupted and resumed automatically.`
+          : `${store.emergency.profileName} profile expired automatically.`,
+      force: true,
+    });
+  } finally {
+    emergencySweepRunning = false;
+  }
 }
 
 async function recordProtectionIncident(config, input) {
@@ -500,7 +1021,10 @@ async function getProtectionOverview(client, config) {
 
   return {
     settings: store.settings,
+    effectiveSettings: getEffectiveProtectionSettings(store),
     raid: store.raid,
+    emergency: store.emergency,
+    emergencyProfiles: getEmergencyProfiles(),
     incidents: store.incidents.slice(0, 100),
     quarantineReviews: store.quarantineReviews.slice(0, 250),
     metrics: {
@@ -509,6 +1033,9 @@ async function getProtectionOverview(client, config) {
       custom24h: recent.filter((incident) => incident.source === 'bean').length,
       quarantined24h: recent.filter((incident) => incident.type === 'member_quarantined').length,
       pendingQuarantines: store.quarantineReviews.filter((review) => review.status === 'pending').length,
+      lockedChannels: store.emergency.active
+        ? store.emergency.applied?.lockedChannelIds?.length || 0
+        : 0,
     },
     native: {
       available: Boolean(guild?.autoModerationRules),
@@ -534,7 +1061,7 @@ async function syncNativeAutoModerationRules(guild, config, actor = null) {
   }
 
   const store = await loadProtectionStore(config);
-  const settings = store.settings;
+  const settings = getEffectiveProtectionSettings(store);
   const existing = await guild.autoModerationRules.fetch();
   const alertAction = settings.alertChannelId
     ? [{
@@ -619,7 +1146,7 @@ async function evaluateProtectionMessage(message, client, config) {
   }
 
   const store = await loadProtectionStore(config);
-  const settings = store.settings;
+  const settings = getEffectiveProtectionSettings(store);
   const now = Date.now();
   pruneBehaviorTrackers(now);
   const key = `${message.guild.id}:${message.author.id}`;
@@ -684,7 +1211,7 @@ async function evaluateProtectionJoin(member, client, config) {
   }
 
   const store = await loadProtectionStore(config);
-  const settings = store.settings;
+  const settings = getEffectiveProtectionSettings(store);
   const now = Date.now();
   pruneBehaviorTrackers(now);
   const entries = (joinWindows.get(member.guild.id) || [])
@@ -894,7 +1421,7 @@ async function processNativeAutoModerationExecution(execution, client, config) {
 
   const store = await loadProtectionStore(config);
 
-  if (!store.settings.nativeLoggingEnabled) {
+  if (!getEffectiveProtectionSettings(store).nativeLoggingEnabled) {
     return null;
   }
 
@@ -938,7 +1465,7 @@ async function processNativeAutoModerationExecution(execution, client, config) {
 
 async function applyProtectionAction(client, config, options) {
   const store = await loadProtectionStore(config);
-  const settings = store.settings;
+  const settings = getEffectiveProtectionSettings(store);
   const recentCutoff = Date.now() - settings.escalationWindowHours * 60 * 60 * 1000;
   const priorIncidents = store.incidents.filter(
     (incident) =>
@@ -1160,9 +1687,10 @@ function normalizeStore(input, config) {
   const source = input && typeof input === 'object' ? input : {};
 
   return {
-    version: 2,
+    version: 3,
     settings: normalizeSettings(source.settings, config),
     raid: normalizeRaid(source.raid),
+    emergency: normalizeEmergency(source.emergency),
     incidents: Array.isArray(source.incidents)
       ? source.incidents.map(normalizeIncident).filter(Boolean).slice(0, maximumIncidents)
       : [],
@@ -1213,6 +1741,281 @@ function normalizeRaid(input) {
     reason: normalizeText(source.reason, 500),
     source: normalizeText(source.source, 40) || 'manual',
   };
+}
+
+function createInactiveEmergencyState() {
+  return {
+    id: null,
+    active: false,
+    status: 'inactive',
+    profile: null,
+    profileName: '',
+    reason: '',
+    actor: null,
+    startedAt: null,
+    expiresAt: null,
+    durationMinutes: null,
+    snapshot: null,
+    applied: null,
+    warnings: [],
+    history: [],
+    lastRestore: null,
+  };
+}
+
+function normalizeEmergency(input) {
+  const source = input && typeof input === 'object' ? input : {};
+  const inactive = createInactiveEmergencyState();
+  const profile = emergencyProfiles[source.profile];
+  const active = Boolean(source.active && profile && source.id);
+  const status = ['applying', 'active', 'restoring', 'failed'].includes(source.status)
+    ? source.status
+    : active ? 'active' : 'inactive';
+
+  return {
+    ...inactive,
+    id: active ? normalizeText(source.id, 100) : null,
+    active,
+    status: active ? status : 'inactive',
+    profile: active ? profile.id : null,
+    profileName: active ? profile.name : '',
+    reason: active ? normalizeText(source.reason, 1000) : '',
+    actor: active ? normalizeActor(source.actor) : null,
+    startedAt: active ? normalizeDate(source.startedAt) : null,
+    expiresAt: active ? normalizeDate(source.expiresAt) : null,
+    durationMinutes: active
+      ? clampInteger(source.durationMinutes, 5, 1440, 60)
+      : null,
+    snapshot: active ? normalizeEmergencySnapshot(source.snapshot) : null,
+    applied: active ? normalizeEmergencyApplied(source.applied) : null,
+    warnings: normalizeStringArray(source.warnings, 20, 500),
+    history: normalizeEmergencyHistory(source.history),
+    lastRestore: normalizeEmergencyRestoreResult(source.lastRestore),
+  };
+}
+
+function normalizeEmergencySnapshot(input) {
+  const source = input && typeof input === 'object' ? input : {};
+
+  return {
+    verificationLevel: clampInteger(
+      source.verificationLevel,
+      GuildVerificationLevel.None,
+      GuildVerificationLevel.VeryHigh,
+      GuildVerificationLevel.None,
+    ),
+    raid: normalizeRaid(source.raid),
+    channels: Array.isArray(source.channels)
+      ? source.channels.map(normalizeEmergencyChannelSnapshot).filter(Boolean).slice(0, 500)
+      : [],
+  };
+}
+
+function normalizeEmergencyChannelSnapshot(input) {
+  const channelId = normalizeSnowflake(input?.channelId);
+
+  if (!channelId) {
+    return null;
+  }
+
+  const permissions = {};
+
+  for (const [field] of emergencyPermissionFields) {
+    permissions[field] = input.permissions?.[field] === true
+      ? true
+      : input.permissions?.[field] === false ? false : null;
+  }
+
+  return {
+    channelId,
+    channelName: normalizeText(input.channelName, 100),
+    permissions,
+  };
+}
+
+function normalizeEmergencyApplied(input) {
+  const source = input && typeof input === 'object' ? input : {};
+
+  return {
+    verificationLevel: clampInteger(
+      source.verificationLevel,
+      GuildVerificationLevel.None,
+      GuildVerificationLevel.VeryHigh,
+      GuildVerificationLevel.None,
+    ),
+    raidActive: Boolean(source.raidActive),
+    lockedChannelIds: Array.isArray(source.lockedChannelIds)
+      ? source.lockedChannelIds.map(normalizeSnowflake).filter(Boolean).slice(0, 500)
+      : [],
+  };
+}
+
+function normalizeEmergencyHistory(history) {
+  if (!Array.isArray(history)) {
+    return [];
+  }
+
+  return history
+    .map((entry) => ({
+      id: normalizeText(entry?.id, 100),
+      profile: emergencyProfiles[entry?.profile]?.id || null,
+      profileName: normalizeText(entry?.profileName, 40),
+      reason: normalizeText(entry?.reason, 1000),
+      actor: normalizeActor(entry?.actor),
+      startedAt: normalizeDate(entry?.startedAt),
+      expiresAt: normalizeDate(entry?.expiresAt),
+      restoredAt: normalizeDate(entry?.restoredAt),
+      restoredBy: normalizeActor(entry?.restoredBy),
+      restoreReason: normalizeText(entry?.restoreReason, 1000),
+      result: normalizeEmergencyRestoreResult(entry?.result),
+    }))
+    .filter((entry) => entry.id && entry.profile && entry.startedAt)
+    .slice(0, maximumEmergencyHistory);
+}
+
+function normalizeEmergencyRestoreResult(input) {
+  if (!input || typeof input !== 'object') {
+    return null;
+  }
+
+  return {
+    restoredAt: normalizeDate(input.restoredAt),
+    restoredChannels: normalizeSnowflakeArray(input.restoredChannels, 500),
+    skippedDrift: normalizeStringArray(input.skippedDrift, 1000, 120),
+    missingChannels: normalizeSnowflakeArray(input.missingChannels, 500),
+    failures: normalizeStringArray(input.failures, 100, 500),
+    verificationRestored: Boolean(input.verificationRestored),
+    raidRestored: Boolean(input.raidRestored),
+  };
+}
+
+function collectLockdownChannelSnapshots(guild, config, settings) {
+  const everyone = guild.roles?.everyone;
+
+  if (!everyone) {
+    throw new Error('The server everyone role is unavailable.');
+  }
+
+  const excludedIds = new Set([
+    settings.alertChannelId,
+    config.channels?.caseFiles,
+    config.channels?.entryLog,
+    config.channels?.signalLog,
+    config.channels?.lineLog,
+    config.channels?.operationLog,
+    config.channels?.systemLog,
+    config.channels?.ticketLogs,
+  ].filter(Boolean));
+  const lockableTypes = new Set([
+    ChannelType.GuildText,
+    ChannelType.GuildAnnouncement,
+    ChannelType.GuildForum,
+    ChannelType.GuildMedia,
+    ChannelType.GuildVoice,
+    ChannelType.GuildStageVoice,
+  ]);
+  const channels = guild.channels?.cache?.values
+    ? [...guild.channels.cache.values()]
+    : [];
+
+  return channels
+    .filter((channel) => {
+      if (
+        excludedIds.has(channel.id)
+        || !lockableTypes.has(channel.type)
+        || !channel.permissionOverwrites?.edit
+        || channel.lockdownEligible === false
+      ) {
+        return false;
+      }
+
+      const permissions = channel.permissionsFor?.(everyone);
+      return !permissions?.has || permissions.has(PermissionFlagsBits.SendMessages);
+    })
+    .map((channel) => ({
+      channelId: channel.id,
+      channelName: channel.name || channel.id,
+      permissions: Object.fromEntries(
+        emergencyPermissionFields.map(([field, permission]) => [
+          field,
+          getChannelOverwriteValue(channel, everyone.id, permission),
+        ]),
+      ),
+    }));
+}
+
+function getChannelOverwriteValue(channel, roleId, permission) {
+  const overwrite = channel.permissionOverwrites?.cache?.get?.(roleId);
+
+  if (!overwrite) {
+    return null;
+  }
+
+  if (permissionCollectionHas(overwrite.allow, permission)) {
+    return true;
+  }
+
+  if (permissionCollectionHas(overwrite.deny, permission)) {
+    return false;
+  }
+
+  return null;
+}
+
+function permissionCollectionHas(collection, permission) {
+  if (collection?.has) {
+    return collection.has(permission);
+  }
+
+  try {
+    const bitfield = BigInt(collection?.bitfield ?? collection ?? 0);
+    return (bitfield & permission) === permission;
+  } catch {
+    return false;
+  }
+}
+
+async function sendEmergencyProfileLog(client, config, emergency, options) {
+  const store = await loadProtectionStore(config);
+
+  return sendStructuredLog(client, store.settings.alertChannelId || config.channels.caseFiles, {
+    title: options.title,
+    emoji: emergency.profile === 'lockdown' ? '🔒' : '🚨',
+    color: options.color,
+    summary: options.summary,
+    referenceId: emergency.id,
+    activity: {
+      type: 'moderation',
+      guildId: options.guildId,
+      action: options.action,
+    },
+    fields: options.fields,
+  }, config).catch((error) => {
+    console.error('Failed to log emergency safety profile:', error);
+    return false;
+  });
+}
+
+function verificationLevelName(level) {
+  return {
+    [GuildVerificationLevel.None]: 'None',
+    [GuildVerificationLevel.Low]: 'Low',
+    [GuildVerificationLevel.Medium]: 'Medium',
+    [GuildVerificationLevel.High]: 'High',
+    [GuildVerificationLevel.VeryHigh]: 'Highest',
+  }[level] || 'Unknown';
+}
+
+function normalizeSnowflakeArray(values, limit) {
+  return Array.isArray(values)
+    ? values.map(normalizeSnowflake).filter(Boolean).slice(0, limit)
+    : [];
+}
+
+function normalizeStringArray(values, limit, maximumLength) {
+  return Array.isArray(values)
+    ? values.map((value) => normalizeText(value, maximumLength)).filter(Boolean).slice(0, limit)
+    : [];
 }
 
 function normalizeIncident(input) {
@@ -1532,18 +2335,22 @@ function clone(value) {
 }
 
 module.exports = {
+  activateEmergencySafetyProfile,
   addQuarantineReviewNote,
   bulkReleaseQuarantineReviews,
   evaluateProtectionJoin,
   evaluateProtectionMessage,
   getProtectionOverview,
   getProtectionStorageInfo,
+  getEmergencyProfiles,
   loadProtectionStore,
+  processEmergencyExpiration,
   processNativeAutoModerationExecution,
   queueNativeAutoModerationExecution,
   recordQuarantineReview,
   recordProtectionIncident,
   resolveQuarantineReview,
+  restoreEmergencySafetyProfile,
   saveProtectionSettings,
   setRaidMode,
   syncNativeAutoModerationRules,

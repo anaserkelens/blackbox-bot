@@ -1021,6 +1021,87 @@
             </article>
           </section>
 
+          <section class="dashboard-panel emergency-profile-card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Coordinated response</p>
+                <h2>Emergency safety profiles</h2>
+                <p>Temporarily tighten Bean and Discord together, then restore the exact state captured before activation.</p>
+              </div>
+              <span id="emergency-profile-pill" class="status-pill">Checking</span>
+            </div>
+
+            <div id="emergency-profile-active" class="emergency-active-summary" hidden>
+              <span><i class="fa-solid fa-shield-virus" aria-hidden="true"></i></span>
+              <div>
+                <small>Active profile</small>
+                <strong id="emergency-active-name">Emergency profile</strong>
+                <p id="emergency-active-copy"></p>
+              </div>
+              <div class="emergency-active-facts">
+                <p><small>Automatic restore</small><strong id="emergency-active-expiry">Checking</strong></p>
+                <p><small>Locked channels</small><strong id="emergency-active-locks">0</strong></p>
+              </div>
+            </div>
+
+            <div id="emergency-profile-options" class="emergency-profile-options">
+              <label class="emergency-profile-option">
+                <input type="radio" name="emergency-profile" value="watch" checked />
+                <span><i class="fa-solid fa-eye" aria-hidden="true"></i></span>
+                <div><strong>Watch</strong><p>Stricter detection and Medium verification. Conversation stays open.</p></div>
+                <small>LOW IMPACT</small>
+              </label>
+              <label class="emergency-profile-option">
+                <input type="radio" name="emergency-profile" value="raid" />
+                <span><i class="fa-solid fa-people-group" aria-hidden="true"></i></span>
+                <div><strong>Raid</strong><p>High verification, strict thresholds, and quarantine for new arrivals.</p></div>
+                <small>HIGH ALERT</small>
+              </label>
+              <label class="emergency-profile-option">
+                <input type="radio" name="emergency-profile" value="lockdown" />
+                <span><i class="fa-solid fa-lock" aria-hidden="true"></i></span>
+                <div><strong>Lockdown</strong><p>Highest verification, quarantine, and a temporary pause in public channels.</p></div>
+                <small>MAXIMUM</small>
+              </label>
+            </div>
+
+            <div class="emergency-profile-controls">
+              <label class="field">
+                Duration
+                <select id="emergency-profile-duration">
+                  <option value="15">15 minutes</option>
+                  <option value="30">30 minutes</option>
+                  <option value="60" selected>1 hour</option>
+                  <option value="120">2 hours</option>
+                  <option value="360">6 hours</option>
+                </select>
+              </label>
+              <label class="field">
+                Staff reason
+                <input id="emergency-profile-reason" type="text" maxlength="1000" placeholder="What is happening and why is this response needed?" />
+              </label>
+              <label class="emergency-confirmation">
+                <input id="emergency-profile-confirm" type="checkbox" />
+                <span>I confirm Bean may temporarily change server safety settings.</span>
+              </label>
+            </div>
+
+            <div class="emergency-impact-panel">
+              <div><p class="eyebrow">Impact preview</p><strong id="emergency-impact-title">Watch profile</strong></div>
+              <div id="emergency-impact-list" class="emergency-impact-list"></div>
+            </div>
+
+            <div class="emergency-profile-actions">
+              <button id="activate-emergency-profile" class="danger-button" type="button" data-requires-permission="moderate">
+                <i class="fa-solid fa-shield-virus" aria-hidden="true"></i> Activate profile
+              </button>
+              <button id="restore-emergency-profile" class="secondary" type="button" data-requires-permission="moderate">
+                <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Restore captured state
+              </button>
+            </div>
+            <p id="emergency-profile-status" class="muted">Loading emergency status…</p>
+          </section>
+
           <section class="dashboard-panel protection-raid-card">
             <div class="section-heading">
               <div>

@@ -145,6 +145,22 @@ const quarantineReviewFilter = document.querySelector('#quarantine-review-filter
 const quarantineReviewList = document.querySelector('#quarantine-review-list');
 const quarantineBulkReasonInput = document.querySelector('#quarantine-bulk-reason');
 const quarantineBulkReleaseButton = document.querySelector('#quarantine-bulk-release');
+const emergencyProfilePill = document.querySelector('#emergency-profile-pill');
+const emergencyProfileActive = document.querySelector('#emergency-profile-active');
+const emergencyActiveName = document.querySelector('#emergency-active-name');
+const emergencyActiveCopy = document.querySelector('#emergency-active-copy');
+const emergencyActiveExpiry = document.querySelector('#emergency-active-expiry');
+const emergencyActiveLocks = document.querySelector('#emergency-active-locks');
+const emergencyProfileOptions = document.querySelector('#emergency-profile-options');
+const emergencyProfileInputs = [...document.querySelectorAll('input[name="emergency-profile"]')];
+const emergencyProfileDuration = document.querySelector('#emergency-profile-duration');
+const emergencyProfileReason = document.querySelector('#emergency-profile-reason');
+const emergencyProfileConfirm = document.querySelector('#emergency-profile-confirm');
+const emergencyImpactTitle = document.querySelector('#emergency-impact-title');
+const emergencyImpactList = document.querySelector('#emergency-impact-list');
+const activateEmergencyProfileButton = document.querySelector('#activate-emergency-profile');
+const restoreEmergencyProfileButton = document.querySelector('#restore-emergency-profile');
+const emergencyProfileStatus = document.querySelector('#emergency-profile-status');
 const protectionNativeLoggingInput = document.querySelector('#protection-native-logging');
 const protectionDmNotificationsInput = document.querySelector('#protection-dm-notifications');
 const protectionFloodEnabledInput = document.querySelector('#protection-flood-enabled');
@@ -597,6 +613,9 @@ function bindEvents() {
   quarantineReviewFilter?.addEventListener('change', renderQuarantineReviews);
   quarantineReviewList?.addEventListener('click', handleQuarantineReviewClick);
   quarantineBulkReleaseButton?.addEventListener('click', handleQuarantineBulkRelease);
+  emergencyProfileInputs.forEach((input) => input.addEventListener('change', renderEmergencyImpact));
+  activateEmergencyProfileButton?.addEventListener('click', handleEmergencyProfileActivation);
+  restoreEmergencyProfileButton?.addEventListener('click', handleEmergencyProfileRestore);
   featureChannelSettingsForms.forEach((form) => {
     form.addEventListener('submit', handleFeatureChannelSettingsSave);
   });
@@ -2352,6 +2371,219 @@ function renderProtection() {
 
   enableProtectionRaidButton.disabled = !canModerate || Boolean(raid.active);
   disableProtectionRaidButton.disabled = !canModerate || !raid.active;
+  renderEmergencyProfile();
+}
+
+function renderEmergencyProfile() {
+  if (!emergencyProfilePill || !state.protection) {
+    return;
+  }
+
+  const emergency = state.protection.emergency || {};
+  const active = Boolean(emergency.active);
+  const canModerate = state.session?.permissions?.moderate !== false;
+
+  emergencyProfilePill.textContent = active
+    ? `${emergency.profileName} active`
+    : 'Normal';
+  emergencyProfilePill.classList.toggle('offline', active);
+  emergencyProfilePill.classList.toggle('ready', !active);
+  emergencyProfileActive.hidden = !active;
+  emergencyProfileOptions.classList.toggle('is-disabled', active);
+  if (active) {
+    const activeProfileInput = emergencyProfileInputs.find(
+      (input) => input.value === emergency.profile,
+    );
+
+    if (activeProfileInput) {
+      activeProfileInput.checked = true;
+    }
+  }
+  emergencyProfileInputs.forEach((input) => {
+    input.disabled = active || !canModerate;
+  });
+  emergencyProfileDuration.disabled = active || !canModerate;
+  emergencyProfileConfirm.disabled = active || !canModerate;
+  activateEmergencyProfileButton.disabled = active || !canModerate;
+  restoreEmergencyProfileButton.disabled = !active || !canModerate;
+
+  if (active) {
+    emergencyActiveName.textContent = emergency.profileName;
+    emergencyActiveCopy.textContent = emergency.reason;
+    emergencyActiveExpiry.textContent = emergency.expiresAt
+      ? formatDateTime(emergency.expiresAt)
+      : 'Manual restoration required';
+    emergencyActiveLocks.textContent = String(
+      state.protection.metrics?.lockedChannels
+      || emergency.applied?.lockedChannelIds?.length
+      || 0,
+    );
+    emergencyProfileStatus.textContent =
+      `${emergency.status === 'failed' ? 'Restoration needs attention' : 'Automatic restoration scheduled'} · Activated by ${emergency.actor?.displayName || 'Bean'}.`;
+  } else {
+    emergencyProfileStatus.textContent = emergency.lastRestore?.restoredAt
+      ? `Last restored ${formatDateTime(emergency.lastRestore.restoredAt)}. Staff changes made during the emergency were preserved.`
+      : 'No emergency profile is active. Normal saved protection settings are in use.';
+  }
+
+  renderEmergencyImpact();
+}
+
+function renderEmergencyImpact() {
+  if (!emergencyImpactList) {
+    return;
+  }
+
+  const selected = emergencyProfileInputs.find((input) => input.checked)?.value || 'watch';
+  const profiles = Array.isArray(state.protection?.emergencyProfiles)
+    ? state.protection.emergencyProfiles
+    : [];
+  const profile = profiles.find((item) => item.id === selected) || {
+    id: selected,
+    name: humanizeProtectionType(selected),
+    verificationLevel: selected === 'lockdown' ? 4 : selected === 'raid' ? 3 : 2,
+    raidMode: selected !== 'watch',
+    lockdown: selected === 'lockdown',
+    overrides: selected === 'lockdown'
+      ? { floodMessageLimit: 3, floodWindowSeconds: 5, nativeMentionLimit: 3 }
+      : selected === 'raid'
+        ? { floodMessageLimit: 4, floodWindowSeconds: 6, nativeMentionLimit: 4 }
+        : { floodMessageLimit: 5, floodWindowSeconds: 8, nativeMentionLimit: 5 },
+  };
+  const verificationNames = ['None', 'Low', 'Medium', 'High', 'Highest'];
+  const baseSettings = state.protection?.settings || {};
+  const effectiveFloodLimit = Math.min(
+    Number(baseSettings.floodMessageLimit) || profile.overrides.floodMessageLimit,
+    profile.overrides.floodMessageLimit,
+  );
+  const effectiveFloodWindow = Math.max(
+    Number(baseSettings.floodWindowSeconds) || profile.overrides.floodWindowSeconds,
+    profile.overrides.floodWindowSeconds,
+  );
+  const effectiveMentionLimit = Math.min(
+    Number(baseSettings.nativeMentionLimit) || profile.overrides.nativeMentionLimit,
+    profile.overrides.nativeMentionLimit,
+  );
+  const impacts = [
+    {
+      icon: 'fa-solid fa-gauge-high',
+      label: 'Behavioral thresholds',
+      value: `${effectiveFloodLimit} messages / ${effectiveFloodWindow}s · ${effectiveMentionLimit} mentions`,
+    },
+    {
+      icon: 'fa-solid fa-user-shield',
+      label: 'Discord verification',
+      value: `${verificationNames[profile.verificationLevel] || 'Stricter'} or the current higher level`,
+    },
+    {
+      icon: 'fa-solid fa-user-lock',
+      label: 'New-member quarantine',
+      value: profile.raidMode ? 'Enabled' : 'Unchanged',
+    },
+    {
+      icon: 'fa-solid fa-comments',
+      label: 'Public conversation',
+      value: profile.lockdown ? 'Temporarily paused' : 'Remains open',
+    },
+  ];
+
+  emergencyImpactTitle.textContent = `${profile.name} profile`;
+  emergencyImpactList.innerHTML = impacts.map((impact) => `
+    <div>
+      <span><i class="${impact.icon}" aria-hidden="true"></i></span>
+      <p><small>${escapeHtml(impact.label)}</small><strong>${escapeHtml(impact.value)}</strong></p>
+    </div>
+  `).join('');
+}
+
+async function handleEmergencyProfileActivation() {
+  const profile = emergencyProfileInputs.find((input) => input.checked)?.value || 'watch';
+  const reason = emergencyProfileReason.value.trim();
+  const confirmed = emergencyProfileConfirm.checked;
+
+  if (!reason) {
+    setSendStatus('Add a staff reason before activating an emergency profile.', 'error');
+    emergencyProfileReason.focus();
+    return;
+  }
+
+  if (!confirmed) {
+    setSendStatus('Confirm that Bean may temporarily change server safety settings.', 'error');
+    emergencyProfileConfirm.focus();
+    return;
+  }
+
+  if (profile === 'lockdown' && !window.confirm(
+    'Activate Lockdown? Bean will temporarily prevent @everyone from posting in public channels.',
+  )) {
+    return;
+  }
+
+  const originalLabel = activateEmergencyProfileButton.innerHTML;
+
+  activateEmergencyProfileButton.disabled = true;
+  activateEmergencyProfileButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Activating&hellip;';
+
+  try {
+    state.protection = await api('/api/protection/emergency', {
+      method: 'POST',
+      body: {
+        action: 'activate',
+        profile,
+        durationMinutes: Number.parseInt(emergencyProfileDuration.value, 10),
+        reason,
+        confirmed,
+      },
+    });
+    emergencyProfileReason.value = '';
+    emergencyProfileConfirm.checked = false;
+    renderProtection();
+    setSendStatus(`${humanizeProtectionType(profile)} safety profile activated.`, 'success');
+  } catch (error) {
+    setSendStatus(error.message, 'error');
+  } finally {
+    activateEmergencyProfileButton.innerHTML = originalLabel;
+    renderEmergencyProfile();
+  }
+}
+
+async function handleEmergencyProfileRestore() {
+  const reason = emergencyProfileReason.value.trim();
+
+  if (!reason) {
+    setSendStatus('Add a staff reason before restoring the server.', 'error');
+    emergencyProfileReason.focus();
+    return;
+  }
+
+  if (!window.confirm('Restore the server state captured before this emergency profile?')) {
+    return;
+  }
+
+  const originalLabel = restoreEmergencyProfileButton.innerHTML;
+
+  restoreEmergencyProfileButton.disabled = true;
+  restoreEmergencyProfileButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Restoring&hellip;';
+
+  try {
+    const response = await api('/api/protection/emergency', {
+      method: 'POST',
+      body: { action: 'restore', reason },
+    });
+
+    state.protection = response;
+    emergencyProfileReason.value = '';
+    renderProtection();
+    setSendStatus(
+      `Server restored. ${response.result.result.restoredChannels.length} channel(s) restored and ${response.result.result.skippedDrift.length} staff change(s) preserved.`,
+      'success',
+    );
+  } catch (error) {
+    setSendStatus(error.message, 'error');
+  } finally {
+    restoreEmergencyProfileButton.innerHTML = originalLabel;
+    renderEmergencyProfile();
+  }
 }
 
 function renderQuarantineReviews() {

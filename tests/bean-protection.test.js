@@ -3,16 +3,20 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 const { test } = require('node:test');
+const { ChannelType, PermissionFlagsBits } = require('discord.js');
 
 process.env.DISCORD_TOKEN = process.env.DISCORD_TOKEN || 'test-token';
 
 const {
+  activateEmergencySafetyProfile,
   addQuarantineReviewNote,
   bulkReleaseQuarantineReviews,
   evaluateProtectionJoin,
   evaluateProtectionMessage,
   getProtectionOverview,
+  processEmergencyExpiration,
   resolveQuarantineReview,
+  restoreEmergencySafetyProfile,
   saveProtectionSettings,
   setRaidMode,
   syncNativeAutoModerationRules,
@@ -38,6 +42,17 @@ test('Bean Protection persists settings, escalates message floods, and quarantin
   const released = [];
   const kicked = [];
   const banned = [];
+  const verificationChanges = [];
+  const publicChannelId = '1520000000000000105';
+  const everyoneAllow = new Set();
+  const everyoneDeny = new Set();
+  const permissionNames = new Map([
+    ['SendMessages', PermissionFlagsBits.SendMessages],
+    ['AddReactions', PermissionFlagsBits.AddReactions],
+    ['CreatePublicThreads', PermissionFlagsBits.CreatePublicThreads],
+    ['CreatePrivateThreads', PermissionFlagsBits.CreatePrivateThreads],
+    ['SendMessagesInThreads', PermissionFlagsBits.SendMessagesInThreads],
+  ]);
   const activeRoleIds = new Set();
   const quarantineRole = {
     id: quarantineRoleId,
@@ -46,10 +61,45 @@ test('Bean Protection persists settings, escalates message floods, and quarantin
     toString: () => `<@&${quarantineRoleId}>`,
   };
   const nativeRules = new Map();
+  const publicChannel = {
+    id: publicChannelId,
+    name: 'general',
+    type: ChannelType.GuildText,
+    permissionsFor: () => ({ has: (permission) => permission === PermissionFlagsBits.SendMessages }),
+    permissionOverwrites: {
+      cache: new Map([[
+        guildId,
+        {
+          allow: { has: (permission) => everyoneAllow.has(permission) },
+          deny: { has: (permission) => everyoneDeny.has(permission) },
+        },
+      ]]),
+      edit: async (role, patch) => {
+        for (const [name, value] of Object.entries(patch)) {
+          const permission = permissionNames.get(name);
+
+          if (!permission) continue;
+          everyoneAllow.delete(permission);
+          everyoneDeny.delete(permission);
+          if (value === true) everyoneAllow.add(permission);
+          if (value === false) everyoneDeny.add(permission);
+        }
+      },
+    },
+  };
   const guild = {
     id: guildId,
     name: 'Protection Test',
-    roles: { cache: new Map([[quarantineRoleId, quarantineRole]]) },
+    verificationLevel: 1,
+    setVerificationLevel: async (level) => {
+      verificationChanges.push(level);
+      guild.verificationLevel = level;
+    },
+    roles: {
+      cache: new Map([[quarantineRoleId, quarantineRole]]),
+      everyone: { id: guildId, name: '@everyone' },
+    },
+    channels: { cache: new Map([[publicChannelId, publicChannel]]) },
     members: {
       cache: new Map(),
       fetch: async () => null,
@@ -295,4 +345,64 @@ test('Bean Protection persists settings, escalates message floods, and quarantin
   assert.deepEqual(banned, [userId]);
   assert.equal(finalCases.length, 4);
   assert.equal(finalCases[0].metadata.deleteMessageSeconds, 3600);
+
+  await setRaidMode(client, featureConfig, {
+    active: false,
+    guildId,
+    actor: client.user,
+    reason: 'Prepare emergency-profile test.',
+  });
+  const emergency = await activateEmergencySafetyProfile(client, featureConfig, {
+    profile: 'lockdown',
+    durationMinutes: 15,
+    reason: 'Test lockdown response.',
+    actor: { id: botId, username: 'Test Staff', tag: 'Test Staff#0001' },
+    confirmed: true,
+  });
+  const lockdownOverview = await getProtectionOverview(client, featureConfig);
+
+  assert.equal(emergency.profile, 'lockdown');
+  assert.equal(guild.verificationLevel, 4);
+  assert.equal(lockdownOverview.raid.active, true);
+  assert.equal(lockdownOverview.effectiveSettings.floodMessageLimit, 3);
+  assert.equal(lockdownOverview.metrics.lockedChannels, 1);
+  assert.equal(everyoneDeny.has(PermissionFlagsBits.SendMessages), true);
+
+  everyoneDeny.delete(PermissionFlagsBits.AddReactions);
+  everyoneAllow.add(PermissionFlagsBits.AddReactions);
+
+  const restoration = await restoreEmergencySafetyProfile(client, featureConfig, {
+    actor: { id: botId, username: 'Test Staff', tag: 'Test Staff#0001' },
+    reason: 'Lockdown test complete.',
+  });
+  const restoredOverview = await getProtectionOverview(client, featureConfig);
+
+  assert.equal(restoration.emergency.active, false);
+  assert.equal(guild.verificationLevel, 1);
+  assert.equal(restoredOverview.raid.active, false);
+  assert.equal(restoredOverview.effectiveSettings.floodMessageLimit, 3);
+  assert.equal(everyoneDeny.has(PermissionFlagsBits.SendMessages), false);
+  assert.equal(everyoneAllow.has(PermissionFlagsBits.AddReactions), true);
+  assert.ok(restoration.result.skippedDrift.some((item) => item.endsWith(':addReactions')));
+
+  await activateEmergencySafetyProfile(client, featureConfig, {
+    profile: 'watch',
+    durationMinutes: 5,
+    reason: 'Automatic expiry test.',
+    actor: { id: botId, username: 'Test Staff', tag: 'Test Staff#0001' },
+    confirmed: true,
+  });
+  const originalNow = Date.now;
+
+  Date.now = () => originalNow() + 10 * 60 * 1000;
+  try {
+    await processEmergencyExpiration(client, featureConfig);
+  } finally {
+    Date.now = originalNow;
+  }
+
+  const expiredOverview = await getProtectionOverview(client, featureConfig);
+
+  assert.equal(expiredOverview.emergency.active, false);
+  assert.deepEqual(verificationChanges, [4, 1, 2, 1]);
 });

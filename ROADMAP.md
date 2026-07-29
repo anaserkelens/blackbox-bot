@@ -4,7 +4,6 @@
 
 - Bean Protection follow-ups
   - Suspicious-link reputation checks
-  - Optional staff-confirmed channel lockdown
 - Ticket system upgrades
   - HTML transcripts
   - Claiming and transferring tickets
@@ -43,6 +42,9 @@
 - Persistent quarantine review queue with moderator notes and audited resolutions
 - Dashboard Release, Timeout, Kick, Ban, and bulk-release controls
 - `/quarantine` staff commands and quick Discord review buttons
+- Reversible Watch, Raid, and Lockdown emergency safety profiles
+- Verification-level coordination, public-channel snapshots, drift-safe restoration, and automatic expiry
+- `/emergency` staff commands and dashboard impact controls
 - Live Dashboard notifications for cases, Mailbox failures, bot errors, and unusual join activity
 - Dashboard Analytics for growth, voice hours, Mailbox engagement, moderation patterns, and active members
 - Member-aware Activity Feed with general bot-operation entries removed

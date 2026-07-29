@@ -3,6 +3,7 @@ const { Events } = require('discord.js');
 const {
   evaluateProtectionJoin,
   evaluateProtectionMessage,
+  processEmergencyExpiration,
   queueNativeAutoModerationExecution,
 } = require('../utils/beanProtection');
 const { config } = require('../utils/config');
@@ -20,5 +21,14 @@ module.exports = {
     client.on(Events.AutoModerationActionExecution, (execution) => {
       queueNativeAutoModerationExecution(execution, client, config);
     });
+
+    const checkEmergencyExpiration = () => {
+      processEmergencyExpiration(client, config)
+        .catch((error) => console.error('Emergency safety profile restoration failed:', error));
+    };
+    const expirationTimer = setInterval(checkEmergencyExpiration, 30000);
+
+    expirationTimer.unref?.();
+    client.once(Events.ClientReady, checkEmergencyExpiration);
   },
 };

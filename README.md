@@ -9,7 +9,7 @@ A Discord.js bot for the UNDR CTRL community, ready to run locally and deploy to
 - Keeps secrets in environment variables instead of files.
 - Uses the same folder shape as the reference bot: `commands`, `events`, `images`, and `utils`.
 - Includes a protected browser dashboard for sending Components v2 messages instantly.
-- Includes `/ping`, `/about`, `/server`, `/help`, `/clear`, `/warn`, `/kick`, `/ban`, `/timeout`, `/protection`, `/raid`, `/quarantine`, `/ticketsetup`, `/setupreactionrole`, `/teststream`, and `/testwelcome`.
+- Includes `/ping`, `/about`, `/server`, `/help`, `/clear`, `/warn`, `/kick`, `/ban`, `/timeout`, `/protection`, `/raid`, `/emergency`, `/quarantine`, `/ticketsetup`, `/setupreactionrole`, `/teststream`, and `/testwelcome`.
 - Includes optional event systems for Bean Protection, tickets, member logs, message logs, channel logs, scheduled event logs, moderation logs, user logs, invite moderation, reaction roles, and stream monitoring.
 
 ## Local Setup
@@ -152,7 +152,11 @@ Join-spike detection requires the Server Members intent. Staff can use `/raid en
 
 Every successfully quarantined member enters a persistent review queue. Staff can add notes and choose Release, Timeout, Kick, or Ban in the dashboard; bulk release is available when a raid is confirmed as a false positive. Timeout, kick, and ban decisions create standard moderation cases, while releases remain audited without creating a punitive case. `/quarantine list`, `/quarantine note`, `/quarantine release`, `/quarantine timeout`, `/quarantine kick`, and `/quarantine ban` provide the same workflow in Discord. New quarantine alerts also include quick Release and 10-minute Timeout buttons for moderators.
 
-Protection settings, raid state, the latest 250 incidents, and up to 500 quarantine reviews are stored at `RAILWAY_VOLUME_MOUNT_PATH/bean-protection.json` when a volume is attached, or at `BEAN_PROTECTION_PATH` when overridden. The dedicated dashboard workspace controls detection thresholds, escalation times, alerts, member DMs, Discord rule sync, raid mode, quarantine review, and incident history.
+Emergency safety profiles coordinate a temporary server-wide response without overwriting the normal saved configuration. **Watch** tightens behavioral thresholds and raises Discord verification to at least Medium. **Raid** also enables new-member quarantine and raises verification to at least High. **Lockdown** requires explicit staff confirmation, enables quarantine, raises verification to Highest, and denies new messages, reactions, and threads for `@everyone` in public channels while leaving configured staff/log channels available.
+
+Before activation, Bean snapshots raid state, verification level, and every affected `@everyone` channel permission. `/emergency activate`, `/emergency status`, and `/emergency restore` provide Discord controls; the Protection dashboard includes the same controls and an impact preview. Profiles restore automatically at expiry. Restoration is drift-safe: if staff deliberately change a managed value while the profile is active, Bean preserves that change instead of overwriting it. Interrupted activation and restoration work is detected and recovered automatically.
+
+Protection settings, raid state, emergency snapshots and history, the latest 250 incidents, and up to 500 quarantine reviews are stored at `RAILWAY_VOLUME_MOUNT_PATH/bean-protection.json` when a volume is attached, or at `BEAN_PROTECTION_PATH` when overridden. The dedicated dashboard workspace controls detection thresholds, escalation times, alerts, member DMs, Discord rule sync, emergency profiles, raid mode, quarantine review, and incident history.
 
 ## Temporary Voice Rooms
 

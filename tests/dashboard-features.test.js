@@ -75,6 +75,10 @@ function createClient() {
     id: '1520000000000000100',
     name: 'The Corner',
     memberCount: 0,
+    verificationLevel: 1,
+    setVerificationLevel: async (level) => {
+      guild.verificationLevel = level;
+    },
     members: {
       cache: new Map(),
       fetch: async () => null,
@@ -682,6 +686,35 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
   assert.equal(bulkRelease.response.status, 200);
   assert.equal(bulkRelease.data.result.released.length, 1);
   assert.equal(bulkRelease.data.metrics.pendingQuarantines, 0);
+
+  const activatedEmergency = await fetchJson(`${baseUrl}/api/protection/emergency`, {
+    method: 'POST',
+    headers,
+    body: {
+      action: 'activate',
+      profile: 'raid',
+      durationMinutes: 15,
+      reason: 'Dashboard emergency API test.',
+      confirmed: true,
+    },
+  });
+  const restoredEmergency = await fetchJson(`${baseUrl}/api/protection/emergency`, {
+    method: 'POST',
+    headers,
+    body: {
+      action: 'restore',
+      reason: 'Dashboard emergency API test complete.',
+    },
+  });
+
+  assert.equal(activatedEmergency.response.status, 200);
+  assert.equal(activatedEmergency.data.emergency.profile, 'raid');
+  assert.equal(activatedEmergency.data.emergency.applied.verificationLevel, 3);
+  assert.equal(activatedEmergency.data.raid.active, true);
+  assert.equal(guild.verificationLevel, 1);
+  assert.equal(restoredEmergency.response.status, 200);
+  assert.equal(restoredEmergency.data.emergency.active, false);
+  assert.equal(restoredEmergency.data.raid.active, false);
 
   const enabledRaidMode = await fetchJson(`${baseUrl}/api/protection/raid`, {
     method: 'POST',

@@ -7,11 +7,13 @@ const { ChannelType, PermissionFlagsBits } = require('discord.js');
 
 const { getActivityFeed, getActivityFeedStorageInfo } = require('./activityFeed');
 const {
+  activateEmergencySafetyProfile,
   addQuarantineReviewNote,
   bulkReleaseQuarantineReviews,
   getProtectionOverview,
   getProtectionStorageInfo,
   resolveQuarantineReview,
+  restoreEmergencySafetyProfile,
   saveProtectionSettings,
   setRaidMode,
   syncNativeAutoModerationRules,
@@ -484,6 +486,11 @@ async function handleRequest(client, request, response) {
 
     if (request.method === 'POST' && url.pathname === '/api/protection/sync') {
       await handleSyncProtectionRules(client, response, session.user);
+      return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/protection/emergency') {
+      await handleProtectionEmergencyProfile(client, request, response, session.user);
       return;
     }
 
@@ -1128,6 +1135,29 @@ async function getConfigurationDiagnostics(client, settings) {
     });
   }
 
+  if (settings.features.beanProtection) {
+    const protectionPermissions = [
+      { bit: PermissionFlagsBits.ManageGuild, label: 'Manage Server' },
+      { bit: PermissionFlagsBits.ManageRoles, label: 'Manage Roles' },
+      { bit: PermissionFlagsBits.ModerateMembers, label: 'Moderate Members' },
+    ];
+    const missingProtectionPermissions = botMember?.permissions
+      ? protectionPermissions.filter((permission) => !botMember.permissions.has(permission.bit))
+      : [];
+
+    checks.push({
+      id: 'feature-beanProtectionPermissions',
+      group: 'features',
+      key: 'beanProtectionPermissions',
+      label: 'Protection and emergency permissions',
+      status: missingProtectionPermissions.length ? 'warning' : 'ready',
+      message: missingProtectionPermissions.length
+        ? `Bean is missing ${missingProtectionPermissions.map((item) => item.label).join(', ')}.`
+        : 'Bean can coordinate AutoMod, verification, quarantine, and channel restoration.',
+      missingPermissions: missingProtectionPermissions.map((item) => item.label),
+    });
+  }
+
   if (settings.features.youtubeMonitor && dashboardStartupFeatures?.youtubeMonitor === false) {
     checks.push({
       id: 'feature-youtubeMonitor',
@@ -1657,6 +1687,41 @@ async function handleSyncProtectionRules(client, response, actor) {
 
   try {
     const result = await syncNativeAutoModerationRules(guild, config, actor);
+    const overview = await getProtectionOverview(client, config);
+
+    sendJson(response, 200, { ok: true, result, ...overview });
+  } catch (error) {
+    sendJson(response, 400, { error: error.message });
+  }
+}
+
+async function handleProtectionEmergencyProfile(client, request, response, actor) {
+  const body = await readJsonBody(request, config.dashboard.maxBodyBytes);
+  const action = String(body.action || '').trim().toLowerCase();
+
+  try {
+    let result;
+
+    if (action === 'activate') {
+      result = {
+        emergency: await activateEmergencySafetyProfile(client, config, {
+          profile: body.profile,
+          durationMinutes: body.durationMinutes,
+          reason: body.reason,
+          actor,
+          confirmed: body.confirmed === true,
+        }),
+      };
+    } else if (action === 'restore') {
+      result = await restoreEmergencySafetyProfile(client, config, {
+        actor,
+        reason: body.reason,
+      });
+    } else {
+      sendJson(response, 400, { error: 'Choose activate or restore.' });
+      return;
+    }
+
     const overview = await getProtectionOverview(client, config);
 
     sendJson(response, 200, { ok: true, result, ...overview });
@@ -2870,6 +2935,7 @@ function sessionCanAccess(session, method, pathname) {
   if (pathname.startsWith('/api/moderation-cases/')) return permissions.moderate;
   if (pathname.startsWith('/api/temp-voice/')) return permissions.moderate;
   if (pathname === '/api/protection/raid') return permissions.moderate;
+  if (pathname === '/api/protection/emergency') return permissions.moderate;
   if (pathname.startsWith('/api/protection/quarantine')) return permissions.moderate;
   if (pathname.startsWith('/api/protection/')) return permissions.configure;
   if (
