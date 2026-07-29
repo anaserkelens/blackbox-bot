@@ -221,7 +221,33 @@ p {
   background: var(--raised);
   border-color: var(--line);
   color: var(--text-faint);
-  cursor: default;
+  cursor: not-allowed;
+  user-select: none;
+}
+
+/* Custom tooltip */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]:hover::after,
+[data-tooltip]:focus-visible::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 9px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 13px;
+  background: var(--raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+  pointer-events: none;
+  z-index: 60;
 }
 
 /* ---------- Header ---------- */
@@ -640,54 +666,6 @@ p {
 .tool p {
   margin: 0;
   font-size: 0.88rem;
-  color: var(--text-soft);
-}
-
-/* ---------- Workspace grid ---------- */
-.workspace-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
-  gap: 14px;
-  margin-top: 28px;
-}
-
-.workspace {
-  display: block;
-  padding: 20px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  color: var(--text);
-  text-decoration: none;
-  transition: transform 150ms var(--ease), border-color 150ms var(--ease), background 150ms var(--ease);
-}
-
-.workspace:hover {
-  transform: translateY(-3px);
-  background: var(--raised);
-  border-color: var(--line-strong);
-}
-
-.workspace i {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--r-sm);
-  background: var(--lamp-soft);
-  color: var(--lamp);
-  font-size: 1rem;
-}
-
-.workspace h3 {
-  font-size: 1rem;
-  margin: 12px 0 4px;
-}
-
-.workspace p {
-  margin: 0;
-  font-size: 0.86rem;
   color: var(--text-soft);
 }
 
