@@ -315,23 +315,17 @@
                   <h2>Mailbox Builder</h2>
                   <span class="muted">Updates, news, notices, and everything worth opening.</span>
                 </div>
-                <span class="status-pill mailbox-destination">
-                  <i class="fa-solid fa-lock" aria-hidden="true"></i>
-                  #mailbox only
-                </span>
+                <span id="mailbox-destination" class="status-pill mailbox-destination">Choose a channel</span>
               </div>
 
-              <section class="mailbox-guide">
-                <span class="mailbox-guide-icon" aria-hidden="true">
-                  <i class="fa-solid fa-envelope-open-text"></i>
-                </span>
-                <div>
-                  <strong>Locked destination</strong>
-                  <p>Every message from this builder is sent to <code>1520519675543293972</code>.</p>
-                </div>
-              </section>
-
               <div class="form-grid">
+                <label class="field span-2">
+                  Destination channel
+                  <select id="mailbox-channel-id" class="discord-channel-select" required>
+                    <option value="">Loading Discord channels…</option>
+                  </select>
+                </label>
+
                 <label class="field">
                   Post type
                   <select id="mailbox-type">
@@ -421,7 +415,7 @@
                 <button id="reset-mailbox" class="secondary" type="button">Reset</button>
                 <button id="send-mailbox" type="submit">
                   <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
-                  Send to #mailbox
+                  Send Message
                 </button>
               </div>
             </form>
@@ -440,8 +434,8 @@
                 <div id="mailbox-preview-buttons" class="preview-buttons"></div>
               </div>
               <p class="mailbox-preview-note">
-                <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
-                The destination is enforced by the server.
+                <i class="fa-solid fa-hashtag" aria-hidden="true"></i>
+                The post will be sent to the channel selected in the builder.
               </p>
             </aside>
           </section>
@@ -497,14 +491,15 @@
                 </label>
 
                 <label class="field span-2">
-                  Channel ID
-                  <input
+                  Destination channel
+                  <select
                     id="channel-id"
                     name="channelId"
-                    inputmode="numeric"
-                    placeholder="Enter a Discord channel ID"
+                    class="discord-channel-select"
                     required
-                  />
+                  >
+                    <option value="">Loading Discord channels…</option>
+                  </select>
                 </label>
 
                 <label class="field">
@@ -1013,14 +1008,14 @@
 
               <div class="form-grid">
                 <label class="field span-2">
-                  Welcome channel ID
-                  <input
+                  Welcome channel
+                  <select
                     id="welcome-channel-id"
-                    inputmode="numeric"
-                    maxlength="20"
-                    placeholder="1520407983354544171"
+                    class="discord-channel-select"
                     required
-                  />
+                  >
+                    <option value="">Loading Discord channels…</option>
+                  </select>
                 </label>
 
                 <label class="field">
@@ -1130,13 +1125,13 @@
                 <h2 id="embed-delivery-title">Delivery</h2>
                 <div class="form-grid">
                   <label class="field span-2">
-                    <span id="embed-channel-label">Announcement channel ID</span>
-                    <input
+                    <span id="embed-channel-label">Announcement channel</span>
+                    <select
                       id="live-channel-id"
-                      inputmode="numeric"
-                      maxlength="20"
-                      placeholder="1520519675543293972"
-                    />
+                      class="discord-channel-select"
+                    >
+                      <option value="">Loading Discord channels…</option>
+                    </select>
                   </label>
 
                   <label class="field span-2">

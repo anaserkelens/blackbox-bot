@@ -165,6 +165,8 @@ const previewSections = document.querySelector('#preview-sections');
 const previewButtons = document.querySelector('#preview-buttons');
 const sectionCount = document.querySelector('#section-count');
 const mailboxForm = document.querySelector('#mailbox-form');
+const mailboxChannelInput = document.querySelector('#mailbox-channel-id');
+const mailboxDestination = document.querySelector('#mailbox-destination');
 const mailboxTypeInput = document.querySelector('#mailbox-type');
 const mailboxTitleInput = document.querySelector('#mailbox-title');
 const mailboxBodyInput = document.querySelector('#mailbox-body');
@@ -351,6 +353,11 @@ const state = {
   scheduledMailboxPosts: [],
   mailboxScheduleStorage: null,
   mailboxScheduleRefreshTimer: null,
+  discordChannels: [],
+  discordChannelDefaults: {},
+  discordChannelsLoaded: false,
+  discordChannelsLoading: false,
+  discordChannelsError: '',
   health: null,
   activityItems: [],
   activityStorage: null,
@@ -670,7 +677,7 @@ async function handleMailboxSend(event) {
     });
     const link = result.url ? ` Message: ${result.url}` : '';
 
-    setSendStatus(`Sent to #mailbox.${link}`, 'success');
+    setSendStatus(`Sent to ${getDiscordChannelLabel(result.channelId)}.${link}`, 'success');
   } catch (error) {
     setSendStatus(error.message, 'error');
   } finally {
@@ -705,6 +712,7 @@ async function handleMailboxSchedule() {
       body: {
         title: mailboxTitleInput.value.trim(),
         scheduledAt: scheduledAt.toISOString(),
+        channelId: mailboxChannelInput.value,
         payload: collectMailboxPayload(),
       },
     });
@@ -722,6 +730,12 @@ async function handleMailboxSchedule() {
 }
 
 function validateMailboxPost() {
+  if (!mailboxChannelInput.value) {
+    setSendStatus('Choose a destination channel before publishing.', 'error');
+    mailboxChannelInput.focus();
+    return false;
+  }
+
   if (!mailboxTitleInput.value.trim()) {
     setSendStatus('Add a mailbox headline before publishing.', 'error');
     mailboxTitleInput.focus();
@@ -739,6 +753,7 @@ function validateMailboxPost() {
 
 function resetMailboxBuilder() {
   mailboxForm.reset();
+  setChannelSelectValue(mailboxChannelInput, state.discordChannelDefaults.mailbox || '');
   mailboxTypeInput.value = 'Update';
   mailboxColorPicker.value = '#8FA1BE';
   mailboxColorInput.value = '#8FA1BE';
@@ -856,22 +871,24 @@ function getScheduleIcon(status) {
 }
 
 function getScheduledMailboxMeta(job) {
+  const destination = job.channelId ? ` · ${getDiscordChannelLabel(job.channelId)}` : '';
+
   if (job.status === 'sent') {
-    return `Published ${formatDashboardCaseDateTime(job.sentAt || job.updatedAt)}`;
+    return `Published ${formatDashboardCaseDateTime(job.sentAt || job.updatedAt)}${destination}`;
   }
 
   if (job.status === 'failed') {
     const retry = job.nextAttemptAt
       ? ` · retrying ${formatDashboardCaseDateTime(job.nextAttemptAt)}`
       : ' · retry limit reached';
-    return `Publish failed (${job.attempts}/3)${retry}`;
+    return `Publish failed (${job.attempts}/3)${retry}${destination}`;
   }
 
   if (job.status === 'publishing') {
-    return 'Bean is publishing this post now.';
+    return `Bean is publishing this post now${destination}.`;
   }
 
-  return `Publishes ${formatDashboardCaseDateTime(job.scheduledAt)}`;
+  return `Publishes ${formatDashboardCaseDateTime(job.scheduledAt)}${destination}`;
 }
 
 async function handleScheduledMailboxClick(event) {
@@ -1041,6 +1058,7 @@ function collectMailboxPayload(options = {}) {
 
   return {
     mailboxTitle: title,
+    channelId: mailboxChannelInput.value,
     color: mailboxColorInput.value.trim(),
     image: state.mailboxImage,
     blocks,
@@ -1059,6 +1077,7 @@ function updateMailboxPreview() {
   const previewButtons = payload.buttons.filter((button) => button.label.trim() && button.url.trim());
 
   mailboxPreviewType.textContent = mailboxTypeInput.value.trim() || 'Mailbox';
+  updateMailboxDestination();
   mailboxDiscordPreview.style.setProperty('--preview-accent', color);
   mailboxPreviewImage.hidden = !state.mailboxImage;
 
@@ -1556,6 +1575,7 @@ function showDashboard(session) {
   setBotStatus(Boolean(session?.botReady), session?.tag);
   setActiveTab(getActiveTab());
   renderSavedMessages();
+  loadDiscordChannels().catch((error) => setSendStatus(error.message, 'error'));
   loadSavedMessages().catch((error) => setSendStatus(error.message, 'error'));
   refreshBotSettings().catch((error) => setSendStatus(error.message, 'error'));
   loadModerationCases(false).catch(() => {
@@ -2322,6 +2342,138 @@ function getNotificationIcon(type) {
     error: 'fa-triangle-exclamation',
     joins: 'fa-user-group',
   }[type] || 'fa-bell';
+}
+
+async function loadDiscordChannels(force = false) {
+  if (state.discordChannelsLoading || (state.discordChannelsLoaded && !force)) {
+    return;
+  }
+
+  state.discordChannelsLoading = true;
+
+  try {
+    const result = await api('/api/channels');
+
+    state.discordChannels = Array.isArray(result.channels) ? result.channels : [];
+    state.discordChannelDefaults = result.defaults || {};
+    state.discordChannelsLoaded = true;
+    state.discordChannelsError = '';
+    renderDiscordChannelSelects();
+  } catch (error) {
+    state.discordChannels = [];
+    state.discordChannelsError = error.message;
+    renderDiscordChannelSelects();
+    throw error;
+  } finally {
+    state.discordChannelsLoading = false;
+  }
+}
+
+function renderDiscordChannelSelects() {
+  const definitions = [
+    [channelInput, ''],
+    [mailboxChannelInput, state.discordChannelDefaults.mailbox || ''],
+    [welcomeChannelIdInput, state.discordChannelDefaults.welcome || ''],
+    [
+      liveChannelIdInput,
+      state.activeEmbedBuilder === 'youtube'
+        ? state.discordChannelDefaults.youtube || ''
+        : state.discordChannelDefaults.stream || '',
+    ],
+  ];
+
+  for (const [select, defaultValue] of definitions) {
+    renderDiscordChannelSelect(select, select.value || defaultValue);
+  }
+
+  updateMailboxDestination();
+}
+
+function renderDiscordChannelSelect(select, selectedValue = '') {
+  if (!select) {
+    return;
+  }
+
+  const placeholder = document.createElement('option');
+
+  placeholder.value = '';
+  placeholder.textContent = state.discordChannels.length
+    ? 'Select a Discord channel…'
+    : state.discordChannelsError
+      ? 'Could not load Discord channels'
+      : 'No writable Discord channels found';
+  select.replaceChildren(placeholder);
+
+  const groups = new Map();
+
+  for (const channel of state.discordChannels) {
+    const groupName = channel.parentName || 'Server channels';
+
+    if (!groups.has(groupName)) {
+      groups.set(groupName, []);
+    }
+
+    groups.get(groupName).push(channel);
+  }
+
+  for (const [groupName, channels] of groups) {
+    const group = document.createElement('optgroup');
+
+    group.label = groupName;
+
+    for (const channel of channels) {
+      const option = document.createElement('option');
+
+      option.value = channel.id;
+      option.textContent = `# ${channel.name}`;
+      group.append(option);
+    }
+
+    select.append(group);
+  }
+
+  select.disabled = state.discordChannels.length === 0;
+  setChannelSelectValue(select, selectedValue);
+}
+
+function setChannelSelectValue(select, channelId) {
+  if (!select) {
+    return;
+  }
+
+  const value = String(channelId || '').trim();
+
+  if (!value) {
+    select.value = '';
+    return;
+  }
+
+  if (![...select.options].some((option) => option.value === value)) {
+    const unavailable = document.createElement('option');
+
+    unavailable.value = value;
+    unavailable.textContent = `Unavailable channel · ${value}`;
+    unavailable.dataset.unavailable = 'true';
+    select.append(unavailable);
+  }
+
+  select.value = value;
+  select.disabled = false;
+}
+
+function getDiscordChannelLabel(channelId) {
+  const channel = state.discordChannels.find((item) => item.id === String(channelId || ''));
+  return channel ? `#${channel.name}` : channelId ? `channel ${channelId}` : 'no channel selected';
+}
+
+function updateMailboxDestination() {
+  if (!mailboxDestination) {
+    return;
+  }
+
+  mailboxDestination.textContent = mailboxChannelInput?.value
+    ? getDiscordChannelLabel(mailboxChannelInput.value)
+    : 'Choose a channel';
 }
 
 function setGuildName(guildName) {
@@ -3396,7 +3548,7 @@ function resetComposer() {
 
 function applyMessage(message) {
   messageNameInput.value = message.name || '';
-  channelInput.value = message.channelId || '';
+  setChannelSelectValue(channelInput, message.channelId || '');
   messageColorInput.value = normalizeMessageColor(message.color);
   messageColorPicker.value = messageColorInput.value || '#f6c75f';
   allowMentionsInput.checked = Boolean(message.allowMentions);
@@ -3997,7 +4149,7 @@ function readWelcomeMessageBackup() {
 }
 
 function applyWelcomeMessageSettings(settings) {
-  welcomeChannelIdInput.value = settings.channelId || '';
+  setChannelSelectValue(welcomeChannelIdInput, settings.channelId || '');
   welcomeColorInput.value = normalizeMessageColor(settings.color);
   welcomeColorPicker.value = welcomeColorInput.value || '#2DD4BF';
   welcomeAllowMentionsInput.checked = settings.allowMentions !== false;
@@ -4532,7 +4684,7 @@ async function restoreLiveEmbedBackupIfNeeded(result, kind) {
 function applyLiveEmbedSettings(settings) {
   const embed = settings.embed || {};
 
-  liveChannelIdInput.value = settings.channelId || '';
+  setChannelSelectValue(liveChannelIdInput, settings.channelId || '');
   liveContentInput.value = settings.content || '';
   liveTitleInput.value = embed.title || '';
   liveTitleUrlInput.value = embed.titleUrl || '';

@@ -61,6 +61,13 @@ async function createScheduledMailboxPost(config, input) {
   }
 
   const payload = cloneJson(source.payload);
+  const channelId = String(
+    source.channelId || payload.channelId || config.channels.mailbox || '',
+  ).trim();
+
+  if (!/^\d{17,20}$/.test(channelId)) {
+    throw new Error('Choose a valid Discord channel for this Mailbox post.');
+  }
 
   createDashboardMessagePayload(payload, config);
 
@@ -75,6 +82,7 @@ async function createScheduledMailboxPost(config, input) {
     const job = {
       id: crypto.randomUUID(),
       title: normalizeText(source.title, 240) || 'Untitled Mailbox post',
+      channelId,
       scheduledAt: scheduledAt.toISOString(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -189,10 +197,11 @@ async function claimDueJobs(config, now) {
 
 async function publishScheduledJob(client, config, job) {
   try {
-    const channel = await client.channels.fetch(config.channels.mailbox).catch(() => null);
+    const channelId = job.channelId || config.channels.mailbox;
+    const channel = await client.channels.fetch(channelId).catch(() => null);
 
     if (!channel || typeof channel.isSendable !== 'function' || !channel.isSendable()) {
-      throw new Error('The configured Mailbox channel is unavailable or not sendable.');
+      throw new Error('The selected Mailbox channel is unavailable or not sendable.');
     }
 
     const payload = createDashboardMessagePayload(job.payload, config);
@@ -218,7 +227,7 @@ async function publishScheduledJob(client, config, job) {
       title: 'Scheduled Mailbox Post Published',
       emoji: '📬',
       color: colors.success,
-      summary: `**${job.title}** was published automatically in <#${config.channels.mailbox}>.`,
+      summary: `**${job.title}** was published automatically in <#${channelId}>.`,
       referenceId: `MAILBOX-SCHEDULED-${job.id}`,
       links: message.url ? [{ label: 'Open Message', url: message.url }] : [],
       fields: [
@@ -317,6 +326,9 @@ function normalizeStoredJob(input) {
   return {
     id: String(input.id),
     title: normalizeText(input.title, 240) || 'Untitled Mailbox post',
+    channelId: /^\d{17,20}$/.test(String(input.channelId || ''))
+      ? String(input.channelId)
+      : '',
     scheduledAt: normalizeDate(input.scheduledAt) || new Date().toISOString(),
     createdAt: normalizeDate(input.createdAt) || new Date().toISOString(),
     updatedAt: normalizeDate(input.updatedAt) || new Date().toISOString(),

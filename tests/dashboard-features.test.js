@@ -62,6 +62,8 @@ function createFeatureConfig(name) {
 
 function createClient() {
   const sent = [];
+  const fetchedChannelIds = [];
+  const announcementChannelId = '1520519675543293972';
   const guild = {
     id: '1520000000000000100',
     name: 'The Corner',
@@ -74,6 +76,12 @@ function createClient() {
     voiceStates: { cache: new Map() },
   };
   const channel = {
+    id: announcementChannelId,
+    name: 'announcements',
+    parentId: '1520000000000000200',
+    parent: { id: '1520000000000000200', name: 'COMMUNITY' },
+    rawPosition: 1,
+    type: 0,
     isSendable: () => true,
     send: async (payload) => {
       const message = {
@@ -86,9 +94,25 @@ function createClient() {
       return message;
     },
   };
+  const generalChannel = {
+    ...channel,
+    id: '1520519675543293973',
+    name: 'general',
+    rawPosition: 0,
+  };
+  const channelCache = new Map([
+    [announcementChannelId, channel],
+    [generalChannel.id, generalChannel],
+  ]);
+
+  guild.channels = {
+    cache: channelCache,
+    fetch: async () => channelCache,
+  };
 
   return {
     sent,
+    fetchedChannelIds,
     client: {
       isReady: () => true,
       ws: { ping: 42 },
@@ -104,7 +128,10 @@ function createClient() {
         },
       },
       channels: {
-        fetch: async () => channel,
+        fetch: async (channelId) => {
+          fetchedChannelIds.push(channelId);
+          return channelCache.get(channelId) || channel;
+        },
       },
     },
   };
@@ -326,11 +353,13 @@ test('Scheduled Mailbox stores, publishes, and removes posts', async () => {
   const scheduledAt = new Date(Date.now() + 10_000);
   const job = await createScheduledMailboxPost(featureConfig, {
     title: 'Friday update',
+    channelId: '1520519675543293973',
     scheduledAt: scheduledAt.toISOString(),
     payload: mailboxPayload(),
   });
 
   assert.equal(job.status, 'scheduled');
+  assert.equal(job.channelId, '1520519675543293973');
   assert.equal((await listScheduledMailboxPosts(featureConfig)).length, 1);
 
   const results = await runMailboxSchedulerTick(
@@ -443,6 +472,7 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
     { headers },
   );
   const memberSearch = await fetchJson(`${baseUrl}/api/member-profiles?query=nobody`, { headers });
+  const discordChannels = await fetchJson(`${baseUrl}/api/channels`, { headers });
 
   assert.equal(analytics.response.status, 200);
   assert.equal(analytics.data.analytics.days, 30);
@@ -450,6 +480,12 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
   assert.ok(Array.isArray(notifications.data.notifications));
   assert.equal(memberSearch.response.status, 200);
   assert.deepEqual(memberSearch.data.members, []);
+  assert.equal(discordChannels.response.status, 200);
+  assert.deepEqual(
+    discordChannels.data.channels.map((channel) => channel.name),
+    ['general', 'announcements'],
+  );
+  assert.equal(discordChannels.data.defaults.mailbox, '1520519675543293972');
 
   const youtubeEmbed = await fetchJson(`${baseUrl}/api/youtube-embed`, { headers });
 
@@ -475,12 +511,26 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
   assert.equal(savedYouTubeEmbed.response.status, 200);
   assert.equal(reloadedYouTubeEmbed.data.settings.embed.footerText, 'Saved from the dashboard test');
 
+  const selectedChannelId = '1520519675543293973';
+  const sentMailbox = await fetchJson(`${baseUrl}/api/mailbox/send`, {
+    method: 'POST',
+    headers,
+    body: {
+      ...mailboxPayload(),
+      channelId: selectedChannelId,
+    },
+  });
+
+  assert.equal(sentMailbox.response.status, 200);
+  assert.equal(sentMailbox.data.channelId, selectedChannelId);
+
   const scheduledAt = new Date(Date.now() + 60_000).toISOString();
   const created = await fetchJson(`${baseUrl}/api/mailbox/scheduled`, {
     method: 'POST',
     headers,
     body: {
       title: 'API schedule test',
+      channelId: selectedChannelId,
       scheduledAt,
       payload: mailboxPayload(),
     },
@@ -488,6 +538,7 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
 
   assert.equal(created.response.status, 201);
   assert.equal(created.data.job.status, 'scheduled');
+  assert.equal(created.data.job.channelId, selectedChannelId);
 
   const queue = await fetchJson(`${baseUrl}/api/mailbox/scheduled`, { headers });
   const activity = await fetchJson(`${baseUrl}/api/activity-feed?type=mailbox`, { headers });

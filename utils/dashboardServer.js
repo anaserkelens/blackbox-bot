@@ -3,6 +3,8 @@ const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
 
+const { PermissionFlagsBits } = require('discord.js');
+
 const { getActivityFeed, getActivityFeedStorageInfo } = require('./activityFeed');
 const { config } = require('./config');
 const { createDashboardMessagePayload } = require('./dashboardMessage');
@@ -234,6 +236,11 @@ async function handleRequest(client, request, response) {
       return;
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/channels') {
+      await handleGetDiscordChannels(client, response);
+      return;
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/saved-messages') {
       await handleGetSavedMessages(response);
       return;
@@ -391,7 +398,6 @@ async function handleRequest(client, request, response) {
 
     if (request.method === 'POST' && url.pathname === '/api/mailbox/send') {
       await handleSendMessage(client, request, response, {
-        channelId: config.channels.mailbox,
         source: 'mailbox',
       });
       return;
@@ -427,6 +433,73 @@ async function handleLogin(client, request, response) {
     tag: client.user?.tag || null,
     guildName: getDashboardGuildName(client),
     sessionToken,
+  });
+}
+
+async function handleGetDiscordChannels(client, response) {
+  if (!client.isReady()) {
+    sendJson(response, 503, { error: 'Bot is not ready yet.' });
+    return;
+  }
+
+  const guild = getDashboardGuild(client);
+
+  if (!guild) {
+    sendJson(response, 404, { error: 'The dashboard Discord server was not found.' });
+    return;
+  }
+
+  const fetchedChannels = await guild.channels.fetch().catch((error) => {
+    console.error('Failed to refresh dashboard channel list:', error);
+    return null;
+  });
+  const channelCollection = fetchedChannels || guild.channels.cache;
+  const channels = [...channelCollection.values()]
+    .filter((channel) => {
+      if (!channel || channel.isThread?.()) {
+        return false;
+      }
+
+      if (typeof channel.isSendable !== 'function' || !channel.isSendable()) {
+        return false;
+      }
+
+      const permissions = channel.permissionsFor?.(client.user);
+
+      return !permissions || permissions.has([
+        PermissionFlagsBits.ViewChannel,
+        PermissionFlagsBits.SendMessages,
+      ]);
+    })
+    .map((channel) => ({
+      id: channel.id,
+      name: channel.name || `channel-${channel.id}`,
+      parentId: channel.parentId || '',
+      parentName: channel.parent?.name || '',
+      parentPosition: Number.isFinite(channel.parent?.rawPosition)
+        ? channel.parent.rawPosition
+        : -1,
+      position: Number.isFinite(channel.rawPosition) ? channel.rawPosition : 0,
+      type: channel.type,
+    }))
+    .sort((left, right) =>
+      left.parentPosition - right.parentPosition
+      || left.parentName.localeCompare(right.parentName)
+      || left.position - right.position
+      || left.name.localeCompare(right.name),
+    );
+
+  sendJson(response, 200, {
+    ok: true,
+    guildId: guild.id,
+    guildName: guild.name,
+    channels,
+    defaults: {
+      mailbox: config.channels.mailbox || '',
+      welcome: config.channels.welcome || '',
+      stream: config.channels.streamAnnouncements || '',
+      youtube: config.channels.youtubeAnnouncements || config.channels.streamAnnouncements || '',
+    },
   });
 }
 
@@ -532,7 +605,7 @@ async function handleCreateScheduledMailbox(client, request, response) {
     referenceId: `MAILBOX-SCHEDULE-${job.id}`,
     fields: [
       { name: 'Publish At', value: `<t:${Math.floor(new Date(job.scheduledAt).getTime() / 1000)}:F>` },
-      { name: 'Destination', value: `<#${config.channels.mailbox}>` },
+      { name: 'Destination', value: `<#${job.channelId}>` },
     ],
   }).catch((error) => console.error('Failed to log scheduled Mailbox post:', error));
 
@@ -1447,16 +1520,19 @@ async function createBotState(client) {
 }
 
 function getDashboardGuildName(client) {
+  const guild = getDashboardGuild(client);
+  return guild?.name || config.communityName;
+}
+
+function getDashboardGuild(client) {
   const guildCache = client.guilds?.cache;
 
   if (!guildCache) {
-    return config.communityName;
+    return null;
   }
 
   const configuredGuild = config.guildId ? guildCache.get(config.guildId) : null;
-  const guild = configuredGuild || guildCache.first?.() || guildCache.values?.().next().value;
-
-  return guild?.name || config.communityName;
+  return configuredGuild || guildCache.first?.() || guildCache.values?.().next().value || null;
 }
 
 function normalizeBotImage(image, kind) {

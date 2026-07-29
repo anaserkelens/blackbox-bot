@@ -175,7 +175,9 @@ https://your-service.up.railway.app/
 
 The dashboard sends messages through the running bot, so no restart or slash command is needed. The bot must already be online, and it must have permission to send messages and attach files in the target channel.
 
-The Mailbox tab builds Components v2 posts for updates, news, announcements, and community notices. Posts can be sent immediately or scheduled for a future date and time; Bean checks the queue every five seconds and retries failed publications up to three times. Both immediate and scheduled routes are server-locked to channel `1520519675543293972`; set `MAILBOX_CHANNEL_ID` to override that destination without changing the dashboard code.
+The Mailbox tab builds Components v2 posts for updates, news, announcements, and community notices. Posts can be sent immediately or scheduled for a future date and time; Bean checks the queue every five seconds and retries failed publications up to three times. Choose any writable server channel from the dashboard selector. Scheduled posts retain the selected channel, while `MAILBOX_CHANNEL_ID` supplies the default selection.
+
+The Messages, Mailbox, Creator Notifications, and Welcome builders load their destination selectors from Discord. Only server channels the bot can view and send messages in are listed, grouped by Discord category. A previously saved channel that is deleted or no longer accessible remains visible as unavailable until another destination is selected.
 
 The Scheduled Mailbox queue is stored at `RAILWAY_VOLUME_MOUNT_PATH/scheduled-mailbox.json` when a Railway volume is attached. Set `MAILBOX_SCHEDULE_PATH` to override its location. The queue and its controls exist only in the dashboard; no scheduling slash command is registered.
 
