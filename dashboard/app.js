@@ -445,6 +445,28 @@ const notificationStorageKey = 'bean_dashboard_notification_center';
 const notificationReadStorageKey = 'bean_dashboard_notification_read';
 const interfacePreferenceStorageKey = 'bean_dashboard_interface_preferences';
 const welcomeMessageId = 'welcome-message';
+const dashboardRouteByTab = Object.freeze({
+  overview: '/dashboard',
+  members: '/dashboard/members',
+  'community-growth': '/dashboard/growth',
+  analytics: '/dashboard/analytics',
+  cases: '/dashboard/moderation',
+  messages: '/dashboard/messages',
+  mailbox: '/dashboard/mailbox',
+  'live-embed': '/dashboard/creator-notifications',
+  'welcome-embed': '/dashboard/welcome',
+  'bean-protection': '/dashboard/protection',
+  'invite-moderation': '/dashboard/invite-filter',
+  tickets: '/dashboard/tickets',
+  'reaction-roles': '/dashboard/reaction-roles',
+  'voice-rooms': '/dashboard/voice-rooms',
+  'audit-logging': '/dashboard/audit-logs',
+  config: '/dashboard/settings',
+  bot: '/dashboard/settings/bot',
+});
+const dashboardTabByRoute = new Map(
+  Object.entries(dashboardRouteByTab).map(([tab, route]) => [route, tab]),
+);
 const workspaceGroupByTab = {
   bot: 'config',
 };
@@ -621,6 +643,7 @@ function bindEvents() {
   logoutButton.addEventListener('click', handleLogout);
   tabButtons.forEach((button) => button.addEventListener('click', () => handlePrimaryTabClick(button)));
   dashboardView.addEventListener('click', handleDashboardNavigationClick);
+  window.addEventListener('popstate', handleDashboardPopState);
   notificationTrigger?.addEventListener('click', openNotificationCenter);
   notificationCloseButtons.forEach((button) => button.addEventListener('click', closeNotificationCenter));
   markNotificationsReadButton?.addEventListener('click', markAllNotificationsRead);
@@ -869,6 +892,8 @@ async function handleLogout() {
   stopOverviewSync();
   stopMailboxScheduleSync();
   stopDashboardNotifications();
+  state.session = null;
+  window.history.replaceState({}, '', '/login');
   showLogin();
 }
 
@@ -4008,22 +4033,46 @@ function writeInterfacePreferences(patch) {
 }
 
 function showLogin() {
+  const currentRoute = normalizeDashboardPath(window.location.pathname);
+  const requestedPath = currentRoute && currentRoute !== '/login'
+    ? currentRoute
+    : getSafeDashboardPath(new URLSearchParams(window.location.search).get('next'));
+  const loginParams = new URLSearchParams(window.location.search);
+
+  if (requestedPath && requestedPath !== '/dashboard') {
+    loginParams.set('next', requestedPath);
+  } else {
+    loginParams.delete('next');
+  }
+
+  const loginUrl = `/login${loginParams.size ? `?${loginParams}` : ''}`;
+
+  if (`${window.location.pathname}${window.location.search}` !== loginUrl) {
+    window.history.replaceState({}, '', loginUrl);
+  }
+
   dashboardView.hidden = true;
   loginView.hidden = false;
   document.body.classList.add('login-active');
   document.body.classList.remove('dashboard-active');
   stopInterfaceClock();
+  document.title = 'Sign in · Bean Dashboard';
+  discordLoginButton.href = `/auth/discord?next=${encodeURIComponent(requestedPath || '/dashboard')}`;
 
   const loginErrorCode = new URLSearchParams(window.location.search).get('loginError');
   const loginMessages = {
     oauth: 'Discord login could not be completed. Please try again.',
     'oauth-disabled': 'Discord login has not been configured for this dashboard.',
     access: 'Your Discord roles do not grant dashboard access.',
+    invalid: 'The dashboard password was not accepted.',
   };
 
   if (loginMessages[loginErrorCode]) {
     loginError.textContent = loginMessages[loginErrorCode];
-    window.history.replaceState({}, '', '/');
+    const cleanParams = new URLSearchParams(window.location.search);
+
+    cleanParams.delete('loginError');
+    window.history.replaceState({}, '', `/login${cleanParams.size ? `?${cleanParams}` : ''}`);
   }
 }
 
@@ -4038,7 +4087,10 @@ function showDashboard(session) {
   renderSessionIdentity(session);
   applySessionPermissions(session?.permissions);
   setBotStatus(Boolean(session?.botReady), session?.tag);
-  setActiveTab(getActiveTab());
+  const requestedPath = getSafeDashboardPath(new URLSearchParams(window.location.search).get('next'));
+  const requestedTab = requestedPath ? dashboardTabByRoute.get(requestedPath) : null;
+
+  setActiveTab(getDashboardTabFromLocation() || requestedTab || getActiveTab(), { history: 'replace' });
   renderSavedMessages();
   loadDiscordChannels().catch((error) => setSendStatus(error.message, 'error'));
   loadSavedMessages().catch((error) => setSendStatus(error.message, 'error'));
@@ -5805,18 +5857,30 @@ function setGuildName(guildName) {
 }
 
 function getActiveTab() {
-  return dashboardView.dataset.activeTab
+  return getDashboardTabFromLocation()
+    || dashboardView.dataset.activeTab
     || readInterfacePreferences().activeTab
     || tabButtons.find((button) => button.getAttribute('aria-selected') === 'true')?.dataset.tab
     || 'overview';
 }
 
-function setActiveTab(tab) {
+function setActiveTab(tab, options = {}) {
   const nextTab = tabPanels.some((panel) => panel.dataset.panel === tab) ? tab : 'overview';
   const primaryTab = workspaceGroupByTab[nextTab] || nextTab;
+  const nextRoute = dashboardRouteByTab[nextTab];
+  const historyMode = options.history || 'push';
 
   dashboardView.dataset.activeTab = nextTab;
   writeInterfacePreferences({ activeTab: nextTab });
+
+  if (nextRoute && historyMode !== 'none') {
+    const currentPath = normalizeDashboardPath(window.location.pathname);
+    const method = historyMode === 'replace' || currentPath === nextRoute ? 'replaceState' : 'pushState';
+
+    window.history[method]({ beanDashboardTab: nextTab }, '', nextRoute);
+  }
+
+  document.title = `${getDashboardTabLabel(nextTab)} · Bean Dashboard`;
 
   for (const button of tabButtons) {
     const isSelected = button.dataset.tab === primaryTab;
@@ -5920,6 +5984,54 @@ function setActiveTab(tab) {
   } else {
     stopSavedMessagesSync();
   }
+}
+
+function handleDashboardPopState() {
+  if (!state.session || dashboardView.hidden) {
+    return;
+  }
+
+  const tab = getDashboardTabFromLocation();
+
+  if (tab) {
+    setActiveTab(tab, { history: 'none' });
+    return;
+  }
+
+  setActiveTab(getActiveTab(), { history: 'replace' });
+}
+
+function getDashboardTabFromLocation() {
+  return dashboardTabByRoute.get(normalizeDashboardPath(window.location.pathname)) || null;
+}
+
+function getSafeDashboardPath(value) {
+  const normalized = normalizeDashboardPath(value);
+
+  return dashboardTabByRoute.has(normalized) ? normalized : null;
+}
+
+function normalizeDashboardPath(value) {
+  const path = String(value || '').trim().split(/[?#]/, 1)[0];
+
+  if (!path.startsWith('/') || path.startsWith('//')) {
+    return '';
+  }
+
+  if (path.length > 1) {
+    return path.replace(/\/+$/, '');
+  }
+
+  return path;
+}
+
+function getDashboardTabLabel(tab) {
+  return tabButtons.find((button) => button.dataset.tab === (workspaceGroupByTab[tab] || tab))
+    ?.querySelector('.tab-label')?.textContent?.trim()
+    || createNavList?.querySelector(`[data-tab-link="${tab}"] span`)?.textContent?.trim()
+    || featureNavList?.querySelector(`[data-tab-link="${tab}"] span`)?.textContent?.trim()
+    || contextWorkspaceDefinitions.config.items.find((item) => item.tab === tab)?.label
+    || 'Dashboard';
 }
 
 function handleGlobalKeydown(event) {

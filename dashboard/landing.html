@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bean — Discord Community Growth, Protection, and Management</title>
+    <meta
+      name="description"
+      content="Bean is a Discord community bot for meaningful member growth, thoughtful moderation, creator notifications, and everyday server management from one polished dashboard."
+    />
+    <meta name="theme-color" content="#101319" />
+    <meta property="og:title" content="Bean — Discord Community Growth, Protection, and Management" />
+    <meta
+      property="og:description"
+      content="Run a community people want to return to. Moderation, meaningful growth, creator notifications, and everyday community tools in one calm dashboard."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/assets/bean-icon.png" />
+    <link rel="icon" type="image/png" href="/assets/bean-icon.png" />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/geist@5.3.0/index.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.3.1/css/all.min.css"
+    />
+    <link rel="stylesheet" href="/landing.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header">
+      <div class="shell header-row">
+        <a class="brand" href="/">
+          <img class="bean-mark" src="/assets/bean-icon.png" alt="" />
+          <span class="brand-name">Bean</span>
+        </a>
+
+        <button
+          id="menu-toggle"
+          class="menu-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="site-nav"
+        >
+          <i class="fa-solid fa-bars" aria-hidden="true"></i>
+          <span class="sr-only">Menu</span>
+        </button>
+
+        <nav id="site-nav" class="site-nav" aria-label="Main">
+          <a href="#features">Features</a>
+          <a href="#growth">Community Growth</a>
+          <a href="#protection">Protection</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#faq">FAQ</a>
+          <div class="nav-actions">
+            <a class="button ghost" href="/login">Dashboard</a>
+            <a class="button primary" href="/invite">Add Bean</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- Hero -->
+      <section class="hero">
+        <div class="shell hero-grid">
+          <div class="hero-copy">
+            <p class="eyebrow">The Discord community control room</p>
+            <h1>Run a community people want to return to.</h1>
+            <p class="lede">
+              Bean combines thoughtful moderation, meaningful member growth, creator notifications, and
+              everyday community tools in one beautifully organized dashboard.
+            </p>
+            <div class="cta-row">
+              <a class="button primary large" href="/invite">
+                <i class="fa-brands fa-discord" aria-hidden="true"></i>
+                Add Bean to Discord
+              </a>
+              <a class="button ghost large" href="/login">Open Dashboard</a>
+            </div>
+            <p class="hero-honest">
+              Built inside a real community, shaped around the tools moderators and members actually use.
+            </p>
+          </div>
+
+          <div class="hero-visual" aria-hidden="true">
+            <div class="vis-card vis-growth">
+              <p class="vis-title"><i class="fa-solid fa-seedling"></i> Community Growth</p>
+              <div class="vis-trait"><span>Presence</span><span class="vis-bar"><span style="width: 82%"></span></span></div>
+              <div class="vis-trait"><span>Spark</span><span class="vis-bar"><span style="width: 64%"></span></span></div>
+              <div class="vis-trait"><span>Support</span><span class="vis-bar"><span style="width: 71%"></span></span></div>
+              <div class="vis-trait"><span>Community</span><span class="vis-bar"><span style="width: 58%"></span></span></div>
+              <div class="vis-trait"><span>Trust</span><span class="vis-bar"><span style="width: 76%"></span></span></div>
+            </div>
+            <div class="vis-card vis-protect">
+              <p class="vis-title"><i class="fa-solid fa-shield-halved"></i> Bean Protection</p>
+              <div class="vis-pills">
+                <span class="pill sage">Watch</span>
+                <span class="pill lamp">Raid</span>
+                <span class="pill clay">Lockdown</span>
+              </div>
+              <p class="vis-note">AutoMod synced · quarantine review ready</p>
+            </div>
+            <div class="vis-card vis-creator">
+              <p class="vis-title"><i class="fa-brands fa-twitch"></i> Creator Notifications</p>
+              <p class="vis-live"><span class="live-dot"></span> Live announcement sent</p>
+              <p class="vis-note">Twitch live · YouTube uploads</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Feature pillars -->
+      <section id="features" class="section">
+        <div class="shell">
+          <p class="eyebrow">What Bean does</p>
+          <h2>Four pillars, one calm control room.</h2>
+
+          <div class="pillars">
+            <article id="growth" class="pillar">
+              <div class="pillar-head">
+                <span class="pillar-icon sage-bg"><i class="fa-solid fa-seedling" aria-hidden="true"></i></span>
+                <div>
+                  <h3>Community Growth</h3>
+                  <p class="pillar-tag">Meaningful participation, not message grinding.</p>
+                </div>
+              </div>
+              <p>Bean tracks five independent signals instead of ordinary message-count XP:</p>
+              <ul class="signal-list">
+                <li><strong>Presence</strong> — consistently showing up</li>
+                <li><strong>Spark</strong> — inspiring reactions and conversation</li>
+                <li><strong>Support</strong> — helping other members</li>
+                <li><strong>Community</strong> — participating across the server</li>
+                <li><strong>Trust</strong> — positive recognition from the community and staff</li>
+              </ul>
+              <p>
+                Members receive profiles, themed growth stages, achievements, badges, and seasonal
+                recognition without being reduced to a generic level number.
+              </p>
+            </article>
+
+            <article id="protection" class="pillar">
+              <div class="pillar-head">
+                <span class="pillar-icon bean-bg"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span>
+                <div>
+                  <h3>Bean Protection</h3>
+                  <p class="pillar-tag">Fast native blocking, thoughtful follow-through.</p>
+                </div>
+              </div>
+              <p>
+                Discord AutoMod blocks native spam and mention raids immediately. Bean complements it with
+                behavioral detection, moderation cases, member notices, incident history, quarantine
+                review, and reversible Watch, Raid, and Lockdown emergency profiles.
+              </p>
+              <p class="fine">Core safety functionality is always available on the free plan.</p>
+            </article>
+
+            <article class="pillar">
+              <div class="pillar-head">
+                <span class="pillar-icon lamp-bg"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i></span>
+                <div>
+                  <h3>Creator Notifications</h3>
+                  <p class="pillar-tag">Bring every upload and live moment back to your community.</p>
+                </div>
+              </div>
+              <ul class="check-list">
+                <li>Twitch live announcements</li>
+                <li>Broadcasting-role behavior</li>
+                <li>Selected or server-wide creator announcement modes</li>
+                <li>YouTube upload notifications</li>
+                <li>Custom notification layouts</li>
+                <li>Discord roles and destinations</li>
+              </ul>
+            </article>
+
+            <article class="pillar">
+              <div class="pillar-head">
+                <span class="pillar-icon clay-bg"><i class="fa-solid fa-table-columns" aria-hidden="true"></i></span>
+                <div>
+                  <h3>The Dashboard</h3>
+                  <p class="pillar-tag">Everything has a proper place.</p>
+                </div>
+              </div>
+              <ul class="check-list two-col">
+                <li>Overview and bot health</li>
+                <li>Member search</li>
+                <li>Moderation cases</li>
+                <li>Growth profiles and leaderboards</li>
+                <li>Protection incidents</li>
+                <li>Creator notification builders</li>
+                <li>Scheduled Mailbox</li>
+                <li>Voice-room controls</li>
+                <li>Reaction roles</li>
+                <li>Audit logging</li>
+                <li>Configuration diagnostics</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Supporting feature grid -->
+      <section class="section alt">
+        <div class="shell">
+          <p class="eyebrow">And the everyday tools</p>
+          <h2>The rest of the toolbox.</h2>
+          <div class="tool-grid">
+            <div class="tool"><i class="fa-solid fa-hand-wave" aria-hidden="true"></i><h3>Welcome messages</h3><p>Greet new members with a customizable welcome.</p></div>
+            <div class="tool"><i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i><h3>Scheduled Mailbox</h3><p>Write announcements now, deliver them on schedule.</p></div>
+            <div class="tool"><i class="fa-solid fa-icons" aria-hidden="true"></i><h3>Reaction roles</h3><p>Let members pick their own roles with a reaction.</p></div>
+            <div class="tool"><i class="fa-solid fa-microphone-lines" aria-hidden="true"></i><h3>Temporary voice rooms</h3><p>Rooms that appear when needed and tidy up after.</p></div>
+            <div class="tool"><i class="fa-solid fa-ticket" aria-hidden="true"></i><h3>Tickets</h3><p>Private, organized help threads for your members.</p></div>
+            <div class="tool"><i class="fa-solid fa-id-card" aria-hidden="true"></i><h3>Member profiles</h3><p>See a member's history and standing at a glance.</p></div>
+            <div class="tool"><i class="fa-solid fa-chart-line" aria-hidden="true"></i><h3>Analytics</h3><p>Understand how your community is actually doing.</p></div>
+            <div class="tool"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i><h3>Audit logs</h3><p>Detailed Discord audit logging, kept readable.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Dashboard showcase -->
+      <section class="section">
+        <div class="shell">
+          <p class="eyebrow">The Dashboard</p>
+          <h2>A workspace for every job.</h2>
+          <p class="section-lede">
+            No commands to memorize for every setting. Bean gives your team a focused workspace for the
+            work they are trying to do — each with its own stable URL.
+          </p>
+          <div class="route-grid">
+            <a class="route" href="/login"><i class="fa-solid fa-house" aria-hidden="true"></i> Overview <code>/dashboard</code></a>
+            <a class="route" href="/login"><i class="fa-solid fa-users" aria-hidden="true"></i> Members <code>/dashboard/members</code></a>
+            <a class="route" href="/login"><i class="fa-solid fa-seedling" aria-hidden="true"></i> Growth <code>/dashboard/growth</code></a>
+            <a class="route" href="/login"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Analytics <code>/dashboard/analytics</code></a>
+            <a class="route" href="/login"><i class="fa-solid fa-gavel" aria-hidden="true"></i> Moderation <code>/dashboard/moderation</code></a>
+            <a class="route" href="/login"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i> Creators <code>/dashboard/creator-notifications</code></a>
+            <a class="route" href="/login"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Protection <code>/dashboard/protection</code></a>
+            <a class="route" href="/login"><i class="fa-solid fa-gear" aria-hidden="true"></i> Settings <code>/dashboard/settings</code></a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pricing -->
+      <section id="pricing" class="section alt">
+        <div class="shell">
+          <p class="eyebrow">Pricing</p>
+          <h2>Start free. Upgrade per server, when you need it.</h2>
+
+          <div class="price-cards">
+            <article class="price-card">
+              <h3>Bean Free</h3>
+              <p class="price">€0</p>
+              <p class="price-desc">
+                Everything a new community needs to get organized, protected, and growing.
+              </p>
+              <a class="button primary" href="/invite">Add Bean — Free</a>
+            </article>
+
+            <article class="price-card featured">
+              <h3>Bean Plus</h3>
+              <p class="price">€3.99<span class="per"> / month per server</span></p>
+              <p class="price-alt">or €39.99 / year per server</p>
+              <p class="price-desc">
+                Higher limits, deeper insight, and more automation for established communities.
+              </p>
+              <span class="button soon" aria-disabled="true">Bean Plus — coming soon</span>
+              <p class="fine">
+                Subscriptions are not open yet. An Early Supporter price of €2.99/month is planned for the
+                first paying servers, kept for as long as the subscription stays active.
+              </p>
+            </article>
+          </div>
+
+          <div class="table-wrap">
+            <table class="compare">
+              <caption class="sr-only">Feature comparison between Bean Free and Bean Plus</caption>
+              <thead>
+                <tr><th scope="col">Feature</th><th scope="col">Bean Free</th><th scope="col">Bean Plus</th></tr>
+              </thead>
+              <tbody>
+                <tr><th scope="row">Core moderation commands</th><td>Included</td><td>Included</td></tr>
+                <tr><th scope="row">Core Bean Protection</th><td>Included</td><td>Included</td></tr>
+                <tr><th scope="row">Raid and emergency controls</th><td>Included</td><td>Included</td></tr>
+                <tr><th scope="row">YouTube upload sources</th><td>1</td><td>Up to 5</td></tr>
+                <tr><th scope="row">Twitch creator announcements</th><td>1 selected creator plus live-role behavior</td><td>Up to 5 selected creators and advanced modes</td></tr>
+                <tr><th scope="row">Welcome message</th><td>1 customizable welcome</td><td>Advanced/multiple templates when introduced</td></tr>
+                <tr><th scope="row">Community Growth</th><td>Profiles, traits, achievements, leaderboard</td><td>Seasons, archives, advanced recognition, exclusions, and analytics</td></tr>
+                <tr><th scope="row">Reaction-role menus</th><td>Up to 3</td><td>Up to 25</td></tr>
+                <tr><th scope="row">Reaction-role mappings</th><td>Up to 25</td><td>Up to 250</td></tr>
+                <tr><th scope="row">Scheduled Mailbox posts</th><td>Immediate sends plus 5 scheduled posts per month</td><td>Unlimited reasonable scheduling</td></tr>
+                <tr><th scope="row">Temporary voice rooms</th><td>Core functionality</td><td>Higher limits and advanced owner controls</td></tr>
+                <tr><th scope="row">Tickets</th><td>1 panel and normal ticket handling</td><td>Multiple panels, transcripts, and analytics when introduced</td></tr>
+                <tr><th scope="row">Dashboard analytics</th><td>7 days</td><td>90 days</td></tr>
+                <tr><th scope="row">Moderation history</th><td>Essential recent history</td><td>Extended history and exports</td></tr>
+                <tr><th scope="row">Dashboard administrators</th><td>Owner plus 2</td><td>Up to 10</td></tr>
+                <tr><th scope="row">Support</th><td>Community support</td><td>Priority support</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="safety-note">
+            <i class="fa-solid fa-heart" aria-hidden="true"></i>
+            <p>
+              <strong>Safety is never paywalled.</strong> Warn, timeout, kick, ban, clear, spam and raid
+              protection, emergency lockdown, moderation records, permission and privacy controls, and
+              basic dashboard access are always free. Bean charges for scale, customization, and longer
+              history — not basic safety.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section id="faq" class="section">
+        <div class="shell narrow">
+          <p class="eyebrow">FAQ</p>
+          <h2>Good questions.</h2>
+
+          <details class="faq-item">
+            <summary>Is Bean free?</summary>
+            <p>
+              Yes. Bean Free includes the core moderation, protection, Community Growth, dashboard, and
+              community tools needed to operate a server. Bean Plus increases limits and adds deeper
+              automation and history.
+            </p>
+          </details>
+          <details class="faq-item">
+            <summary>Is Bean Plus purchased per user?</summary>
+            <p>No. A Bean Plus subscription applies to one Discord server and benefits the whole server.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Can I move Bean Plus to another server?</summary>
+            <p>
+              That's the plan — a subscription will be transferable to another server, with a short
+              cooldown between transfers to prevent abuse.
+            </p>
+          </details>
+          <details class="faq-item">
+            <summary>What happens if I cancel?</summary>
+            <p>
+              The server returns to Free limits after a seven-day grace period. Paid settings are
+              preserved, but excess sources and automations are paused rather than deleted.
+            </p>
+          </details>
+          <details class="faq-item">
+            <summary>Does Bean replace Discord AutoMod?</summary>
+            <p>
+              No. Bean complements Discord AutoMod. Discord handles immediate native blocking while Bean
+              adds behavioral protection, case tracking, incident history, quarantine review, and
+              emergency workflows.
+            </p>
+          </details>
+          <details class="faq-item">
+            <summary>How is Community Growth different from XP?</summary>
+            <p>
+              Community Growth measures five types of meaningful participation instead of rewarding raw
+              message volume. It is designed to recognize how someone contributes, not how often they
+              type.
+            </p>
+          </details>
+          <details class="faq-item">
+            <summary>Can my moderators use the Dashboard?</summary>
+            <p>Yes. Dashboard access and permissions can be granted through configured Discord roles.</p>
+          </details>
+          <details class="faq-item">
+            <summary>How many YouTube channels can Bean monitor?</summary>
+            <p>Bean Free supports one. Bean Plus supports up to five.</p>
+          </details>
+        </div>
+      </section>
+
+      <!-- Final CTA -->
+      <section class="section final-cta">
+        <div class="shell narrow center">
+          <img class="bean-mark big" src="/assets/bean-icon.png" alt="" />
+          <h2>Give your community room to grow.</h2>
+          <p class="section-lede">Start with Bean Free. Upgrade only when your community needs more.</p>
+          <div class="cta-row center">
+            <a class="button primary large" href="/invite">
+              <i class="fa-brands fa-discord" aria-hidden="true"></i>
+              Add Bean to Discord
+            </a>
+            <a class="button ghost large" href="/login">Open Dashboard</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="shell footer-grid">
+        <div class="footer-brand">
+          <img class="bean-mark" src="/assets/bean-icon.png" alt="" />
+          <span class="brand-name">Bean</span>
+          <p class="fine">A warm, thoughtful control room for growing Discord communities.</p>
+        </div>
+        <nav aria-label="Footer">
+          <ul>
+            <li><a href="/login">Dashboard</a></li>
+            <li><a href="/invite">Add Bean</a></li>
+            <li><span class="soon-link">Documentation <em>soon</em></span></li>
+            <li><span class="soon-link">Support server <em>soon</em></span></li>
+            <li><span class="soon-link">Status <em>soon</em></span></li>
+            <li><span class="soon-link">Privacy Policy <em>soon</em></span></li>
+            <li><span class="soon-link">Terms of Service <em>soon</em></span></li>
+            <li><span class="soon-link">Contact <em>soon</em></span></li>
+          </ul>
+        </nav>
+      </div>
+    </footer>
+
+    <script src="/landing.js" defer></script>
+  </body>
+</html>

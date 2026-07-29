@@ -527,6 +527,22 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
   await once(server, 'listening');
 
   const baseUrl = `http://127.0.0.1:${server.address().port}`;
+  const [loginPage, dashboardPage, memberPage, settingsPage] = await Promise.all([
+    fetch(`${baseUrl}/login`),
+    fetch(`${baseUrl}/dashboard`),
+    fetch(`${baseUrl}/dashboard/members`),
+    fetch(`${baseUrl}/dashboard/settings`),
+  ]);
+  const dashboardHtml = await dashboardPage.text();
+  await Promise.all([loginPage.text(), memberPage.text(), settingsPage.text()]);
+
+  assert.equal(loginPage.status, 200);
+  assert.equal(dashboardPage.status, 200);
+  assert.equal(memberPage.status, 200);
+  assert.equal(settingsPage.status, 200);
+  assert.match(loginPage.headers.get('content-type'), /^text\/html/);
+  assert.match(dashboardHtml, /<title>Bean Dashboard<\/title>/);
+
   const login = await fetchJson(`${baseUrl}/api/login`, {
     method: 'POST',
     body: { password: config.dashboard.password },

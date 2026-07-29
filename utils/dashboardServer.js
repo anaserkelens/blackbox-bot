@@ -109,6 +109,26 @@ const { colors, sendStructuredLog } = require('./structuredLog');
 const { getTelemetrySnapshot, recordApiRequest } = require('./telemetry');
 
 const dashboardDirectory = path.join(__dirname, '..', 'dashboard');
+const dashboardAppRoutes = new Set([
+  '/login',
+  '/dashboard',
+  '/dashboard/members',
+  '/dashboard/growth',
+  '/dashboard/analytics',
+  '/dashboard/moderation',
+  '/dashboard/messages',
+  '/dashboard/mailbox',
+  '/dashboard/creator-notifications',
+  '/dashboard/welcome',
+  '/dashboard/protection',
+  '/dashboard/invite-filter',
+  '/dashboard/tickets',
+  '/dashboard/reaction-roles',
+  '/dashboard/voice-rooms',
+  '/dashboard/audit-logs',
+  '/dashboard/settings',
+  '/dashboard/settings/bot',
+]);
 const sessionCookieName = 'bean_dashboard';
 const oauthStateCookieName = 'bean_dashboard_oauth_state';
 const oauthSessions = new Map();
@@ -305,7 +325,7 @@ async function handleRequest(client, request, response) {
   }
 
   if (request.method === 'GET' && url.pathname === '/auth/discord') {
-    handleDiscordOauthStart(request, response);
+    handleDiscordOauthStart(request, response, url);
     return;
   }
 
@@ -314,9 +334,19 @@ async function handleRequest(client, request, response) {
     return;
   }
 
+  if (request.method === 'GET' && url.pathname === '/invite') {
+    if (!config.clientId) {
+      redirect(response, '/');
+      return;
+    }
+
+    redirect(response, `https://discord.com/oauth2/authorize?client_id=${config.clientId}`);
+    return;
+  }
+
   if (request.method === 'POST' && url.pathname === '/login') {
     if (!isPasswordLoginConfigured()) {
-      redirect(response, '/?loginError=oauth-disabled');
+      redirectToLogin(response, 'oauth-disabled');
       return;
     }
 
@@ -693,16 +723,21 @@ async function handleLogin(client, request, response) {
   });
 }
 
-function handleDiscordOauthStart(request, response) {
+function handleDiscordOauthStart(request, response, url) {
+  const returnTo = normalizeDashboardReturnPath(url?.searchParams.get('next')) || '/dashboard';
+
   if (!isDiscordOauthConfigured()) {
-    redirect(response, '/?loginError=oauth-disabled');
+    redirectToLogin(response, 'oauth-disabled', returnTo);
     return;
   }
 
   pruneOauthState();
   const state = crypto.randomBytes(24).toString('hex');
   const redirectUri = getDiscordOauthRedirectUri();
-  oauthStates.set(state, Date.now() + 10 * 60 * 1000);
+  oauthStates.set(state, {
+    expiresAt: Date.now() + 10 * 60 * 1000,
+    returnTo,
+  });
   setCookie(response, oauthStateCookieName, state, {
     maxAge: 10 * 60,
     secure: isSecureRequest(request),
@@ -721,7 +756,9 @@ async function handleDiscordOauthCallback(request, response, url) {
   const state = String(url.searchParams.get('state') || '');
   const code = String(url.searchParams.get('code') || '');
   const cookieState = parseCookies(request)[oauthStateCookieName];
-  const expiresAt = oauthStates.get(state);
+  const stateRecord = oauthStates.get(state);
+  const expiresAt = typeof stateRecord === 'number' ? stateRecord : stateRecord?.expiresAt;
+  const returnTo = normalizeDashboardReturnPath(stateRecord?.returnTo) || '/dashboard';
 
   oauthStates.delete(state);
   setCookie(response, oauthStateCookieName, '', {
@@ -737,7 +774,7 @@ async function handleDiscordOauthCallback(request, response, url) {
     || expiresAt < Date.now()
     || !code
   ) {
-    redirect(response, '/?loginError=oauth');
+    redirectToLogin(response, 'oauth');
     return;
   }
 
@@ -775,7 +812,7 @@ async function handleDiscordOauthCallback(request, response, url) {
     const dashboardRole = resolveDashboardRole(user.id, member.roles);
 
     if (!dashboardRole) {
-      redirect(response, '/?loginError=access');
+      redirectToLogin(response, 'access', returnTo);
       return;
     }
 
@@ -799,10 +836,10 @@ async function handleDiscordOauthCallback(request, response, url) {
       maxAge: 7 * 24 * 60 * 60,
       secure: isSecureRequest(request),
     });
-    redirect(response, '/');
+    redirect(response, returnTo);
   } catch (error) {
     console.error('Discord dashboard login failed:', error);
-    redirect(response, '/?loginError=oauth');
+    redirectToLogin(response, 'oauth', returnTo);
   }
 }
 
@@ -1439,7 +1476,7 @@ async function handleClassicLogin(client, request, response) {
 
   if (!isDashboardPassword(String(body.password || ''))) {
     console.warn('Dashboard basic login failed.');
-    redirect(response, '/?loginError=invalid');
+    redirectToLogin(response, 'invalid');
     return;
   }
 
@@ -1448,7 +1485,7 @@ async function handleClassicLogin(client, request, response) {
     maxAge: 7 * 24 * 60 * 60,
     secure: isSecureRequest(request),
   });
-  redirect(response, '/');
+  redirect(response, '/dashboard');
 }
 
 async function handleSendMessage(client, request, response, options = {}) {
@@ -2997,7 +3034,17 @@ function createBotProfileError(error, kind) {
 }
 
 function serveStatic(pathname, response) {
-  const route = pathname === '/' ? '/index.html' : pathname;
+  const normalizedPath = normalizeDashboardRoutePath(pathname);
+  let route = pathname;
+
+  if (normalizedPath === '/') {
+    route = fs.existsSync(path.join(dashboardDirectory, 'landing.html'))
+      ? '/landing.html'
+      : '/index.html';
+  } else if (dashboardAppRoutes.has(normalizedPath)) {
+    route = '/index.html';
+  }
+
   const requestedPath = path.normalize(route).replace(/^(\.\.[/\\])+/, '');
   const filePath = path.join(dashboardDirectory, requestedPath);
 
@@ -3015,7 +3062,15 @@ function serveStatic(pathname, response) {
   const contentTypes = {
     '.css': 'text/css; charset=utf-8',
     '.html': 'text/html; charset=utf-8',
+    '.ico': 'image/x-icon',
+    '.jpeg': 'image/jpeg',
+    '.jpg': 'image/jpeg',
     '.js': 'text/javascript; charset=utf-8',
+    '.json': 'application/json; charset=utf-8',
+    '.png': 'image/png',
+    '.svg': 'image/svg+xml',
+    '.webp': 'image/webp',
+    '.woff2': 'font/woff2',
   };
 
   response.writeHead(200, {
@@ -3084,6 +3139,21 @@ function redirect(response, location) {
     'Cache-Control': 'no-store',
   });
   response.end();
+}
+
+function redirectToLogin(response, errorCode, returnTo) {
+  const query = new URLSearchParams();
+  const safeReturnTo = normalizeDashboardReturnPath(returnTo);
+
+  if (errorCode) {
+    query.set('loginError', errorCode);
+  }
+
+  if (safeReturnTo && safeReturnTo !== '/dashboard') {
+    query.set('next', safeReturnTo);
+  }
+
+  redirect(response, `/login${query.size ? `?${query}` : ''}`);
 }
 
 function sendText(response, statusCode, text) {
@@ -3283,7 +3353,9 @@ function sessionCanAccess(session, method, pathname) {
 function pruneOauthState() {
   const now = Date.now();
 
-  for (const [state, expiresAt] of oauthStates) {
+  for (const [state, record] of oauthStates) {
+    const expiresAt = typeof record === 'number' ? record : record?.expiresAt;
+
     if (expiresAt <= now) {
       oauthStates.delete(state);
     }
@@ -3294,6 +3366,22 @@ function pruneOauthState() {
       oauthSessions.delete(token);
     }
   }
+}
+
+function normalizeDashboardRoutePath(value) {
+  const pathname = String(value || '').trim().split(/[?#]/, 1)[0];
+
+  if (!pathname.startsWith('/') || pathname.startsWith('//')) {
+    return '';
+  }
+
+  return pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+}
+
+function normalizeDashboardReturnPath(value) {
+  const pathname = normalizeDashboardRoutePath(value);
+
+  return dashboardAppRoutes.has(pathname) && pathname !== '/login' ? pathname : null;
 }
 
 function shouldLogDashboardRequest(method, pathname) {
