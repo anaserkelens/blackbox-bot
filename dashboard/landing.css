@@ -225,7 +225,7 @@ p {
   user-select: none;
 }
 
-/* Custom tooltip */
+/* Custom tooltip (speech bubble, shown above by default) */
 [data-tooltip] {
   position: relative;
 }
@@ -234,20 +234,67 @@ p {
 [data-tooltip]:focus-visible::after {
   content: attr(data-tooltip);
   position: absolute;
-  bottom: calc(100% + 9px);
+  bottom: calc(100% + 11px);
   left: 50%;
   transform: translateX(-50%);
-  padding: 6px 13px;
+  padding: 7px 15px;
   background: var(--raised);
   border: 1px solid var(--line-strong);
   border-radius: var(--r-sm);
   color: var(--text);
   font-size: 0.8rem;
-  font-weight: 500;
+  font-weight: 550;
+  letter-spacing: 0.01em;
   white-space: nowrap;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
   pointer-events: none;
   z-index: 60;
+  animation: tooltip-in 140ms var(--ease);
+}
+
+/* the pointer */
+[data-tooltip]:hover::before,
+[data-tooltip]:focus-visible::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  transform: translateX(-50%) rotate(45deg);
+  background: var(--raised);
+  border-right: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
+  pointer-events: none;
+  z-index: 61;
+  animation: tooltip-in 140ms var(--ease);
+}
+
+/* In the header there is no room above: flip the bubble below the button */
+.site-header [data-tooltip]:hover::after,
+.site-header [data-tooltip]:focus-visible::after {
+  bottom: auto;
+  top: calc(100% + 11px);
+}
+
+.site-header [data-tooltip]:hover::before,
+.site-header [data-tooltip]:focus-visible::before {
+  bottom: auto;
+  top: calc(100% + 7px);
+  border-right: none;
+  border-bottom: none;
+  border-left: 1px solid var(--line-strong);
+  border-top: 1px solid var(--line-strong);
+}
+
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 /* ---------- Header ---------- */
