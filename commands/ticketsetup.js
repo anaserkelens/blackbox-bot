@@ -13,7 +13,7 @@ async function execute(interaction) {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   if (!config.channels.tickets) {
-    await interaction.editReply('Set TICKET_CHANNEL_ID before using /ticketsetup.');
+    await interaction.editReply('Choose a ticket launcher channel on the Dashboard Ticket System page first.');
     return;
   }
 

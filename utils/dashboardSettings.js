@@ -3,7 +3,6 @@ const path = require('node:path');
 
 const settingsFileName = 'dashboard-settings.json';
 const channelKeys = [
-  'welcome',
   'guidelines',
   'introductions',
   'rules',
@@ -16,9 +15,12 @@ const channelKeys = [
   'lineLog',
   'operationLog',
   'systemLog',
+  'mailbox',
+];
+const legacyFeatureChannelKeys = [
+  'welcome',
   'streamAnnouncements',
   'youtubeAnnouncements',
-  'mailbox',
   'tempVoiceTrigger',
 ];
 const roleKeys = [
@@ -55,6 +57,7 @@ function initializeDashboardSettings(config) {
     console.error(`Failed to load dashboard configuration from ${storage.filePath}:`, error);
   }
 
+  applyLegacyFeatureChannelFallbacks(config, saved);
   const settings = normalizeDashboardSettings(saved, config);
   applyDashboardSettings(config, settings);
   return settings;
@@ -134,10 +137,23 @@ function normalizeDashboardSettings(input, config) {
 function applyDashboardSettings(config, settings) {
   Object.assign(config.channels, settings.channels);
   Object.assign(config.roles, settings.roles);
+  if (config.reactionRole) {
+    config.reactionRole.channelId = settings.channels.rules || config.reactionRole.channelId;
+  }
   config.invites.enabled = settings.features.inviteModeration;
   config.streamMonitor.enabled = settings.features.streamMonitor;
   config.youtubeMonitor.enabled = settings.features.youtubeMonitor;
   config.dashboard.features = { ...settings.features };
+}
+
+function applyLegacyFeatureChannelFallbacks(config, saved) {
+  for (const key of legacyFeatureChannelKeys) {
+    const value = normalizeSnowflake(saved?.channels?.[key], null);
+
+    if (value) {
+      config.channels[key] = value;
+    }
+  }
 }
 
 function getFeatureDefaults(config) {

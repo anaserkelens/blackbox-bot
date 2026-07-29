@@ -55,7 +55,12 @@ function getTempVoiceStorageInfo(config) {
 }
 
 async function initializeTempVoiceRooms(client, config) {
+  const storage = getTempVoiceStorageInfo(config);
+  const storageMissing = await fs.access(storage.filePath)
+    .then(() => false)
+    .catch(() => true);
   const state = await loadState(config);
+  config.channels.tempVoiceTrigger = state.settings.triggerChannelId;
   let changed = false;
 
   for (const room of [...state.channels]) {
@@ -90,11 +95,16 @@ async function initializeTempVoiceRooms(client, config) {
     }
   }
 
-  if (changed) {
+  if (changed || storageMissing) {
     await saveState(config, state);
   }
 
   return state;
+}
+
+async function getTempVoiceSettings(config) {
+  const state = await loadState(config);
+  return { ...state.settings };
 }
 
 async function handleTempVoiceStateUpdate(oldState, newState, client, config) {
@@ -221,6 +231,7 @@ async function saveTempVoiceSettings(client, config, input) {
       triggerChannelId,
       emptyDelaySeconds: 10,
     };
+    config.channels.tempVoiceTrigger = triggerChannelId;
 
     return { ...state.settings };
   });
@@ -527,6 +538,7 @@ function normalizeState(input, defaults) {
 module.exports = {
   createTempVoiceRoomName,
   deleteTempVoiceRoom,
+  getTempVoiceSettings,
   getTempVoiceOverview,
   getTempVoiceStorageInfo,
   handleTempVoiceStateUpdate,

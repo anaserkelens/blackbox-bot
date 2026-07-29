@@ -8,7 +8,6 @@ const { ChannelType, PermissionFlagsBits } = require('discord.js');
 const { getActivityFeed, getActivityFeedStorageInfo } = require('./activityFeed');
 const { config } = require('./config');
 const {
-  channelKeys,
   featureKeys,
   getDashboardSettingsStorageInfo,
   loadDashboardSettings,
@@ -67,6 +66,7 @@ const {
 const { getYouTubeUploadStateStorageInfo } = require('./youtubeUploadMonitor');
 const {
   deleteTempVoiceRoom,
+  getTempVoiceSettings,
   getTempVoiceOverview,
   getTempVoiceStorageInfo,
   saveTempVoiceSettings,
@@ -86,6 +86,8 @@ const oauthStateCookieName = 'bean_dashboard_oauth_state';
 const oauthSessions = new Map();
 const oauthStates = new Map();
 let dashboardStartupFeatures = null;
+let featureChannelMigrationPromise = Promise.resolve();
+let featureChannelMigrationError = null;
 
 function startDashboard(client) {
   if (!config.dashboard.enabled) {
@@ -101,6 +103,12 @@ function startDashboard(client) {
   dashboardStartupFeatures = {
     youtubeMonitor: Boolean(config.youtubeMonitor.enabled),
   };
+  featureChannelMigrationError = null;
+  featureChannelMigrationPromise = ensureFeatureChannelSettings()
+    .catch((error) => {
+      featureChannelMigrationError = error;
+      console.error('Failed to migrate feature-owned channel settings:', error);
+    });
 
   logSavedMessagesStorage();
   logStreamEmbedStorage();
@@ -779,7 +787,7 @@ async function handleGetConfigurationOptions(client, response) {
 }
 
 async function handleGetDashboardConfiguration(client, response) {
-  const settings = await loadDashboardSettings(config);
+  const settings = await loadEffectiveDashboardSettings();
   const diagnostics = await getConfigurationDiagnostics(client, settings);
 
   sendJson(response, 200, {
@@ -797,7 +805,7 @@ async function handleGetDashboardConfiguration(client, response) {
       ),
     },
     schema: {
-      channels: channelKeys,
+      channels: Object.keys(settings.channels),
       roles: roleKeys,
       features: featureKeys,
     },
@@ -809,7 +817,14 @@ async function handleSaveDashboardConfiguration(client, request, response, actor
   let settings;
 
   try {
+    await featureChannelMigrationPromise;
+
+    if (featureChannelMigrationError) {
+      throw new Error('Feature channel storage is unavailable. No configuration changes were saved.');
+    }
+
     settings = await saveDashboardSettings(config, body.settings, actor);
+    settings = await applyFeatureOwnedChannels(settings);
   } catch (error) {
     sendJson(response, 400, { error: error.message });
     return;
@@ -846,7 +861,7 @@ async function getConfigurationDiagnostics(client, settings) {
     || guild?.members?.cache?.get?.(client.user?.id);
   const checks = [];
 
-  for (const key of channelKeys) {
+  for (const key of Object.keys(settings.channels)) {
     const id = settings.channels[key];
     const channel = id
       ? channelCollection?.get?.(id) || await client.channels?.fetch?.(id)?.catch(() => null)
@@ -974,6 +989,59 @@ async function getConfigurationDiagnostics(client, settings) {
       restartRequired: relevantChecks.some((check) => check.restartRequired),
     },
   };
+}
+
+async function loadEffectiveDashboardSettings() {
+  await featureChannelMigrationPromise;
+  const settings = await loadDashboardSettings(config);
+  return applyFeatureOwnedChannels(settings);
+}
+
+async function ensureFeatureChannelSettings() {
+  const definitions = [
+    {
+      getStatus: () => getWelcomeEmbedStorageStatus(config),
+      load: () => loadWelcomeEmbedSettings(config),
+      save: (settings) => saveWelcomeEmbedSettings(config, settings),
+    },
+    {
+      getStatus: () => getStreamEmbedStorageStatus(config),
+      load: () => loadStreamEmbedSettings(config),
+      save: (settings) => saveStreamEmbedSettings(config, settings),
+    },
+    {
+      getStatus: () => getYouTubeEmbedStorageStatus(config),
+      load: () => loadYouTubeEmbedSettings(config),
+      save: (settings) => saveYouTubeEmbedSettings(config, settings),
+    },
+  ];
+
+  await Promise.all(definitions.map(async (definition) => {
+    const status = await definition.getStatus();
+
+    if (!status.hasSavedSettings) {
+      await definition.save(await definition.load());
+    }
+  }));
+}
+
+async function applyFeatureOwnedChannels(settings) {
+  const [welcome, stream, youtube, temporaryVoice] = await Promise.all([
+    loadWelcomeEmbedSettings(config),
+    loadStreamEmbedSettings(config),
+    loadYouTubeEmbedSettings(config),
+    getTempVoiceSettings(config),
+  ]);
+  const channels = {
+    welcome: welcome.channelId || null,
+    streamAnnouncements: stream.channelId || null,
+    youtubeAnnouncements: youtube.channelId || null,
+    tempVoiceTrigger: temporaryVoice.triggerChannelId || null,
+  };
+
+  Object.assign(settings.channels, channels);
+  Object.assign(config.channels, channels);
+  return settings;
 }
 
 function getRequiredChannelPermissions(key) {
@@ -1452,6 +1520,7 @@ async function handleSaveStreamEmbed(request, response) {
 
   try {
     settings = await saveStreamEmbedSettings(config, body.settings);
+    config.channels.streamAnnouncements = settings.channelId;
   } catch (error) {
     sendJson(response, 400, { error: error.message });
     return;
@@ -1483,6 +1552,7 @@ async function handleSaveYouTubeEmbed(request, response) {
 
   try {
     settings = await saveYouTubeEmbedSettings(config, body.settings);
+    config.channels.youtubeAnnouncements = settings.channelId;
   } catch (error) {
     sendJson(response, 400, { error: error.message });
     return;
@@ -1514,6 +1584,7 @@ async function handleSaveWelcomeEmbed(request, response) {
 
   try {
     settings = await saveWelcomeEmbedSettings(config, body.settings);
+    config.channels.welcome = settings.channelId;
   } catch (error) {
     sendJson(response, 400, { error: error.message });
     return;

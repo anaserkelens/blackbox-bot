@@ -118,6 +118,14 @@ const voiceRoomSettingsForm = document.querySelector('#voice-room-settings-form'
 const voiceRoomEnabledInput = document.querySelector('#voice-room-enabled');
 const voiceRoomTriggerIdInput = document.querySelector('#voice-room-trigger-id');
 const saveVoiceRoomSettingsButton = document.querySelector('#save-voice-room-settings');
+const ticketChannelSettingsForm = document.querySelector('#ticket-channel-settings-form');
+const reactionRoleChannelSettingsForm = document.querySelector('#reaction-role-channel-settings-form');
+const welcomeChannelSettingsForm = document.querySelector('#welcome-channel-settings-form');
+const featureChannelSettingsForms = [
+  ticketChannelSettingsForm,
+  reactionRoleChannelSettingsForm,
+  welcomeChannelSettingsForm,
+].filter(Boolean);
 const voiceRoomListCount = document.querySelector('#voice-room-list-count');
 const voiceRoomList = document.querySelector('#voice-room-list');
 const tabButtons = [...document.querySelectorAll('.tab-button')];
@@ -152,7 +160,6 @@ const presenceStorageStatus = document.querySelector('#presence-storage-status')
 const dashboardConfigForm = document.querySelector('#dashboard-config-form');
 const configSectionButtons = [...document.querySelectorAll('[data-config-section]')];
 const configSections = [...document.querySelectorAll('[data-config-panel]')];
-const configChannelGrid = document.querySelector('#config-channel-grid');
 const configRoleGrid = document.querySelector('#config-role-grid');
 const configDiagnosticList = document.querySelector('#config-diagnostic-list');
 const configAttentionList = document.querySelector('#config-attention-list');
@@ -174,6 +181,10 @@ const saveDashboardConfigButton = document.querySelector('#save-dashboard-config
 const resetDashboardConfigButton = document.querySelector('#reset-dashboard-config');
 const refreshConfigDiagnosticsButton = document.querySelector('#refresh-config-diagnostics');
 const featureToggleInputs = [...document.querySelectorAll('[data-feature-toggle]')];
+const auditLogSettingsForm = document.querySelector('#audit-log-settings-form');
+const auditLogChannelGrid = document.querySelector('#audit-log-channel-grid');
+const auditLogSaveStatus = document.querySelector('#audit-log-save-status');
+const saveAuditLogSettingsButton = document.querySelector('#save-audit-log-settings');
 const composer = document.querySelector('#composer');
 const messageNameInput = document.querySelector('#message-name');
 const channelInput = document.querySelector('#channel-id');
@@ -567,6 +578,10 @@ function bindEvents() {
     input.addEventListener('change', () => {
       handleFeatureToggleChange(input).catch((error) => setSendStatus(error.message, 'error'));
     });
+  });
+  auditLogSettingsForm?.addEventListener('submit', handleAuditLogSettingsSave);
+  featureChannelSettingsForms.forEach((form) => {
+    form.addEventListener('submit', handleFeatureChannelSettingsSave);
   });
   composer.addEventListener('submit', handleSend);
   messageColorPicker.addEventListener('input', handleMessageColorPickerInput);
@@ -1620,25 +1635,6 @@ function getPresenceActivityNames() {
 }
 
 const dashboardConfigurationDefinitions = {
-  channels: {
-    welcome: ['Welcome channel', 'Automatic greetings for new members.'],
-    guidelines: ['Guidelines channel', 'Community guidelines and onboarding links.'],
-    introductions: ['Introductions channel', 'Where new members introduce themselves.'],
-    rules: ['Rules channel', 'Rules and verification destination.'],
-    socials: ['Socials channel', 'Community social posts and links.'],
-    tickets: ['Ticket launcher channel', 'Where members open support tickets.'],
-    ticketLogs: ['Ticket log', 'Ticket creation and closure records.'],
-    caseFiles: ['Case files', 'Warnings, timeouts, kicks, bans, and corrections.'],
-    entryLog: ['Entry log', 'Joins, leaves, and invite moderation.'],
-    signalLog: ['Signal log', 'Message edits, deletes, and attachments.'],
-    lineLog: ['Voice log', 'Voice joins, moves, sessions, and state changes.'],
-    operationLog: ['Operation log', 'Bot startup, events, tickets, and dashboard changes.'],
-    systemLog: ['System log', 'Channels, roles, permissions, and user changes.'],
-    streamAnnouncements: ['Twitch announcements', 'Featured Twitch live notifications.'],
-    youtubeAnnouncements: ['YouTube announcements', 'New upload notifications.'],
-    mailbox: ['Mailbox default', 'Default destination for community posts.'],
-    tempVoiceTrigger: ['Voice-room lobby', 'Joining this channel creates a temporary room.'],
-  },
   roles: {
     founder: ['Founder role', 'Full bot and dashboard ownership.'],
     staff: ['Staff role', 'Administrator-level dashboard access.'],
@@ -1660,6 +1656,15 @@ const dashboardConfigurationDefinitions = {
     reactionRoles: ['Reaction roles', 'Grant the configured verification role from Discord reactions.', 'fa-user-check'],
     detailedLogging: ['Detailed audit logging', 'Record message, member, voice, role, and channel changes.', 'fa-clipboard-list'],
   },
+};
+const auditLoggingChannelDefinitions = {
+  caseFiles: ['Case files', 'Warnings, timeouts, kicks, bans, case edits, and revocations.'],
+  entryLog: ['Entry log', 'Member joins, leaves, and invite-moderation actions.'],
+  signalLog: ['Message log', 'Message edits, deletes, bulk deletes, and attachments.'],
+  lineLog: ['Voice log', 'Voice joins, moves, sessions, and state changes.'],
+  operationLog: ['Operation log', 'Bot startup, dashboard changes, publishing, tickets, and voice-room actions.'],
+  systemLog: ['System log', 'Channel, role, permission, scheduled-event, and user changes.'],
+  ticketLogs: ['Ticket log', 'Ticket creation, ownership, and closure records.'],
 };
 
 async function loadDashboardConfiguration(showNotification = false) {
@@ -1701,7 +1706,6 @@ function renderDashboardConfiguration() {
     return;
   }
 
-  renderConfigurationChannels();
   renderConfigurationRoles();
   renderConfigurationDiagnostics();
   renderConfigurationAudit();
@@ -1709,39 +1713,6 @@ function renderDashboardConfiguration() {
   renderFeatureControls();
   setDashboardConfigDirty(false);
   applySessionPermissions(state.session?.permissions || {});
-}
-
-function renderConfigurationChannels() {
-  configChannelGrid.replaceChildren();
-
-  for (const [key, [label, description]] of Object.entries(dashboardConfigurationDefinitions.channels)) {
-    const card = document.createElement('label');
-    const heading = document.createElement('span');
-    const title = document.createElement('strong');
-    const copy = document.createElement('small');
-    const shell = document.createElement('span');
-    const icon = document.createElement('span');
-    const select = document.createElement('select');
-    const chevron = document.createElement('i');
-
-    card.className = 'config-field-card';
-    heading.className = 'config-field-heading';
-    title.textContent = label;
-    copy.textContent = description;
-    heading.append(title, copy);
-    shell.className = 'cozy-channel-select';
-    icon.className = 'cozy-channel-select-icon';
-    icon.innerHTML = '<i class="fa-solid fa-hashtag" aria-hidden="true"></i>';
-    select.id = `config-channel-${key}`;
-    select.dataset.configChannel = key;
-    select.className = 'discord-channel-select';
-    chevron.className = 'fa-solid fa-chevron-down cozy-channel-select-chevron';
-    chevron.setAttribute('aria-hidden', 'true');
-    shell.append(icon, select, chevron);
-    card.append(heading, shell);
-    configChannelGrid.append(card);
-    renderConfigurationChannelSelect(select, key, state.configuration.channels[key] || '');
-  }
 }
 
 function renderConfigurationChannelSelect(select, key, selectedValue) {
@@ -1875,12 +1846,38 @@ function renderDiagnosticItems(container, checks, options = {}) {
       action.type = 'button';
       action.className = 'secondary';
       action.textContent = 'Fix';
-      action.addEventListener('click', () => setConfigSection(check.group));
+      action.addEventListener('click', () => {
+        if (check.group === 'channels') {
+          setActiveTab(getChannelOwnerTab(check.key));
+          return;
+        }
+
+        setConfigSection('roles');
+      });
       item.append(action);
     }
 
     container.append(item);
   }
+}
+
+function getChannelOwnerTab(key) {
+  if (['caseFiles', 'entryLog', 'signalLog', 'lineLog', 'operationLog', 'systemLog', 'ticketLogs'].includes(key)) {
+    return 'audit-logging';
+  }
+
+  return {
+    welcome: 'welcome-embed',
+    guidelines: 'welcome-embed',
+    introductions: 'welcome-embed',
+    socials: 'welcome-embed',
+    rules: 'reaction-roles',
+    tickets: 'tickets',
+    streamAnnouncements: 'live-embed',
+    youtubeAnnouncements: 'live-embed',
+    mailbox: 'mailbox',
+    tempVoiceTrigger: 'voice-rooms',
+  }[key] || 'config';
 }
 
 function renderConfigurationAudit() {
@@ -2007,9 +2004,6 @@ async function handleDashboardConfigSave(event) {
 function collectDashboardConfiguration() {
   const settings = cloneData(state.configuration);
 
-  dashboardConfigForm.querySelectorAll('[data-config-channel]').forEach((select) => {
-    settings.channels[select.dataset.configChannel] = select.value || null;
-  });
   dashboardConfigForm.querySelectorAll('[data-config-role]').forEach((select) => {
     settings.roles[select.dataset.configRole] = select.value || null;
   });
@@ -2017,13 +2011,19 @@ function collectDashboardConfiguration() {
 }
 
 async function loadFeatureConfiguration(showNotification = false) {
-  const result = await api('/api/configuration');
+  const [result, optionsResult] = await Promise.all([
+    api('/api/configuration'),
+    api('/api/configuration-options').catch(() => ({ channels: state.discordChannels })),
+  ]);
 
   state.configuration = cloneData(result.settings);
   state.savedConfiguration = cloneData(result.settings);
   state.configurationDiagnostics = result.diagnostics;
   state.configurationStorage = result.storage;
   state.configurationOauth = result.oauth;
+  state.configurationChannels = Array.isArray(optionsResult.channels)
+    ? optionsResult.channels
+    : state.discordChannels;
   renderFeatureControls();
   applySessionPermissions(state.session?.permissions || {});
 
@@ -2098,6 +2098,188 @@ function renderFeatureControls() {
     element.textContent = value ? 'Connected' : 'Not configured';
     element.classList.toggle('is-missing', !value);
   });
+
+  renderFeatureChannelSettings();
+  renderAuditLoggingChannels();
+}
+
+function renderFeatureChannelSettings() {
+  if (!state.configuration) {
+    return;
+  }
+
+  document.querySelectorAll('[data-feature-channel-setting]').forEach((select) => {
+    const key = select.dataset.featureChannelSetting;
+
+    renderConfigurationChannelSelect(
+      select,
+      key,
+      state.configuration.channels[key] || '',
+    );
+  });
+
+  if (voiceRoomTriggerIdInput) {
+    renderConfigurationChannelSelect(
+      voiceRoomTriggerIdInput,
+      'tempVoiceTrigger',
+      state.voiceRooms.settings?.triggerChannelId
+        || state.configuration.channels.tempVoiceTrigger
+        || '',
+    );
+  }
+}
+
+async function handleFeatureChannelSettingsSave(event) {
+  event.preventDefault();
+
+  if (state.session?.permissions?.configure === false) {
+    setSendStatus('Your dashboard role cannot change feature destinations.', 'error');
+    return;
+  }
+
+  if (!state.configuration) {
+    await loadFeatureConfiguration(false);
+  }
+
+  const form = event.currentTarget;
+  const settings = cloneData(state.configuration);
+  const changedKeys = [];
+
+  form.querySelectorAll('[data-feature-channel-setting]').forEach((select) => {
+    const key = select.dataset.featureChannelSetting;
+
+    settings.channels[key] = select.value || null;
+    changedKeys.push(key);
+  });
+
+  const submitButton = event.submitter || form.querySelector('[type="submit"]');
+  const originalLabel = submitButton?.innerHTML;
+
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Saving&hellip;';
+  }
+
+  try {
+    const result = await api('/api/configuration', {
+      method: 'PUT',
+      body: { settings },
+    });
+
+    state.configuration = cloneData(result.settings);
+    state.savedConfiguration = cloneData(result.settings);
+    state.configurationDiagnostics = result.diagnostics;
+    state.configurationStorage = result.storage;
+    renderFeatureControls();
+    applySessionPermissions(state.session?.permissions || {});
+
+    const messages = {
+      tickets: 'Ticket destination saved.',
+      rules: 'Reaction-role channel saved.',
+      guidelines: 'Onboarding channels saved.',
+    };
+
+    setSendStatus(messages[changedKeys[0]] || 'Feature destinations saved.', 'success');
+  } catch (error) {
+    setSendStatus(error.message, 'error');
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = state.session?.permissions?.configure === false;
+      submitButton.innerHTML = originalLabel;
+    }
+  }
+}
+
+function renderAuditLoggingChannels() {
+  if (!auditLogChannelGrid || !state.configuration) {
+    return;
+  }
+
+  auditLogChannelGrid.replaceChildren();
+
+  for (const [key, [label, description]] of Object.entries(auditLoggingChannelDefinitions)) {
+    const card = document.createElement('label');
+    const heading = document.createElement('span');
+    const title = document.createElement('strong');
+    const copy = document.createElement('small');
+    const shell = document.createElement('span');
+    const icon = document.createElement('span');
+    const select = document.createElement('select');
+    const chevron = document.createElement('i');
+
+    card.className = 'config-field-card audit-log-channel-card';
+    heading.className = 'config-field-heading';
+    title.textContent = label;
+    copy.textContent = description;
+    heading.append(title, copy);
+    shell.className = 'cozy-channel-select';
+    icon.className = 'cozy-channel-select-icon';
+    icon.innerHTML = '<i class="fa-solid fa-file-shield" aria-hidden="true"></i>';
+    select.id = `audit-log-channel-${key}`;
+    select.dataset.auditLogChannel = key;
+    select.className = 'discord-channel-select';
+    select.addEventListener('change', () => {
+      updateChannelSelectAppearance(select);
+      auditLogSaveStatus.textContent = 'Unsaved changes';
+      auditLogSaveStatus.classList.remove('ready', 'offline');
+    });
+    chevron.className = 'fa-solid fa-chevron-down cozy-channel-select-chevron';
+    chevron.setAttribute('aria-hidden', 'true');
+    shell.append(icon, select, chevron);
+    card.append(heading, shell);
+    auditLogChannelGrid.append(card);
+    renderConfigurationChannelSelect(select, key, state.configuration.channels[key] || '');
+  }
+
+  auditLogSaveStatus.textContent = 'Synced with Bean';
+  auditLogSaveStatus.classList.remove('offline');
+  auditLogSaveStatus.classList.add('ready');
+}
+
+async function handleAuditLogSettingsSave(event) {
+  event.preventDefault();
+
+  if (state.session?.permissions?.configure === false) {
+    setSendStatus('Your dashboard role cannot change logging channels.', 'error');
+    return;
+  }
+
+  if (!state.configuration) {
+    await loadFeatureConfiguration(false);
+  }
+
+  const settings = cloneData(state.configuration);
+
+  auditLogSettingsForm.querySelectorAll('[data-audit-log-channel]').forEach((select) => {
+    settings.channels[select.dataset.auditLogChannel] = select.value || null;
+  });
+
+  saveAuditLogSettingsButton.disabled = true;
+  saveAuditLogSettingsButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Saving…';
+  auditLogSaveStatus.textContent = 'Saving';
+  auditLogSaveStatus.classList.remove('ready', 'offline');
+
+  try {
+    const result = await api('/api/configuration', {
+      method: 'PUT',
+      body: { settings },
+    });
+
+    state.configuration = cloneData(result.settings);
+    state.savedConfiguration = cloneData(result.settings);
+    state.configurationDiagnostics = result.diagnostics;
+    state.configurationStorage = result.storage;
+    renderFeatureControls();
+    applySessionPermissions(state.session?.permissions || {});
+    setSendStatus('Logging channels saved and applied.', 'success');
+  } catch (error) {
+    auditLogSaveStatus.textContent = 'Save failed';
+    auditLogSaveStatus.classList.add('offline');
+    setSendStatus(error.message, 'error');
+  } finally {
+    saveAuditLogSettingsButton.disabled = state.session?.permissions?.configure === false;
+    saveAuditLogSettingsButton.innerHTML = '<i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save logging channels';
+  }
 }
 
 async function handleFeatureToggleChange(input) {
@@ -2817,6 +2999,10 @@ function applySessionPermissions(permissions = {}) {
   setFormPermission(caseReasonForm, permissions.moderate !== false);
   setFormPermission(caseRevokeForm, permissions.moderate !== false);
   setFormPermission(voiceRoomSettingsForm, permissions.moderate !== false);
+  setFormPermission(auditLogSettingsForm, permissions.configure !== false);
+  featureChannelSettingsForms.forEach((form) => {
+    setFormPermission(form, permissions.configure !== false);
+  });
   setFormPermission(botBioForm, permissions.configure !== false);
   setFormPermission(botPresenceForm, permissions.configure !== false);
   saveBotAvatarButton.disabled = permissions.configure === false;
@@ -4215,7 +4401,11 @@ function renderVoiceRooms() {
   const featureEnabled = state.configuration?.features?.temporaryVoice ?? settings.enabled !== false;
 
   voiceRoomEnabledInput.checked = featureEnabled;
-  voiceRoomTriggerIdInput.value = settings.triggerChannelId || '';
+  setSelectValueWithUnavailableOption(
+    voiceRoomTriggerIdInput,
+    settings.triggerChannelId || '',
+    'Unavailable voice channel',
+  );
   voiceRoomCount.textContent = Number(totals.rooms || 0).toLocaleString();
   voiceMemberCount.textContent = Number(totals.members || 0).toLocaleString();
 
@@ -4319,7 +4509,7 @@ async function handleVoiceRoomSettingsSave(event) {
       body: {
         settings: {
           enabled: voiceRoomEnabledInput.checked,
-          triggerChannelId: voiceRoomTriggerIdInput.value.trim(),
+          triggerChannelId: voiceRoomTriggerIdInput.value,
         },
       },
     });

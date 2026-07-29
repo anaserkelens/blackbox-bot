@@ -968,11 +968,14 @@
               <span class="muted">Bean instantly creates a public room named after the member and moves them inside when this feature is enabled above.</span>
 
               <label class="field voice-trigger-field">
-                Create lobby channel ID
-                <div class="voice-trigger-input">
-                  <i class="fa-solid fa-volume-high" aria-hidden="true"></i>
-                  <input id="voice-room-trigger-id" inputmode="numeric" pattern="\d{17,20}" required />
-                </div>
+                Create lobby
+                <span class="cozy-channel-select">
+                  <span class="cozy-channel-select-icon" aria-hidden="true"><i class="fa-solid fa-volume-high"></i></span>
+                  <select id="voice-room-trigger-id" class="discord-channel-select" required>
+                    <option value="">Loading Discord voice channels&hellip;</option>
+                  </select>
+                  <i class="fa-solid fa-chevron-down cozy-channel-select-chevron" aria-hidden="true"></i>
+                </span>
               </label>
 
               <div class="voice-cleanup-note">
@@ -1052,7 +1055,7 @@
                 <div><span><i class="fa-solid fa-file-shield" aria-hidden="true"></i> Entry log</span><strong data-feature-binding="channels.entryLog">Checking</strong></div>
                 <div><span><i class="fa-solid fa-user-shield" aria-hidden="true"></i> Moderate Members</span><strong>Required</strong></div>
               </div>
-              <button class="secondary feature-settings-link" type="button" data-tab-link="config"><i class="fa-solid fa-sliders" aria-hidden="true"></i> Open server configuration</button>
+              <button class="secondary feature-settings-link" type="button" data-tab-link="audit-logging"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i> Configure invite logging</button>
             </section>
             <section class="dashboard-panel feature-note-card">
               <span><i class="fa-solid fa-circle-info" aria-hidden="true"></i></span>
@@ -1081,15 +1084,25 @@
                 <article><span>3</span><div><strong>Close</strong><p>The conversation closes cleanly and the action is logged.</p></div></article>
               </div>
             </section>
-            <section class="dashboard-panel feature-requirements-card">
+            <form id="ticket-channel-settings-form" class="dashboard-panel feature-requirements-card feature-channel-settings">
               <p class="eyebrow">Connected setup</p><h2>Destinations</h2>
+              <label class="field">
+                Ticket launcher
+                <span class="cozy-channel-select">
+                  <span class="cozy-channel-select-icon" aria-hidden="true"><i class="fa-solid fa-hashtag"></i></span>
+                  <select id="ticket-launcher-channel" class="discord-channel-select" data-feature-channel-setting="tickets" required>
+                    <option value="">Loading Discord channels&hellip;</option>
+                  </select>
+                  <i class="fa-solid fa-chevron-down cozy-channel-select-chevron" aria-hidden="true"></i>
+                </span>
+              </label>
               <div class="feature-requirement-list">
-                <div><span><i class="fa-solid fa-hashtag" aria-hidden="true"></i> Ticket launcher</span><strong data-feature-binding="channels.tickets">Checking</strong></div>
                 <div><span><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Ticket log</span><strong data-feature-binding="channels.ticketLogs">Checking</strong></div>
                 <div><span><i class="fa-solid fa-user-shield" aria-hidden="true"></i> Moderator role</span><strong data-feature-binding="roles.moderator">Checking</strong></div>
               </div>
-              <button class="secondary feature-settings-link" type="button" data-tab-link="config"><i class="fa-solid fa-sliders" aria-hidden="true"></i> Configure channels and roles</button>
-            </section>
+              <button type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save ticket destination</button>
+              <button class="secondary feature-settings-link feature-secondary-link" type="button" data-tab-link="audit-logging"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i> Configure ticket logging</button>
+            </form>
             <section class="dashboard-panel feature-note-card">
               <span><i class="fa-solid fa-terminal" aria-hidden="true"></i></span>
               <div><strong>Publish the launcher in Discord</strong><p>Use <code>/ticketsetup</code> in the configured channel whenever you need to recreate the ticket panel.</p></div>
@@ -1117,15 +1130,25 @@
                 <article><span>3</span><div><strong>Unlock</strong><p>The Verified role is granted automatically.</p></div></article>
               </div>
             </section>
-            <section class="dashboard-panel feature-requirements-card">
+            <form id="reaction-role-channel-settings-form" class="dashboard-panel feature-requirements-card feature-channel-settings">
               <p class="eyebrow">Connected setup</p><h2>Requirements</h2>
+              <label class="field">
+                Rules channel
+                <span class="cozy-channel-select">
+                  <span class="cozy-channel-select-icon" aria-hidden="true"><i class="fa-solid fa-hashtag"></i></span>
+                  <select id="reaction-role-channel" class="discord-channel-select" data-feature-channel-setting="rules" required>
+                    <option value="">Loading Discord channels&hellip;</option>
+                  </select>
+                  <i class="fa-solid fa-chevron-down cozy-channel-select-chevron" aria-hidden="true"></i>
+                </span>
+              </label>
               <div class="feature-requirement-list">
-                <div><span><i class="fa-solid fa-hashtag" aria-hidden="true"></i> Rules channel</span><strong data-feature-binding="channels.rules">Checking</strong></div>
                 <div><span><i class="fa-solid fa-id-badge" aria-hidden="true"></i> Verified role</span><strong data-feature-binding="roles.verified">Checking</strong></div>
                 <div><span><i class="fa-solid fa-face-smile" aria-hidden="true"></i> Message and emoji</span><strong>Environment</strong></div>
               </div>
-              <button class="secondary feature-settings-link" type="button" data-tab-link="config"><i class="fa-solid fa-sliders" aria-hidden="true"></i> Configure channel and role</button>
-            </section>
+              <button type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save reaction-role channel</button>
+              <button class="secondary feature-settings-link feature-secondary-link" type="button" data-tab-link="config"><i class="fa-solid fa-users-gear" aria-hidden="true"></i> Configure verified role</button>
+            </form>
             <section class="dashboard-panel feature-note-card">
               <span><i class="fa-solid fa-terminal" aria-hidden="true"></i></span>
               <div><strong>Setup command included</strong><p>Use <code>/setupreactionrole</code> to publish or refresh the verification message in Discord.</p></div>
@@ -1145,7 +1168,7 @@
             </label>
           </section>
           <div class="feature-page-grid feature-logging-grid">
-            <section class="dashboard-panel feature-detail-card feature-detail-card-wide">
+            <section class="dashboard-panel feature-detail-card feature-detail-card-wide feature-logging-coverage">
               <div class="section-heading"><div><p class="eyebrow">Coverage</p><h2>What Bean records</h2></div><span class="status-pill" data-feature-state-pill="detailedLogging">Checking</span></div>
               <div class="logging-coverage-grid">
                 <article><i class="fa-solid fa-message" aria-hidden="true"></i><div><strong>Messages</strong><p>Edits, deletes, bulk deletes, and attachments.</p></div></article>
@@ -1154,18 +1177,29 @@
                 <article><i class="fa-solid fa-server" aria-hidden="true"></i><div><strong>Server</strong><p>Channels, roles, scheduled events, bans, and timeouts.</p></div></article>
               </div>
             </section>
-            <section class="dashboard-panel feature-requirements-card">
-              <p class="eyebrow">Log destinations</p><h2>Connected channels</h2>
-              <div class="feature-requirement-list">
-                <div><span>Entry log</span><strong data-feature-binding="channels.entryLog">Checking</strong></div>
-                <div><span>Message log</span><strong data-feature-binding="channels.signalLog">Checking</strong></div>
-                <div><span>Voice log</span><strong data-feature-binding="channels.lineLog">Checking</strong></div>
-                <div><span>Operation log</span><strong data-feature-binding="channels.operationLog">Checking</strong></div>
-                <div><span>System log</span><strong data-feature-binding="channels.systemLog">Checking</strong></div>
+            <section class="dashboard-panel feature-note-card feature-logging-note">
+              <span><i class="fa-solid fa-route" aria-hidden="true"></i></span>
+              <div>
+                <strong>One organized record for every system</strong>
+                <p>Choose separate staff channels below, or reuse a destination when you prefer fewer rooms.</p>
               </div>
-              <button class="secondary feature-settings-link" type="button" data-tab-link="config"><i class="fa-solid fa-sliders" aria-hidden="true"></i> Configure log channels</button>
             </section>
           </div>
+          <form id="audit-log-settings-form" class="dashboard-panel audit-log-settings">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Log destinations</p>
+                <h2>Logging channels</h2>
+                <p>Connect every audit stream here. These destinations are no longer mixed into general server channels.</p>
+              </div>
+              <span id="audit-log-save-status" class="status-pill">Synced with Bean</span>
+            </div>
+            <div id="audit-log-channel-grid" class="config-field-grid audit-log-channel-grid"></div>
+            <div class="audit-log-save-row">
+              <span>Changes apply to Bean immediately after saving.</span>
+              <button id="save-audit-log-settings" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save logging channels</button>
+            </div>
+          </form>
         </section>
 
         <section class="tab-panel feature-page" data-panel="welcome-embed" data-feature-page="welcomeMessages" hidden>
@@ -1285,6 +1319,52 @@
               </div>
             </aside>
           </section>
+          <form id="welcome-channel-settings-form" class="dashboard-panel feature-channel-settings welcome-channel-settings">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Onboarding destinations</p>
+                <h2>Community links</h2>
+                <p>These channels belong to the welcome journey, so they live beside the Welcome Message builder.</p>
+              </div>
+              <span class="status-pill">Shared welcome links</span>
+            </div>
+            <div class="config-field-grid">
+              <label class="config-field-card">
+                <span class="config-field-heading"><strong>Guidelines</strong><small>Community guidance for new members.</small></span>
+                <span class="cozy-channel-select">
+                  <span class="cozy-channel-select-icon" aria-hidden="true"><i class="fa-solid fa-hashtag"></i></span>
+                  <select id="welcome-guidelines-channel" class="discord-channel-select" data-feature-channel-setting="guidelines">
+                    <option value="">Loading Discord channels&hellip;</option>
+                  </select>
+                  <i class="fa-solid fa-chevron-down cozy-channel-select-chevron" aria-hidden="true"></i>
+                </span>
+              </label>
+              <label class="config-field-card">
+                <span class="config-field-heading"><strong>Introductions</strong><small>Where new members can say hello.</small></span>
+                <span class="cozy-channel-select">
+                  <span class="cozy-channel-select-icon" aria-hidden="true"><i class="fa-solid fa-hashtag"></i></span>
+                  <select id="welcome-introductions-channel" class="discord-channel-select" data-feature-channel-setting="introductions">
+                    <option value="">Loading Discord channels&hellip;</option>
+                  </select>
+                  <i class="fa-solid fa-chevron-down cozy-channel-select-chevron" aria-hidden="true"></i>
+                </span>
+              </label>
+              <label class="config-field-card">
+                <span class="config-field-heading"><strong>Socials</strong><small>Community social posts and creator links.</small></span>
+                <span class="cozy-channel-select">
+                  <span class="cozy-channel-select-icon" aria-hidden="true"><i class="fa-solid fa-hashtag"></i></span>
+                  <select id="welcome-socials-channel" class="discord-channel-select" data-feature-channel-setting="socials">
+                    <option value="">Loading Discord channels&hellip;</option>
+                  </select>
+                  <i class="fa-solid fa-chevron-down cozy-channel-select-chevron" aria-hidden="true"></i>
+                </span>
+              </label>
+            </div>
+            <div class="feature-channel-settings-actions">
+              <span>Optional channels can be left unselected.</span>
+              <button type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save onboarding channels</button>
+            </div>
+          </form>
         </section>
 
         <section class="tab-panel feature-page" data-panel="live-embed" data-feature-page-any="streamMonitor youtubeMonitor" hidden>
@@ -1539,7 +1619,7 @@
             <div>
               <p class="eyebrow">Control center</p>
               <h1>Server configuration</h1>
-              <p>Connect Bean's channels, roles, staff access, and Discord requirements in one place.</p>
+              <p>Manage Bean's roles, staff access, health checks, and Discord requirements in one place.</p>
             </div>
             <div class="config-readiness-card">
               <span id="config-readiness-ring">—</span>
@@ -1552,7 +1632,6 @@
 
           <nav class="config-section-tabs" aria-label="Configuration sections">
             <button class="active" type="button" data-config-section="overview"><i class="fa-solid fa-grid-2" aria-hidden="true"></i> Overview</button>
-            <button type="button" data-config-section="channels"><i class="fa-solid fa-hashtag" aria-hidden="true"></i> Channels</button>
             <button type="button" data-config-section="roles"><i class="fa-solid fa-users-gear" aria-hidden="true"></i> Roles</button>
             <button type="button" data-config-section="diagnostics"><i class="fa-solid fa-stethoscope" aria-hidden="true"></i> Diagnostics</button>
             <button type="button" data-config-section="access"><i class="fa-solid fa-key" aria-hidden="true"></i> Access & audit</button>
@@ -1581,13 +1660,6 @@
                 </div>
                 <div id="config-attention-list" class="config-diagnostic-list"></div>
               </section>
-            </section>
-
-            <section class="config-section" data-config-panel="channels" hidden>
-              <header class="config-section-heading">
-                <div><p class="eyebrow">Destinations</p><h2>Channels</h2><p>Choose where Bean publishes, logs, welcomes, and creates temporary rooms.</p></div>
-              </header>
-              <div id="config-channel-grid" class="config-field-grid"></div>
             </section>
 
             <section class="config-section" data-config-panel="roles" hidden>

@@ -11,8 +11,15 @@ const data = new SlashCommandBuilder()
 async function execute(interaction) {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-  if (!config.reactionRole.messageId || !config.reactionRole.emojiId || !config.roles.verified) {
-    await interaction.editReply('Set REACTION_ROLE_MESSAGE_ID, REACTION_ROLE_EMOJI_ID, and VERIFIED_ROLE_ID first.');
+  if (
+    !config.reactionRole.channelId
+    || !config.reactionRole.messageId
+    || !config.reactionRole.emojiId
+    || !config.roles.verified
+  ) {
+    await interaction.editReply(
+      'Choose the channel and Verified role in the dashboard, then configure the reaction-role message and emoji.',
+    );
     return;
   }
 
