@@ -32,8 +32,8 @@
   --clay: #dd9289;
   --clay-soft: rgba(221, 146, 137, 0.13);
 
-  --font-display: 'Fraunces Variable', 'Fraunces', Georgia, 'Times New Roman', serif;
-  --font-body: 'Nunito Sans Variable', 'Nunito Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Geist Variable', 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Geist Variable', 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: ui-monospace, 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
 
   --r-xl: 26px;
@@ -1108,7 +1108,10 @@ input[type='search'] {
 .home-bean-button .bean-mark {
   width: 40px;
   height: 40px;
-  border-radius: 14px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .home-brand-name {
