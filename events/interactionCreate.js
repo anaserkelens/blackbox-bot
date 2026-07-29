@@ -1,11 +1,18 @@
-const { Events, MessageFlags } = require('discord.js');
+const { Events, MessageFlags, PermissionFlagsBits } = require('discord.js');
 
 const { recordActivity } = require('../utils/activityFeed');
+const { resolveQuarantineReview } = require('../utils/beanProtection');
 const { config } = require('../utils/config');
+const { canUseModerationCommand } = require('../utils/moderationActions');
 
 const name = Events.InteractionCreate;
 
 async function execute(interaction) {
+  if (interaction.isButton() && interaction.customId.startsWith('bean-quarantine:')) {
+    await handleQuarantineReviewButton(interaction);
+    return;
+  }
+
   if (!interaction.isChatInputCommand()) {
     return;
   }
@@ -53,6 +60,52 @@ async function execute(interaction) {
     } else {
       await interaction.reply(response);
     }
+  }
+}
+
+async function handleQuarantineReviewButton(interaction) {
+  if (!canUseModerationCommand(interaction, PermissionFlagsBits.ModerateMembers)) {
+    await interaction.reply({
+      content: 'You need moderation access to review quarantined members.',
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  const [, action, reviewId] = interaction.customId.split(':');
+
+  if (!['release', 'timeout'].includes(action) || !reviewId) {
+    await interaction.reply({
+      content: 'That quarantine review action is invalid.',
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+  try {
+    const durationMs = action === 'timeout' ? 10 * 60 * 1000 : null;
+    const review = await resolveQuarantineReview(interaction.client, config, {
+      reviewId,
+      action,
+      actor: interaction.user,
+      reason: action === 'release'
+        ? `Released by ${interaction.user.tag || interaction.user.username} after Discord review.`
+        : `Timed out by ${interaction.user.tag || interaction.user.username} after Discord review.`,
+      durationMs,
+    });
+    const reference = review.resolution?.caseReference
+      ? ` ${review.resolution.caseReference} was created.`
+      : '';
+
+    await interaction.editReply(
+      action === 'release'
+        ? `Released ${review.userTag || review.userId} from quarantine.`
+        : `Timed out ${review.userTag || review.userId} for 10 minutes.${reference}`,
+    );
+  } catch (error) {
+    await interaction.editReply(`Quarantine review failed: ${error.message}`);
   }
 }
 

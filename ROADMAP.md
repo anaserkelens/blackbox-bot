@@ -5,7 +5,6 @@
 - Bean Protection follow-ups
   - Suspicious-link reputation checks
   - Optional staff-confirmed channel lockdown
-  - Quarantine review and bulk-release workflow
 - Ticket system upgrades
   - HTML transcripts
   - Claiming and transferring tickets
@@ -41,6 +40,9 @@
 - Join-spike detection, persistent raid mode, and quarantine-role enforcement
 - `/protection` and `/raid` staff commands
 - Dashboard Protection workspace with Discord rule sync, thresholds, raid controls, and incident history
+- Persistent quarantine review queue with moderator notes and audited resolutions
+- Dashboard Release, Timeout, Kick, Ban, and bulk-release controls
+- `/quarantine` staff commands and quick Discord review buttons
 - Live Dashboard notifications for cases, Mailbox failures, bot errors, and unusual join activity
 - Dashboard Analytics for growth, voice hours, Mailbox engagement, moderation patterns, and active members
 - Member-aware Activity Feed with general bot-operation entries removed

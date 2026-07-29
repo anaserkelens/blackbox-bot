@@ -5716,6 +5716,236 @@ button.is-feature-disabled {
   color: var(--clay);
 }
 
+.quarantine-review-card {
+  display: grid;
+  gap: 1rem;
+  border-color: rgba(254, 231, 92, 0.16);
+}
+
+.quarantine-review-card .section-heading > div > p:last-child {
+  max-width: 720px;
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+
+.quarantine-review-toolbar {
+  display: grid;
+  grid-template-columns: minmax(170px, 0.35fr) minmax(280px, 1fr) auto;
+  gap: 0.75rem;
+  align-items: end;
+  padding: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--raised);
+}
+
+.quarantine-review-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.quarantine-review-item {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--raised);
+}
+
+.quarantine-review-item.is-pending {
+  border-color: rgba(254, 231, 92, 0.24);
+  box-shadow: inset 3px 0 rgba(254, 231, 92, 0.48);
+}
+
+.quarantine-review-heading,
+.quarantine-member,
+.quarantine-action-row,
+.quarantine-note-compose {
+  display: flex;
+  align-items: center;
+}
+
+.quarantine-review-heading {
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.quarantine-member {
+  min-width: 0;
+  gap: 0.7rem;
+}
+
+.quarantine-member > span {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  border-radius: 13px;
+  background: var(--bean-soft);
+  color: var(--bean-bright);
+}
+
+.quarantine-member > div {
+  min-width: 0;
+}
+
+.quarantine-member strong,
+.quarantine-member small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.quarantine-member strong {
+  color: var(--text);
+  font-family: var(--font-display);
+}
+
+.quarantine-member small,
+.quarantine-trigger small,
+.quarantine-review-facts small,
+.quarantine-note small,
+.quarantine-resolution small {
+  color: var(--text-faint);
+  font-size: 0.7rem;
+}
+
+.quarantine-review-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.quarantine-review-facts p {
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--panel);
+}
+
+.quarantine-review-facts small,
+.quarantine-review-facts strong {
+  display: block;
+}
+
+.quarantine-review-facts strong {
+  margin-top: 0.12rem;
+  overflow-wrap: anywhere;
+  color: var(--text-soft);
+  font-size: 0.74rem;
+}
+
+.quarantine-trigger,
+.quarantine-resolution {
+  padding: 0.75rem;
+  border-radius: var(--r-md);
+  background: var(--panel);
+}
+
+.quarantine-trigger p,
+.quarantine-resolution p {
+  margin-top: 0.2rem;
+  color: var(--text-soft);
+  font-size: 0.78rem;
+}
+
+.quarantine-resolution {
+  border: 1px solid rgba(87, 242, 135, 0.15);
+}
+
+.quarantine-resolution strong {
+  color: var(--sage);
+  font-size: 0.76rem;
+}
+
+.quarantine-notes {
+  border-top: 1px solid var(--line);
+  padding-top: 0.7rem;
+}
+
+.quarantine-notes summary {
+  cursor: pointer;
+  color: var(--text-soft);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.quarantine-notes summary span {
+  margin-left: 0.3rem;
+  color: var(--text-faint);
+}
+
+.quarantine-note-list {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+}
+
+.quarantine-note {
+  padding: 0.55rem 0.65rem;
+  border-left: 2px solid var(--line-strong);
+  background: var(--panel);
+}
+
+.quarantine-note p {
+  color: var(--text-soft);
+  font-size: 0.76rem;
+}
+
+.quarantine-note-compose {
+  align-items: stretch;
+  gap: 0.55rem;
+  margin-top: 0.65rem;
+}
+
+.quarantine-note-compose textarea {
+  min-height: 42px;
+  flex: 1;
+}
+
+.quarantine-decision {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  gap: 0.7rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--line);
+}
+
+.quarantine-decision textarea {
+  min-height: 72px;
+}
+
+.quarantine-action-row {
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.quarantine-empty {
+  min-height: 150px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 0.35rem;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+.quarantine-empty i {
+  color: var(--sage);
+  font-size: 1.7rem;
+}
+
+.quarantine-empty strong {
+  color: var(--text);
+}
+
+.quarantine-empty p {
+  font-size: 0.78rem;
+}
+
 .protection-incidents-card {
   display: grid;
   gap: 1rem;
@@ -5954,9 +6184,17 @@ button.is-feature-disabled {
   .protection-threshold-grid,
   .protection-destination-grid,
   .protection-raid-controls,
+  .quarantine-review-toolbar,
+  .quarantine-review-facts,
+  .quarantine-decision,
   .form-grid,
   .reaction-role-form-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .quarantine-note-compose {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .form-grid .span-2,

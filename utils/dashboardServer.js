@@ -7,8 +7,11 @@ const { ChannelType, PermissionFlagsBits } = require('discord.js');
 
 const { getActivityFeed, getActivityFeedStorageInfo } = require('./activityFeed');
 const {
+  addQuarantineReviewNote,
+  bulkReleaseQuarantineReviews,
   getProtectionOverview,
   getProtectionStorageInfo,
+  resolveQuarantineReview,
   saveProtectionSettings,
   setRaidMode,
   syncNativeAutoModerationRules,
@@ -481,6 +484,27 @@ async function handleRequest(client, request, response) {
 
     if (request.method === 'POST' && url.pathname === '/api/protection/sync') {
       await handleSyncProtectionRules(client, response, session.user);
+      return;
+    }
+
+    if (
+      request.method === 'POST'
+      && /^\/api\/protection\/quarantine\/[^/]+\/action$/.test(url.pathname)
+    ) {
+      await handleResolveQuarantineReview(client, request, url.pathname, response, session.user);
+      return;
+    }
+
+    if (
+      request.method === 'POST'
+      && /^\/api\/protection\/quarantine\/[^/]+\/notes$/.test(url.pathname)
+    ) {
+      await handleAddQuarantineReviewNote(client, request, url.pathname, response, session.user);
+      return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/protection/quarantine/bulk-release') {
+      await handleBulkReleaseQuarantineReviews(client, request, response, session.user);
       return;
     }
 
@@ -1641,6 +1665,68 @@ async function handleSyncProtectionRules(client, response, actor) {
   }
 }
 
+async function handleResolveQuarantineReview(client, request, pathname, response, actor) {
+  const reviewId = decodeURIComponent(
+    pathname.match(/^\/api\/protection\/quarantine\/([^/]+)\/action$/)?.[1] || '',
+  );
+  const body = await readJsonBody(request, config.dashboard.maxBodyBytes);
+
+  try {
+    const review = await resolveQuarantineReview(client, config, {
+      reviewId,
+      action: body.action,
+      actor,
+      reason: body.reason,
+      durationMs: Number.parseInt(body.durationMinutes, 10) * 60 * 1000,
+      deleteMessageSeconds: body.deleteMessageSeconds,
+    });
+    const overview = await getProtectionOverview(client, config);
+
+    sendJson(response, 200, { ok: true, review, ...overview });
+  } catch (error) {
+    sendJson(response, error.message.includes('not found') ? 404 : 400, { error: error.message });
+  }
+}
+
+async function handleAddQuarantineReviewNote(client, request, pathname, response, actor) {
+  const reviewId = decodeURIComponent(
+    pathname.match(/^\/api\/protection\/quarantine\/([^/]+)\/notes$/)?.[1] || '',
+  );
+  const body = await readJsonBody(request, config.dashboard.maxBodyBytes);
+
+  try {
+    const review = await addQuarantineReviewNote(config, reviewId, body.note, actor);
+    const overview = await getProtectionOverview(client, config);
+
+    sendJson(response, 200, { ok: true, review, ...overview });
+  } catch (error) {
+    sendJson(response, error.message.includes('not found') ? 404 : 400, { error: error.message });
+  }
+}
+
+async function handleBulkReleaseQuarantineReviews(client, request, response, actor) {
+  const body = await readJsonBody(request, config.dashboard.maxBodyBytes);
+  const guild = getDashboardGuild(client);
+
+  if (!guild) {
+    sendJson(response, 404, { error: 'The dashboard Discord server was not found.' });
+    return;
+  }
+
+  try {
+    const result = await bulkReleaseQuarantineReviews(client, config, {
+      guildId: guild.id,
+      actor,
+      reason: body.reason,
+    });
+    const overview = await getProtectionOverview(client, config);
+
+    sendJson(response, 200, { ok: true, result, ...overview });
+  } catch (error) {
+    sendJson(response, 400, { error: error.message });
+  }
+}
+
 async function getDashboardStorageHealth() {
   const presence = await getPresenceSettingsStorageStatus(config).catch(() => null);
   const stores = [
@@ -2784,6 +2870,7 @@ function sessionCanAccess(session, method, pathname) {
   if (pathname.startsWith('/api/moderation-cases/')) return permissions.moderate;
   if (pathname.startsWith('/api/temp-voice/')) return permissions.moderate;
   if (pathname === '/api/protection/raid') return permissions.moderate;
+  if (pathname.startsWith('/api/protection/quarantine')) return permissions.moderate;
   if (pathname.startsWith('/api/protection/')) return permissions.configure;
   if (
     pathname.startsWith('/api/send-message')

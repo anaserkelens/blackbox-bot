@@ -7,9 +7,12 @@ const { test } = require('node:test');
 process.env.DISCORD_TOKEN = process.env.DISCORD_TOKEN || 'test-token';
 
 const {
+  addQuarantineReviewNote,
+  bulkReleaseQuarantineReviews,
   evaluateProtectionJoin,
   evaluateProtectionMessage,
   getProtectionOverview,
+  resolveQuarantineReview,
   saveProtectionSettings,
   setRaidMode,
   syncNativeAutoModerationRules,
@@ -32,6 +35,10 @@ test('Bean Protection persists settings, escalates message floods, and quarantin
   const deleted = [];
   const timeouts = [];
   const quarantined = [];
+  const released = [];
+  const kicked = [];
+  const banned = [];
+  const activeRoleIds = new Set();
   const quarantineRole = {
     id: quarantineRoleId,
     name: 'Quarantine',
@@ -46,6 +53,9 @@ test('Bean Protection persists settings, escalates message floods, and quarantin
     members: {
       cache: new Map(),
       fetch: async () => null,
+      ban: async (targetId) => {
+        banned.push(targetId);
+      },
     },
     autoModerationRules: {
       fetch: async () => nativeRules,
@@ -142,15 +152,25 @@ test('Bean Protection persists settings, escalates message floods, and quarantin
     user,
     displayName: 'Member',
     moderatable: true,
+    kickable: true,
+    bannable: true,
     permissions: { has: () => false },
     roles: {
-      cache: { has: () => false },
+      cache: { has: (roleId) => activeRoleIds.has(roleId) },
       add: async (role) => {
         quarantined.push(role.id);
+        activeRoleIds.add(role.id);
+      },
+      remove: async (role) => {
+        released.push(role.id);
+        activeRoleIds.delete(role.id);
       },
     },
     timeout: async (durationMs) => {
       timeouts.push(durationMs);
+    },
+    kick: async () => {
+      kicked.push(userId);
     },
     guild,
     toString: () => `<@${userId}>`,
@@ -209,5 +229,70 @@ test('Bean Protection persists settings, escalates message floods, and quarantin
   assert.deepEqual(quarantined, [quarantineRoleId]);
   assert.equal(overview.raid.active, true);
   assert.equal(overview.native.beanRules.length, 2);
+  assert.equal(overview.metrics.pendingQuarantines, 1);
+  assert.equal(overview.quarantineReviews[0].status, 'pending');
   assert.ok(overview.incidents.some((incident) => incident.type === 'member_quarantined'));
+
+  const notedReview = await addQuarantineReviewNote(
+    featureConfig,
+    joinResult.review.id,
+    'Account checked by test staff.',
+    { id: botId, displayName: 'Test Staff', role: 'staff' },
+  );
+
+  assert.equal(notedReview.notes.length, 1);
+
+  const resolvedReview = await resolveQuarantineReview(client, featureConfig, {
+    reviewId: joinResult.review.id,
+    action: 'timeout',
+    actor: { id: botId, username: 'Test Staff', tag: 'Test Staff#0001' },
+    reason: 'Suspicious raid behavior confirmed.',
+    durationMs: 30 * 60 * 1000,
+  });
+  const casesAfterReview = await listModerationCases(featureConfig, guildId);
+
+  assert.equal(resolvedReview.status, 'timed_out');
+  assert.match(resolvedReview.resolution.caseReference, /^CASE-\d{6}$/);
+  assert.equal(timeouts.at(-1), 30 * 60 * 1000);
+  assert.deepEqual(released, [quarantineRoleId]);
+  assert.equal(casesAfterReview.length, 2);
+  assert.equal(casesAfterReview[0].metadata.source, 'bean-quarantine-review');
+
+  const secondJoin = await evaluateProtectionJoin(member, client, featureConfig);
+  const bulkResult = await bulkReleaseQuarantineReviews(client, featureConfig, {
+    guildId,
+    actor: { id: botId, displayName: 'Test Staff', role: 'staff' },
+    reason: 'False-positive raid cleared.',
+  });
+  const finalOverview = await getProtectionOverview(client, featureConfig);
+
+  assert.equal(secondJoin.status, 'quarantined');
+  assert.equal(bulkResult.released.length, 1);
+  assert.equal(bulkResult.failed.length, 0);
+  assert.equal(finalOverview.metrics.pendingQuarantines, 0);
+  assert.equal(finalOverview.quarantineReviews[0].status, 'released');
+
+  const kickJoin = await evaluateProtectionJoin(member, client, featureConfig);
+  const kickedReview = await resolveQuarantineReview(client, featureConfig, {
+    reviewId: kickJoin.review.id,
+    action: 'kick',
+    actor: { id: botId, username: 'Test Staff', tag: 'Test Staff#0001' },
+    reason: 'Kick branch verification.',
+  });
+  const banJoin = await evaluateProtectionJoin(member, client, featureConfig);
+  const bannedReview = await resolveQuarantineReview(client, featureConfig, {
+    reviewId: banJoin.review.id,
+    action: 'ban',
+    actor: { id: botId, username: 'Test Staff', tag: 'Test Staff#0001' },
+    reason: 'Ban branch verification.',
+    deleteMessageSeconds: 3600,
+  });
+  const finalCases = await listModerationCases(featureConfig, guildId);
+
+  assert.equal(kickedReview.status, 'kicked');
+  assert.equal(bannedReview.status, 'banned');
+  assert.deepEqual(kicked, [userId]);
+  assert.deepEqual(banned, [userId]);
+  assert.equal(finalCases.length, 4);
+  assert.equal(finalCases[0].metadata.deleteMessageSeconds, 3600);
 });

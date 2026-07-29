@@ -144,7 +144,7 @@ async function logBotModerationAction(client, options) {
 }
 
 function createAuditReason(reason, moderator, caseId) {
-  return `${reason} | Moderator: ${moderator.tag || moderator.username} (${moderator.id}) | ${caseId}`.slice(0, 512);
+  return `${reason} | Moderator: ${moderator.tag || moderator.username || moderator.displayName || 'Staff'} (${moderator.id}) | ${caseId}`.slice(0, 512);
 }
 
 function actionKey(action, guildId, userId) {

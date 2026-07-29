@@ -9,7 +9,7 @@ A Discord.js bot for the UNDR CTRL community, ready to run locally and deploy to
 - Keeps secrets in environment variables instead of files.
 - Uses the same folder shape as the reference bot: `commands`, `events`, `images`, and `utils`.
 - Includes a protected browser dashboard for sending Components v2 messages instantly.
-- Includes `/ping`, `/about`, `/server`, `/help`, `/clear`, `/warn`, `/kick`, `/ban`, `/timeout`, `/protection`, `/raid`, `/ticketsetup`, `/setupreactionrole`, `/teststream`, and `/testwelcome`.
+- Includes `/ping`, `/about`, `/server`, `/help`, `/clear`, `/warn`, `/kick`, `/ban`, `/timeout`, `/protection`, `/raid`, `/quarantine`, `/ticketsetup`, `/setupreactionrole`, `/teststream`, and `/testwelcome`.
 - Includes optional event systems for Bean Protection, tickets, member logs, message logs, channel logs, scheduled event logs, moderation logs, user logs, invite moderation, reaction roles, and stream monitoring.
 
 ## Local Setup
@@ -150,7 +150,9 @@ Join-spike detection requires the Server Members intent. Staff can use `/raid en
 
 `/protection status` shows the current engine, raid, and Discord AutoMod state. `/protection incidents` shows recent evidence, while `/protection sync` creates or updates only the two rules named `Bean Protection · Discord Spam` and `Bean Protection · Mention Raids`. Syncing requires Manage Server and Bean also needs Manage Server; unrelated Discord AutoMod rules are never modified.
 
-Protection settings, raid state, and the latest 250 incidents are stored at `RAILWAY_VOLUME_MOUNT_PATH/bean-protection.json` when a volume is attached, or at `BEAN_PROTECTION_PATH` when overridden. The dedicated dashboard workspace controls detection thresholds, escalation times, alerts, member DMs, Discord rule sync, raid mode, and incident history.
+Every successfully quarantined member enters a persistent review queue. Staff can add notes and choose Release, Timeout, Kick, or Ban in the dashboard; bulk release is available when a raid is confirmed as a false positive. Timeout, kick, and ban decisions create standard moderation cases, while releases remain audited without creating a punitive case. `/quarantine list`, `/quarantine note`, `/quarantine release`, `/quarantine timeout`, `/quarantine kick`, and `/quarantine ban` provide the same workflow in Discord. New quarantine alerts also include quick Release and 10-minute Timeout buttons for moderators.
+
+Protection settings, raid state, the latest 250 incidents, and up to 500 quarantine reviews are stored at `RAILWAY_VOLUME_MOUNT_PATH/bean-protection.json` when a volume is attached, or at `BEAN_PROTECTION_PATH` when overridden. The dedicated dashboard workspace controls detection thresholds, escalation times, alerts, member DMs, Discord rule sync, raid mode, quarantine review, and incident history.
 
 ## Temporary Voice Rooms
 
@@ -190,7 +192,7 @@ Configure Discord OAuth to enable the browser dashboard. Railway will expose it 
 https://your-service.up.railway.app/
 ```
 
-The Settings workspace includes a persistent Configuration Center for general channels, roles, storage, Discord permissions, privileged intents, dashboard access, and audited change history. Every bot system now owns its enable switch on its dedicated feature page; disabled systems remain accessible but appear muted in the sidebar. Bean Protection has its own workspace for native AutoMod sync, behavioral thresholds, escalation, raid controls, quarantine configuration, and recent incidents. The Audit Logs page owns the case, member-entry, message, voice, operation, system, and ticket log destinations instead of mixing them into general channel settings. Settings write to `dashboard-settings.json` on the Railway volume, or to `DASHBOARD_SETTINGS_PATH` when explicitly configured. Saved channel and role choices are available to active systems immediately. Gateway intent changes and enabling a monitor that was disabled during startup still require updating the Discord Developer Portal/Railway variables when applicable and restarting Bean.
+The Settings workspace includes a persistent Configuration Center for general channels, roles, storage, Discord permissions, privileged intents, dashboard access, and audited change history. Every bot system now owns its enable switch on its dedicated feature page; disabled systems remain accessible but appear muted in the sidebar. Bean Protection has its own workspace for native AutoMod sync, behavioral thresholds, escalation, raid controls, quarantine review and bulk release, quarantine configuration, and recent incidents. The Audit Logs page owns the case, member-entry, message, voice, operation, system, and ticket log destinations instead of mixing them into general channel settings. Settings write to `dashboard-settings.json` on the Railway volume, or to `DASHBOARD_SETTINGS_PATH` when explicitly configured. Saved channel and role choices are available to active systems immediately. Gateway intent changes and enabling a monitor that was disabled during startup still require updating the Discord Developer Portal/Railway variables when applicable and restarting Bean.
 
 The dashboard is Discord-only. Set `DASHBOARD_DISCORD_OAUTH_ENABLED=true`, `DASHBOARD_PUBLIC_URL`, and `DISCORD_CLIENT_SECRET`, then add `DASHBOARD_PUBLIC_URL/auth/discord/callback` to the application's OAuth2 redirects in the Discord Developer Portal. Access follows the bot owner, Founder, Staff, and Moderator roles. Read and write permissions are enforced by the API, not only hidden in the interface.
 

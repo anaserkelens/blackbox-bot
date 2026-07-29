@@ -1045,6 +1045,39 @@
             <p id="protection-raid-summary" class="muted">Loading current raid state…</p>
           </section>
 
+          <section class="dashboard-panel quarantine-review-card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Moderator decisions</p>
+                <h2>Quarantine review queue</h2>
+                <p>Review why each member was held, add staff notes, then release or escalate them with a complete audit trail.</p>
+              </div>
+              <span id="quarantine-review-pill" class="status-pill">Checking</span>
+            </div>
+
+            <div class="quarantine-review-toolbar">
+              <label class="field">
+                Show
+                <select id="quarantine-review-filter">
+                  <option value="pending">Pending reviews</option>
+                  <option value="all">All reviews</option>
+                  <option value="resolved">Resolved reviews</option>
+                </select>
+              </label>
+              <label class="field">
+                Bulk-release reason
+                <input id="quarantine-bulk-reason" type="text" maxlength="1000" placeholder="Why are all pending members being released?" />
+              </label>
+              <button id="quarantine-bulk-release" class="secondary" type="button" data-requires-permission="moderate">
+                <i class="fa-solid fa-users-rays" aria-hidden="true"></i> Release all pending
+              </button>
+            </div>
+
+            <div id="quarantine-review-list" class="quarantine-review-list">
+              <p class="muted">Loading quarantined members…</p>
+            </div>
+          </section>
+
           <div class="protection-workspace-grid">
             <form id="protection-settings-form" class="dashboard-panel protection-settings-card">
               <div class="section-heading">

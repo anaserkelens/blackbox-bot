@@ -8,6 +8,9 @@ const { after, before, test } = require('node:test');
 process.env.DISCORD_TOKEN = process.env.DISCORD_TOKEN || 'test-token';
 
 const {
+  recordQuarantineReview,
+} = require('../utils/beanProtection');
+const {
   getActivityFeed,
   recordActivity,
 } = require('../utils/activityFeed');
@@ -128,6 +131,7 @@ function createClient() {
   };
 
   return {
+    guild,
     sent,
     fetchedChannelIds,
     client: {
@@ -478,7 +482,7 @@ test('dashboard configuration persists channels, roles, features, and audit hist
 });
 
 test('authenticated dashboard APIs expose health, activity, and the schedule queue', async (context) => {
-  const { client, sent } = createClient();
+  const { client, guild, sent } = createClient();
   const originalDashboard = { ...config.dashboard };
   const originalChannels = { ...config.channels };
   const originalRoles = { ...config.roles };
@@ -600,6 +604,84 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
   assert.equal(updatedProtection.data.settings.alertChannelId, '1520519675543293973');
   assert.equal(updatedProtection.data.settings.quarantineRoleId, '1520451840058064998');
   assert.equal(updatedProtection.data.settings.floodMessageLimit, 7);
+
+  const reviewedMemberId = '1520000000000000400';
+  const memberRoleIds = new Set(['1520451840058064998']);
+  const reviewedMember = {
+    id: reviewedMemberId,
+    displayName: 'Held Member',
+    moderatable: true,
+    kickable: true,
+    bannable: true,
+    user: {
+      id: reviewedMemberId,
+      username: 'held-member',
+      tag: 'held-member#0001',
+      toString: () => `<@${reviewedMemberId}>`,
+      displayAvatarURL: () => 'https://example.com/member.png',
+      createDM: async () => ({ send: async () => null }),
+    },
+    roles: {
+      cache: { has: (roleId) => memberRoleIds.has(roleId) },
+      remove: async (role) => memberRoleIds.delete(role.id),
+    },
+  };
+
+  guild.members.cache.set(reviewedMemberId, reviewedMember);
+  guild.members.fetch = async (memberId) => guild.members.cache.get(memberId) || null;
+  guild.members.ban = async () => null;
+
+  const dashboardReview = await recordQuarantineReview(config, {
+    guildId: guild.id,
+    userId: reviewedMemberId,
+    userTag: reviewedMember.user.tag,
+    displayName: reviewedMember.displayName,
+    roleId: '1520451840058064998',
+    raidReason: 'Dashboard review API test.',
+    raidSource: 'test',
+  });
+  const notedDashboardReview = await fetchJson(
+    `${baseUrl}/api/protection/quarantine/${dashboardReview.id}/notes`,
+    {
+      method: 'POST',
+      headers,
+      body: { note: 'Reviewed through the dashboard test.' },
+    },
+  );
+  const releasedDashboardReview = await fetchJson(
+    `${baseUrl}/api/protection/quarantine/${dashboardReview.id}/action`,
+    {
+      method: 'POST',
+      headers,
+      body: { action: 'release', reason: 'Member verified.' },
+    },
+  );
+
+  assert.equal(notedDashboardReview.response.status, 200);
+  assert.equal(notedDashboardReview.data.review.notes.length, 1);
+  assert.equal(releasedDashboardReview.response.status, 200);
+  assert.equal(releasedDashboardReview.data.review.status, 'released');
+  assert.equal(memberRoleIds.has('1520451840058064998'), false);
+
+  memberRoleIds.add('1520451840058064998');
+  await recordQuarantineReview(config, {
+    guildId: guild.id,
+    userId: reviewedMemberId,
+    userTag: reviewedMember.user.tag,
+    displayName: reviewedMember.displayName,
+    roleId: '1520451840058064998',
+    raidReason: 'Bulk release API test.',
+    raidSource: 'test',
+  });
+  const bulkRelease = await fetchJson(`${baseUrl}/api/protection/quarantine/bulk-release`, {
+    method: 'POST',
+    headers,
+    body: { reason: 'False positive cleared.' },
+  });
+
+  assert.equal(bulkRelease.response.status, 200);
+  assert.equal(bulkRelease.data.result.released.length, 1);
+  assert.equal(bulkRelease.data.metrics.pendingQuarantines, 0);
 
   const enabledRaidMode = await fetchJson(`${baseUrl}/api/protection/raid`, {
     method: 'POST',

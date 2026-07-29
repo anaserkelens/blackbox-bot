@@ -140,6 +140,11 @@ const protectionQuarantineCount = document.querySelector('#protection-quarantine
 const protectionNativePill = document.querySelector('#protection-native-pill');
 const protectionNativeRules = document.querySelector('#protection-native-rules');
 const protectionIncidentList = document.querySelector('#protection-incident-list');
+const quarantineReviewPill = document.querySelector('#quarantine-review-pill');
+const quarantineReviewFilter = document.querySelector('#quarantine-review-filter');
+const quarantineReviewList = document.querySelector('#quarantine-review-list');
+const quarantineBulkReasonInput = document.querySelector('#quarantine-bulk-reason');
+const quarantineBulkReleaseButton = document.querySelector('#quarantine-bulk-release');
 const protectionNativeLoggingInput = document.querySelector('#protection-native-logging');
 const protectionDmNotificationsInput = document.querySelector('#protection-dm-notifications');
 const protectionFloodEnabledInput = document.querySelector('#protection-flood-enabled');
@@ -589,6 +594,9 @@ function bindEvents() {
   syncProtectionRulesButton?.addEventListener('click', handleProtectionRuleSync);
   enableProtectionRaidButton?.addEventListener('click', () => handleProtectionRaidChange(true));
   disableProtectionRaidButton?.addEventListener('click', () => handleProtectionRaidChange(false));
+  quarantineReviewFilter?.addEventListener('change', renderQuarantineReviews);
+  quarantineReviewList?.addEventListener('click', handleQuarantineReviewClick);
+  quarantineBulkReleaseButton?.addEventListener('click', handleQuarantineBulkRelease);
   featureChannelSettingsForms.forEach((form) => {
     form.addEventListener('submit', handleFeatureChannelSettingsSave);
   });
@@ -2338,11 +2346,257 @@ function renderProtection() {
     : '<p class="muted">No Bean-managed Discord AutoMod rules are synced yet.</p>';
 
   renderProtectionIncidents(overview.incidents || []);
+  renderQuarantineReviews();
   applySessionPermissions(state.session?.permissions || {});
   const canModerate = state.session?.permissions?.moderate !== false;
 
   enableProtectionRaidButton.disabled = !canModerate || Boolean(raid.active);
   disableProtectionRaidButton.disabled = !canModerate || !raid.active;
+}
+
+function renderQuarantineReviews() {
+  if (!quarantineReviewList || !state.protection) {
+    return;
+  }
+
+  const reviews = Array.isArray(state.protection.quarantineReviews)
+    ? state.protection.quarantineReviews
+    : [];
+  const pendingCount = reviews.filter((review) => review.status === 'pending').length;
+  const filter = quarantineReviewFilter?.value || 'pending';
+  const visible = reviews.filter((review) => {
+    if (filter === 'pending') return review.status === 'pending';
+    if (filter === 'resolved') return !['pending', 'processing'].includes(review.status);
+    return true;
+  });
+
+  quarantineReviewPill.textContent = `${pendingCount} pending`;
+  quarantineReviewPill.classList.toggle('offline', pendingCount > 0);
+  quarantineReviewPill.classList.toggle('ready', pendingCount === 0);
+  quarantineBulkReleaseButton.disabled =
+    state.session?.permissions?.moderate === false || pendingCount === 0;
+  quarantineReviewList.replaceChildren();
+
+  if (!visible.length) {
+    quarantineReviewList.innerHTML = filter === 'pending'
+      ? '<div class="quarantine-empty"><i class="fa-solid fa-shield-circle-check" aria-hidden="true"></i><strong>Queue clear</strong><p>No members are waiting for quarantine review.</p></div>'
+      : '<p class="muted">No quarantine reviews match this filter.</p>';
+    return;
+  }
+
+  for (const review of visible) {
+    const card = document.createElement('article');
+    const pending = review.status === 'pending';
+    const accountCreated = review.accountCreatedAt
+      ? formatDateTime(review.accountCreatedAt)
+      : 'Unknown';
+    const notes = review.notes?.length
+      ? review.notes.map((note) => `
+        <div class="quarantine-note">
+          <p>${escapeHtml(note.content)}</p>
+          <small>${escapeHtml(note.actor?.displayName || 'Staff')} · ${escapeHtml(formatDateTime(note.createdAt))}</small>
+        </div>
+      `).join('')
+      : '<p class="muted">No moderator notes yet.</p>';
+    const resolution = review.resolution
+      ? `
+        <div class="quarantine-resolution">
+          <strong>${escapeHtml(humanizeProtectionType(review.status))}</strong>
+          <p>${escapeHtml(review.resolution.reason)}</p>
+          <small>${escapeHtml(review.resolution.actor?.displayName || 'Staff')} · ${escapeHtml(formatDateTime(review.resolution.resolvedAt))}${review.resolution.caseReference ? ` · ${escapeHtml(review.resolution.caseReference)}` : ''}</small>
+        </div>
+      `
+      : '';
+
+    card.className = `quarantine-review-item${pending ? ' is-pending' : ''}`;
+    card.dataset.reviewId = review.id;
+    card.innerHTML = `
+      <div class="quarantine-review-heading">
+        <div class="quarantine-member">
+          <span><i class="fa-solid fa-user-lock" aria-hidden="true"></i></span>
+          <div>
+            <strong>${escapeHtml(review.displayName || review.userTag || review.userId)}</strong>
+            <small>${escapeHtml(review.userTag || 'Unknown tag')} · ${escapeHtml(review.userId)}</small>
+          </div>
+        </div>
+        <span class="case-status-badge ${pending ? 'active' : 'revoked'}">${escapeHtml(humanizeProtectionType(review.status))}</span>
+      </div>
+      <div class="quarantine-review-facts">
+        <p><small>Quarantined</small><strong>${escapeHtml(formatDateTime(review.createdAt))}</strong></p>
+        <p><small>Account created</small><strong>${escapeHtml(accountCreated)}</strong></p>
+        <p><small>Source</small><strong>${escapeHtml(humanizeProtectionType(review.raidSource))}</strong></p>
+      </div>
+      <div class="quarantine-trigger">
+        <small>Raid trigger</small>
+        <p>${escapeHtml(review.raidReason || 'Raid mode was active when this member joined.')}</p>
+      </div>
+      ${resolution}
+      <details class="quarantine-notes">
+        <summary>Moderator notes <span>${review.notes?.length || 0}</span></summary>
+        <div class="quarantine-note-list">${notes}</div>
+        <div class="quarantine-note-compose">
+          <textarea class="quarantine-note-input compact-textarea" maxlength="1000" placeholder="Add context for the next moderator…"></textarea>
+          <button class="secondary" type="button" data-review-note data-requires-permission="moderate">Add note</button>
+        </div>
+      </details>
+      ${pending ? `
+        <div class="quarantine-decision">
+          <label class="field">
+            Decision reason
+            <textarea class="quarantine-action-reason compact-textarea" maxlength="1000" placeholder="Required for every decision"></textarea>
+          </label>
+          <label class="field quarantine-timeout-field">
+            Timeout length
+            <select class="quarantine-timeout-duration">
+              <option value="10">10 minutes</option>
+              <option value="30">30 minutes</option>
+              <option value="60">1 hour</option>
+              <option value="360">6 hours</option>
+              <option value="1440">1 day</option>
+              <option value="10080">7 days</option>
+              <option value="40320">28 days</option>
+            </select>
+          </label>
+          <div class="quarantine-action-row">
+            <button type="button" data-review-action="release" data-requires-permission="moderate"><i class="fa-solid fa-user-check" aria-hidden="true"></i> Release</button>
+            <button class="secondary" type="button" data-review-action="timeout" data-requires-permission="moderate"><i class="fa-solid fa-clock" aria-hidden="true"></i> Timeout</button>
+            <button class="secondary" type="button" data-review-action="kick" data-requires-permission="moderate"><i class="fa-solid fa-person-walking-arrow-right" aria-hidden="true"></i> Kick</button>
+            <button class="danger-button" type="button" data-review-action="ban" data-requires-permission="moderate"><i class="fa-solid fa-gavel" aria-hidden="true"></i> Ban</button>
+          </div>
+        </div>
+      ` : ''}
+    `;
+    quarantineReviewList.append(card);
+  }
+
+  applySessionPermissions(state.session?.permissions || {});
+}
+
+async function handleQuarantineReviewClick(event) {
+  const button = event.target.closest('[data-review-action], [data-review-note]');
+
+  if (!button || button.disabled) {
+    return;
+  }
+
+  const card = button.closest('[data-review-id]');
+  const reviewId = card?.dataset.reviewId;
+
+  if (!reviewId) {
+    return;
+  }
+
+  if (button.hasAttribute('data-review-note')) {
+    const input = card.querySelector('.quarantine-note-input');
+    const note = input.value.trim();
+
+    if (!note) {
+      setSendStatus('Write a moderator note before saving it.', 'error');
+      input.focus();
+      return;
+    }
+
+    await runQuarantineReviewRequest(button, async () => {
+      state.protection = await api(
+        `/api/protection/quarantine/${encodeURIComponent(reviewId)}/notes`,
+        { method: 'POST', body: { note } },
+      );
+      renderProtection();
+      setSendStatus('Moderator note added.', 'success');
+    });
+    return;
+  }
+
+  const action = button.dataset.reviewAction;
+  const reasonInput = card.querySelector('.quarantine-action-reason');
+  const reason = reasonInput.value.trim();
+
+  if (!reason) {
+    setSendStatus('Add a decision reason before resolving this review.', 'error');
+    reasonInput.focus();
+    return;
+  }
+
+  if (['kick', 'ban'].includes(action) && !window.confirm(
+    `${humanizeProtectionType(action)} this quarantined member? This immediately changes their Discord membership.`,
+  )) {
+    return;
+  }
+
+  await runQuarantineReviewRequest(button, async () => {
+    state.protection = await api(
+      `/api/protection/quarantine/${encodeURIComponent(reviewId)}/action`,
+      {
+        method: 'POST',
+        body: {
+          action,
+          reason,
+          durationMinutes: Number.parseInt(
+            card.querySelector('.quarantine-timeout-duration')?.value,
+            10,
+          ),
+        },
+      },
+    );
+    renderProtection();
+    setSendStatus(`Quarantine ${humanizeProtectionType(action).toLowerCase()} action completed.`, 'success');
+  });
+}
+
+async function runQuarantineReviewRequest(button, operation) {
+  const originalLabel = button.innerHTML;
+
+  button.disabled = true;
+  button.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Working&hellip;';
+
+  try {
+    await operation();
+  } catch (error) {
+    setSendStatus(error.message, 'error');
+    button.disabled = false;
+    button.innerHTML = originalLabel;
+  }
+}
+
+async function handleQuarantineBulkRelease() {
+  const reason = quarantineBulkReasonInput.value.trim();
+  const pendingCount = state.protection?.quarantineReviews
+    ?.filter((review) => review.status === 'pending').length || 0;
+
+  if (!reason) {
+    setSendStatus('Add a bulk-release reason first.', 'error');
+    quarantineBulkReasonInput.focus();
+    return;
+  }
+
+  if (!pendingCount || !window.confirm(`Release all ${pendingCount} pending quarantined members?`)) {
+    return;
+  }
+
+  const originalLabel = quarantineBulkReleaseButton.innerHTML;
+
+  quarantineBulkReleaseButton.disabled = true;
+  quarantineBulkReleaseButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Releasing&hellip;';
+
+  try {
+    const result = await api('/api/protection/quarantine/bulk-release', {
+      method: 'POST',
+      body: { reason },
+    });
+
+    state.protection = result;
+    quarantineBulkReasonInput.value = '';
+    renderProtection();
+    setSendStatus(
+      `Released ${result.result.released.length} member(s).${result.result.failed.length ? ` ${result.result.failed.length} failed.` : ''}`,
+      result.result.failed.length ? 'error' : 'success',
+    );
+  } catch (error) {
+    setSendStatus(error.message, 'error');
+  } finally {
+    quarantineBulkReleaseButton.innerHTML = originalLabel;
+    renderProtection();
+  }
 }
 
 function renderProtectionRoleSelect(selectedRoleId) {

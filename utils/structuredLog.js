@@ -76,15 +76,31 @@ function createStructuredLogPayload(options) {
   }
 
   const links = (options.links || []).filter((link) => link?.label && link?.url).slice(0, 5);
+  const buttons = (options.buttons || [])
+    .filter((button) => button?.label && button?.customId)
+    .slice(0, Math.max(0, 5 - links.length));
   const files = (options.files || []).filter((file) => file?.name && file?.attachment).slice(0, 5);
 
-  if (links.length > 0) {
+  if (links.length > 0 || buttons.length > 0) {
     container.addSeparatorComponents(
       new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small),
     );
     container.addActionRowComponents(
       new ActionRowBuilder().addComponents(
-        links.map((link) =>
+        ...buttons.map((button) => {
+          const component = new ButtonBuilder()
+            .setStyle(normalizeButtonStyle(button.style))
+            .setLabel(button.label)
+            .setCustomId(button.customId)
+            .setDisabled(Boolean(button.disabled));
+
+          if (button.emoji) {
+            component.setEmoji(button.emoji);
+          }
+
+          return component;
+        }),
+        ...links.map((link) =>
           new ButtonBuilder()
             .setStyle(ButtonStyle.Link)
             .setLabel(link.label)
@@ -226,6 +242,15 @@ function escapeMarkdown(value) {
 function truncate(value, maximumLength) {
   const text = String(value || '');
   return text.length <= maximumLength ? text : `${text.slice(0, maximumLength - 1)}…`;
+}
+
+function normalizeButtonStyle(value) {
+  const style = String(value || '').toLowerCase();
+
+  if (style === 'primary') return ButtonStyle.Primary;
+  if (style === 'success') return ButtonStyle.Success;
+  if (style === 'danger') return ButtonStyle.Danger;
+  return ButtonStyle.Secondary;
 }
 
 function splitText(value, maximumLength) {

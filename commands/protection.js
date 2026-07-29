@@ -102,6 +102,7 @@ async function execute(interaction) {
           { name: 'Raid Mode', value: overview.raid.active ? 'Active' : 'Inactive', inline: true },
           { name: 'Discord AutoMod', value: nativeSummary, inline: true },
           { name: 'Last 24 Hours', value: `${overview.metrics.incidents24h} incidents`, inline: true },
+          { name: 'Quarantine Queue', value: `${overview.metrics.pendingQuarantines || 0} pending`, inline: true },
           {
             name: 'Behavioral Detection',
             value: `Flood: ${settings.floodMessageLimit} messages / ${settings.floodWindowSeconds}s\nDuplicates: ${settings.duplicateMessageLimit} / ${settings.duplicateWindowSeconds}s`,

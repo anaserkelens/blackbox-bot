@@ -15,7 +15,10 @@ const {
   reserveModerationCaseNumber,
 } = require('./moderationCases');
 const {
+  clearBotModerationAction,
+  createAuditReason,
   prepareDirectMessage,
+  registerBotModerationAction,
   sendModerationDirectMessage,
 } = require('./moderationActions');
 const {
@@ -28,6 +31,7 @@ const {
 
 const protectionFileName = 'bean-protection.json';
 const maximumIncidents = 250;
+const maximumQuarantineReviews = 500;
 const messageWindows = new Map();
 const joinWindows = new Map();
 const enforcementCooldowns = new Map();
@@ -96,6 +100,313 @@ async function recordProtectionIncident(config, input) {
     store.incidents = store.incidents.slice(0, maximumIncidents);
     return incident;
   });
+}
+
+async function recordQuarantineReview(config, input) {
+  return mutateStore(config, (store) => {
+    const review = normalizeQuarantineReview(input);
+
+    if (!review) {
+      throw new Error('Quarantine review data is invalid.');
+    }
+
+    const existing = store.quarantineReviews.find(
+      (item) =>
+        item.guildId === review.guildId
+        && item.userId === review.userId
+        && ['pending', 'processing'].includes(item.status),
+    );
+
+    if (existing) {
+      return existing;
+    }
+
+    store.quarantineReviews.unshift(review);
+    store.quarantineReviews = store.quarantineReviews.slice(0, maximumQuarantineReviews);
+    return review;
+  });
+}
+
+async function addQuarantineReviewNote(config, reviewId, note, actor) {
+  return mutateStore(config, (store) => {
+    const review = findQuarantineReview(store, reviewId);
+    const content = normalizeText(note, 1000);
+
+    if (!review) {
+      throw new Error('That quarantine review was not found.');
+    }
+
+    if (!content) {
+      throw new Error('A moderator note is required.');
+    }
+
+    review.notes.push({
+      id: `NOTE-${crypto.randomUUID()}`,
+      content,
+      actor: normalizeActor(actor),
+      createdAt: new Date().toISOString(),
+    });
+    review.notes = review.notes.slice(-50);
+    review.updatedAt = new Date().toISOString();
+    return review;
+  });
+}
+
+async function resolveQuarantineReview(client, config, options = {}) {
+  const reviewId = normalizeText(options.reviewId, 100);
+  const action = normalizeQuarantineAction(options.action);
+  const actor = normalizeActor(options.actor);
+  const reason = normalizeText(options.reason, 1000);
+  const durationMs = action === 'timeout'
+    ? clampInteger(options.durationMs, 60000, 2419200000, 10 * 60 * 1000)
+    : null;
+
+  if (!reviewId || !action) {
+    throw new Error('Choose a valid quarantine review and action.');
+  }
+
+  if (!actor?.id) {
+    throw new Error('A valid moderator is required.');
+  }
+
+  if (!reason) {
+    throw new Error('A staff reason is required.');
+  }
+
+  const review = await mutateStore(config, (store) => {
+    const target = findQuarantineReview(store, reviewId);
+
+    if (!target) {
+      throw new Error('That quarantine review was not found.');
+    }
+
+    if (target.status !== 'pending') {
+      throw new Error('That quarantine review has already been resolved.');
+    }
+
+    target.status = 'processing';
+    target.updatedAt = new Date().toISOString();
+    target.processing = { actor, startedAt: target.updatedAt };
+    return target;
+  });
+  const guild = getConfiguredGuild(client, config);
+
+  if (!guild || guild.id !== review.guildId) {
+    await resetQuarantineReviewClaim(config, reviewId);
+    throw new Error('The quarantine review server is unavailable.');
+  }
+
+  const member = guild.members?.cache?.get?.(review.userId)
+    || await guild.members?.fetch?.(review.userId).catch(() => null);
+  const user = member?.user
+    || await client.users?.fetch?.(review.userId)?.catch(() => null)
+    || {
+      id: review.userId,
+      username: review.userTag || 'Unknown member',
+      tag: review.userTag || 'Unknown member',
+      toString: () => `<@${review.userId}>`,
+    };
+  let caseNumber = null;
+  let caseReference = null;
+  let dmDelivered = null;
+  let logDelivered = null;
+
+  try {
+    if (['timeout', 'kick', 'ban'].includes(action)) {
+      caseNumber = await reserveModerationCaseNumber(config);
+      caseReference = formatCaseReference(caseNumber);
+    }
+
+    if (action === 'release') {
+      const role = guild.roles?.cache?.get?.(review.roleId);
+
+      if (member && role && member.roles?.cache?.has?.(role.id)) {
+        await member.roles.remove(role, createAuditReason(reason, options.actor, review.id));
+      }
+    } else if (action === 'timeout') {
+      if (!member?.moderatable) {
+        throw new Error('Bean cannot timeout this member because of Discord role hierarchy or permissions.');
+      }
+
+      registerBotModerationAction('timeout', guild.id, review.userId, { caseId: caseReference });
+      await member.timeout(durationMs, createAuditReason(reason, options.actor, caseReference));
+      await removeQuarantineRole(member, guild, review, reason, options.actor)
+        .catch((error) => console.error('Failed to remove quarantine role after timeout:', error));
+    } else if (action === 'kick') {
+      if (!member?.kickable) {
+        throw new Error('Bean cannot kick this member because of Discord role hierarchy or permissions.');
+      }
+
+      registerBotModerationAction('kick', guild.id, review.userId, { caseId: caseReference });
+      await member.kick(createAuditReason(reason, options.actor, caseReference));
+    } else if (action === 'ban') {
+      if (member && !member.bannable) {
+        throw new Error('Bean cannot ban this member because of Discord role hierarchy or permissions.');
+      }
+
+      registerBotModerationAction('ban', guild.id, review.userId, { caseId: caseReference });
+      await guild.members.ban(review.userId, {
+        deleteMessageSeconds: clampInteger(options.deleteMessageSeconds, 0, 604800, 0),
+        reason: createAuditReason(reason, options.actor, caseReference),
+      });
+    }
+  } catch (error) {
+    if (['timeout', 'kick', 'ban'].includes(action)) {
+      clearBotModerationAction(action, guild.id, review.userId);
+    }
+
+    await resetQuarantineReviewClaim(config, reviewId);
+    throw error;
+  }
+
+  if (['timeout', 'kick', 'ban'].includes(action)) {
+    const dmChannel = user.createDM ? await prepareDirectMessage(user) : null;
+    const actionCopy = {
+      timeout: {
+        title: `Timed out in ${guild.name}`,
+        emoji: '⏳',
+        color: colors.warning,
+        summary: `You were timed out after staff reviewed your quarantine in **${guild.name}**.`,
+      },
+      kick: {
+        title: `Removed from ${guild.name}`,
+        emoji: '🥾',
+        color: colors.danger,
+        summary: `You were kicked after staff reviewed your quarantine in **${guild.name}**.`,
+      },
+      ban: {
+        title: `Banned from ${guild.name}`,
+        emoji: '🔨',
+        color: colors.danger,
+        summary: `You were banned after staff reviewed your quarantine in **${guild.name}**.`,
+      },
+    }[action];
+
+    dmDelivered = await sendModerationDirectMessage(dmChannel, {
+      ...actionCopy,
+      caseId: caseReference,
+      reason,
+      durationMs,
+      moderator: options.actor,
+    });
+  }
+
+  const settings = (await loadProtectionStore(config)).settings;
+  logDelivered = await sendStructuredLog(client, settings.alertChannelId || config.channels.caseFiles, {
+    title: `Quarantine Review: ${humanizeQuarantineAction(action)}`,
+    emoji: action === 'release' ? '✅' : action === 'timeout' ? '⏳' : '🛡️',
+    color: action === 'release' ? colors.success : action === 'timeout' ? colors.warning : colors.danger,
+    summary: `${user} was ${humanizeQuarantineAction(action).toLowerCase()} by staff.`,
+    thumbnailUrl: user.displayAvatarURL?.({ size: 256 }),
+    referenceId: caseReference || review.id,
+    activity: {
+      type: 'moderation',
+      guildId: guild.id,
+      memberId: review.userId,
+      memberName: review.userTag,
+      action: `quarantine-${action}`,
+    },
+    fields: [
+      { name: 'Member', value: formatUser(user) },
+      { name: 'Reviewed By', value: actor.displayName },
+      { name: 'Reason', value: reason },
+      ...(durationMs ? [{ name: 'Timeout', value: formatDuration(durationMs) }] : []),
+    ],
+  }, config).catch((error) => {
+    console.error('Failed to log quarantine resolution:', error);
+    return false;
+  });
+
+  if (caseNumber) {
+    await recordModerationCase(config, {
+      number: caseNumber,
+      guildId: guild.id,
+      action,
+      userId: review.userId,
+      userTag: review.userTag || user.tag || user.username,
+      moderatorId: actor.id,
+      moderatorTag: actor.displayName,
+      reason,
+      durationMs,
+      dmDelivered,
+      logDelivered,
+      metadata: {
+        source: 'bean-quarantine-review',
+        quarantineReviewId: review.id,
+        deleteMessageSeconds: action === 'ban'
+          ? clampInteger(options.deleteMessageSeconds, 0, 604800, 0)
+          : 0,
+      },
+    }).catch((error) => console.error(`Failed to save ${caseReference}:`, error));
+  }
+
+  const resolvedAt = new Date().toISOString();
+  const resolved = await mutateStore(config, (store) => {
+    const target = findQuarantineReview(store, reviewId);
+
+    target.status = quarantineStatusForAction(action);
+    target.updatedAt = resolvedAt;
+    target.processing = null;
+    target.resolution = {
+      action,
+      reason,
+      actor,
+      durationMs,
+      caseReference,
+      memberPresent: Boolean(member),
+      resolvedAt,
+    };
+    store.incidents.unshift(normalizeIncident({
+      type: `quarantine_${target.status}`,
+      source: 'bean',
+      guildId: target.guildId,
+      userId: target.userId,
+      userTag: target.userTag,
+      actorId: actor.id,
+      actorName: actor.displayName,
+      caseReference,
+      action: action === 'release' ? 'none' : action,
+      durationMs,
+      summary: reason,
+      metadata: { quarantineReviewId: target.id },
+      createdAt: resolvedAt,
+    }));
+    store.incidents = store.incidents.filter(Boolean).slice(0, maximumIncidents);
+    return target;
+  });
+
+  return resolved;
+}
+
+async function bulkReleaseQuarantineReviews(client, config, options = {}) {
+  const store = await loadProtectionStore(config);
+  const guildId = normalizeSnowflake(options.guildId);
+  const reason = normalizeText(options.reason, 1000);
+
+  if (!reason) {
+    throw new Error('A bulk-release reason is required.');
+  }
+
+  const pending = store.quarantineReviews.filter(
+    (review) => review.status === 'pending' && (!guildId || review.guildId === guildId),
+  );
+  const released = [];
+  const failed = [];
+
+  for (const review of pending) {
+    try {
+      released.push(await resolveQuarantineReview(client, config, {
+        reviewId: review.id,
+        action: 'release',
+        actor: options.actor,
+        reason,
+      }));
+    } catch (error) {
+      failed.push({ reviewId: review.id, userId: review.userId, error: error.message });
+    }
+  }
+
+  return { released, failed };
 }
 
 async function setRaidMode(client, config, options = {}) {
@@ -191,11 +502,13 @@ async function getProtectionOverview(client, config) {
     settings: store.settings,
     raid: store.raid,
     incidents: store.incidents.slice(0, 100),
+    quarantineReviews: store.quarantineReviews.slice(0, 250),
     metrics: {
       incidents24h: recent.length,
       native24h: recent.filter((incident) => incident.source === 'discord-automod').length,
       custom24h: recent.filter((incident) => incident.source === 'bean').length,
       quarantined24h: recent.filter((incident) => incident.type === 'member_quarantined').length,
+      pendingQuarantines: store.quarantineReviews.filter((review) => review.status === 'pending').length,
     },
     native: {
       available: Boolean(guild?.autoModerationRules),
@@ -481,6 +794,20 @@ async function quarantineMember(member, client, config, settings, raid) {
       accountAgeHours: Math.floor((Date.now() - member.user.createdTimestamp) / 3600000),
     },
   });
+  const review = await recordQuarantineReview(config, {
+    guildId: member.guild.id,
+    userId: member.id,
+    userTag: member.user.tag || member.user.username,
+    displayName: member.displayName,
+    roleId,
+    raidReason: raid.reason,
+    raidSource: raid.source,
+    sourceIncidentId: incident.id,
+    accountCreatedAt: Number.isFinite(member.user.createdTimestamp)
+      ? new Date(member.user.createdTimestamp).toISOString()
+      : null,
+    joinedAt: member.joinedAt?.toISOString?.() || new Date().toISOString(),
+  });
 
   await sendStructuredLog(client, settings.alertChannelId || config.channels.caseFiles, {
     title: 'New Member Quarantined',
@@ -501,9 +828,26 @@ async function quarantineMember(member, client, config, settings, raid) {
       { name: 'Raid Reason', value: raid.reason },
       { name: 'Account Age', value: formatDuration(Date.now() - member.user.createdTimestamp) },
     ],
+    buttons: [
+      {
+        customId: `bean-quarantine:release:${review.id}`,
+        label: 'Release',
+        emoji: '✅',
+        style: 'success',
+      },
+      {
+        customId: `bean-quarantine:timeout:${review.id}`,
+        label: 'Timeout 10m',
+        emoji: '⏳',
+        style: 'secondary',
+      },
+    ],
+    links: config.dashboard?.publicUrl
+      ? [{ label: 'Open Dashboard', url: `${config.dashboard.publicUrl.replace(/\/+$/, '')}/#bean-protection` }]
+      : [],
   }, config).catch((error) => console.error('Failed to log quarantine:', error));
 
-  return { status: 'quarantined', incident };
+  return { status: 'quarantined', incident, review };
 }
 
 function queueNativeAutoModerationExecution(execution, client, config) {
@@ -816,11 +1160,17 @@ function normalizeStore(input, config) {
   const source = input && typeof input === 'object' ? input : {};
 
   return {
-    version: 1,
+    version: 2,
     settings: normalizeSettings(source.settings, config),
     raid: normalizeRaid(source.raid),
     incidents: Array.isArray(source.incidents)
       ? source.incidents.map(normalizeIncident).filter(Boolean).slice(0, maximumIncidents)
+      : [],
+    quarantineReviews: Array.isArray(source.quarantineReviews)
+      ? source.quarantineReviews
+        .map(normalizeQuarantineReview)
+        .filter(Boolean)
+        .slice(0, maximumQuarantineReviews)
       : [],
   };
 }
@@ -900,6 +1250,155 @@ function normalizeIncident(input) {
     metadata: normalizeMetadata(input.metadata),
     createdAt: normalizeDate(input.createdAt) || new Date().toISOString(),
   };
+}
+
+function normalizeQuarantineReview(input) {
+  if (!input || typeof input !== 'object') {
+    return null;
+  }
+
+  const guildId = normalizeSnowflake(input.guildId);
+  const userId = normalizeSnowflake(input.userId);
+  const roleId = normalizeSnowflake(input.roleId);
+
+  if (!guildId || !userId || !roleId) {
+    return null;
+  }
+
+  const createdAt = normalizeDate(input.createdAt) || new Date().toISOString();
+  let status = ['pending', 'processing', 'released', 'timed_out', 'kicked', 'banned']
+    .includes(input.status)
+    ? input.status
+    : 'pending';
+  let processing = status === 'processing' ? normalizeProcessing(input.processing) : null;
+
+  if (
+    status === 'processing'
+    && (
+      !processing
+      || Date.now() - new Date(processing.startedAt).getTime() > 5 * 60 * 1000
+    )
+  ) {
+    status = 'pending';
+    processing = null;
+  }
+
+  return {
+    id: normalizeText(input.id, 100) || `QUARANTINE-${crypto.randomUUID()}`,
+    guildId,
+    userId,
+    userTag: normalizeText(input.userTag, 100),
+    displayName: normalizeText(input.displayName, 100),
+    roleId,
+    raidReason: normalizeText(input.raidReason, 500),
+    raidSource: normalizeText(input.raidSource, 40) || 'manual',
+    sourceIncidentId: normalizeText(input.sourceIncidentId, 100),
+    accountCreatedAt: normalizeDate(input.accountCreatedAt),
+    joinedAt: normalizeDate(input.joinedAt),
+    status,
+    notes: normalizeQuarantineNotes(input.notes),
+    processing,
+    resolution: ['released', 'timed_out', 'kicked', 'banned'].includes(status)
+      ? normalizeQuarantineResolution(input.resolution)
+      : null,
+    createdAt,
+    updatedAt: normalizeDate(input.updatedAt) || createdAt,
+  };
+}
+
+function normalizeQuarantineNotes(notes) {
+  if (!Array.isArray(notes)) {
+    return [];
+  }
+
+  return notes
+    .map((note) => ({
+      id: normalizeText(note?.id, 100) || `NOTE-${crypto.randomUUID()}`,
+      content: normalizeText(note?.content, 1000),
+      actor: normalizeActor(note?.actor),
+      createdAt: normalizeDate(note?.createdAt) || new Date().toISOString(),
+    }))
+    .filter((note) => note.content && note.actor)
+    .slice(-50);
+}
+
+function normalizeProcessing(input) {
+  const actor = normalizeActor(input?.actor);
+
+  return actor
+    ? { actor, startedAt: normalizeDate(input.startedAt) || new Date().toISOString() }
+    : null;
+}
+
+function normalizeQuarantineResolution(input) {
+  const action = normalizeQuarantineAction(input?.action);
+  const actor = normalizeActor(input?.actor);
+  const reason = normalizeText(input?.reason, 1000);
+
+  if (!action || !actor || !reason) {
+    return null;
+  }
+
+  return {
+    action,
+    reason,
+    actor,
+    durationMs: action === 'timeout'
+      ? clampInteger(input.durationMs, 60000, 2419200000, 10 * 60 * 1000)
+      : null,
+    caseReference: /^CASE-\d{6}$/.test(String(input.caseReference || ''))
+      ? String(input.caseReference)
+      : null,
+    memberPresent: Boolean(input.memberPresent),
+    resolvedAt: normalizeDate(input.resolvedAt) || new Date().toISOString(),
+  };
+}
+
+function normalizeQuarantineAction(value) {
+  const action = String(value || '').trim().toLowerCase();
+  return ['release', 'timeout', 'kick', 'ban'].includes(action) ? action : '';
+}
+
+function quarantineStatusForAction(action) {
+  if (action === 'timeout') return 'timed_out';
+  if (action === 'kick') return 'kicked';
+  if (action === 'ban') return 'banned';
+  return 'released';
+}
+
+function humanizeQuarantineAction(action) {
+  return {
+    release: 'Released',
+    timeout: 'Timed Out',
+    kick: 'Kicked',
+    ban: 'Banned',
+  }[action] || 'Resolved';
+}
+
+function findQuarantineReview(store, reviewId) {
+  return store.quarantineReviews.find((review) => review.id === reviewId) || null;
+}
+
+async function resetQuarantineReviewClaim(config, reviewId) {
+  return mutateStore(config, (store) => {
+    const review = findQuarantineReview(store, reviewId);
+
+    if (review?.status === 'processing') {
+      review.status = 'pending';
+      review.processing = null;
+      review.updatedAt = new Date().toISOString();
+    }
+
+    return review;
+  });
+}
+
+async function removeQuarantineRole(member, guild, review, reason, actor) {
+  const role = guild.roles?.cache?.get?.(review.roleId);
+
+  if (role && member.roles?.cache?.has?.(role.id)) {
+    await member.roles.remove(role, createAuditReason(reason, actor, review.id));
+  }
 }
 
 function normalizeActor(actor) {
@@ -1033,6 +1532,8 @@ function clone(value) {
 }
 
 module.exports = {
+  addQuarantineReviewNote,
+  bulkReleaseQuarantineReviews,
   evaluateProtectionJoin,
   evaluateProtectionMessage,
   getProtectionOverview,
@@ -1040,7 +1541,9 @@ module.exports = {
   loadProtectionStore,
   processNativeAutoModerationExecution,
   queueNativeAutoModerationExecution,
+  recordQuarantineReview,
   recordProtectionIncident,
+  resolveQuarantineReview,
   saveProtectionSettings,
   setRaidMode,
   syncNativeAutoModerationRules,
