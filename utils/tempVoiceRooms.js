@@ -106,6 +106,7 @@ async function handleTempVoiceStateUpdate(oldState, newState, client, config) {
   }
 
   if (
+    config.dashboard.features?.temporaryVoice !== false &&
     state.settings.enabled &&
     newState.channelId === state.settings.triggerChannelId
   ) {

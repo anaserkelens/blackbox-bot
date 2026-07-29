@@ -99,6 +99,9 @@ const config = {
     verified: readEnv('VERIFIED_ROLE_ID'),
     live: readEnv('LIVE_ROLE_ID') || '1520781346740506874',
     newUpload: readEnv('NEW_UPLOAD_ROLE_ID') || '1520828024533159936',
+    dashboardAdmin: readEnv('DASHBOARD_ADMIN_ROLE_ID'),
+    dashboardEditor: readEnv('DASHBOARD_EDITOR_ROLE_ID'),
+    dashboardViewer: readEnv('DASHBOARD_VIEWER_ROLE_ID'),
   },
   reactionRole: {
     messageId: readEnv('REACTION_ROLE_MESSAGE_ID'),
@@ -144,7 +147,13 @@ const config = {
     tempVoicePath: readEnv('TEMP_VOICE_PATH'),
     mailboxSchedulePath: readEnv('MAILBOX_SCHEDULE_PATH'),
     activityPath: readEnv('DASHBOARD_ACTIVITY_PATH'),
+    settingsPath: readEnv('DASHBOARD_SETTINGS_PATH'),
     railwayVolumeMountPath: readEnv('RAILWAY_VOLUME_MOUNT_PATH'),
+    publicUrl: readEnv('DASHBOARD_PUBLIC_URL'),
+    discordOauth: {
+      enabled: readBoolean('DASHBOARD_DISCORD_OAUTH_ENABLED', false),
+      clientSecret: readEnv('DISCORD_CLIENT_SECRET'),
+    },
   },
 };
 

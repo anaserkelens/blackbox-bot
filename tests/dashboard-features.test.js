@@ -20,6 +20,10 @@ const {
 } = require('../utils/dashboardInsights');
 const { startDashboard } = require('../utils/dashboardServer');
 const {
+  loadDashboardSettings,
+  saveDashboardSettings,
+} = require('../utils/dashboardSettings');
+const {
   createScheduledMailboxPost,
   deleteScheduledMailboxPost,
   listScheduledMailboxPosts,
@@ -415,10 +419,56 @@ test('Scheduled Mailbox retries an unavailable channel three times', async () =>
   await deleteScheduledMailboxPost(featureConfig, job.id);
 });
 
+test('dashboard configuration persists channels, roles, features, and audit history', async () => {
+  const featureConfig = createFeatureConfig('configuration');
+
+  featureConfig.roles = {
+    founder: '1520451840058064999',
+    newUpload: '1520828024533159936',
+  };
+  featureConfig.invites = { enabled: false };
+  featureConfig.streamMonitor = { enabled: false };
+  featureConfig.youtubeMonitor = { enabled: true };
+  featureConfig.intents = { members: true, messageContent: false, presences: false };
+  featureConfig.dashboard.settingsPath = path.join(temporaryDirectory, 'configuration.json');
+  const saved = await saveDashboardSettings(featureConfig, {
+    channels: {
+      welcome: '1520407983354544171',
+      mailbox: '1520519675543293973',
+    },
+    roles: {
+      founder: '1520451840058064999',
+      newUpload: '1520828024533159936',
+    },
+    features: {
+      welcomeMessages: true,
+      inviteModeration: false,
+      streamMonitor: false,
+      youtubeMonitor: true,
+      temporaryVoice: true,
+      tickets: false,
+      reactionRoles: false,
+      detailedLogging: true,
+    },
+  }, {
+    id: '185282790969835520',
+    displayName: 'snuf',
+    role: 'founder',
+  });
+  const loaded = await loadDashboardSettings(featureConfig);
+
+  assert.equal(loaded.channels.mailbox, '1520519675543293973');
+  assert.equal(loaded.features.youtubeMonitor, true);
+  assert.equal(featureConfig.channels.mailbox, '1520519675543293973');
+  assert.equal(saved.audit[0].actor.displayName, 'snuf');
+  assert.ok(saved.audit[0].changes.some((change) => change.key === 'mailbox'));
+});
+
 test('authenticated dashboard APIs expose health, activity, and the schedule queue', async (context) => {
-  const { client } = createClient();
+  const { client, sent } = createClient();
   const originalDashboard = { ...config.dashboard };
   const originalChannels = { ...config.channels };
+  const originalRoles = { ...config.roles };
 
   Object.assign(config.dashboard, {
     enabled: true,
@@ -436,6 +486,7 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
     tempVoicePath: path.join(temporaryDirectory, 'api-voice.json'),
     mailboxSchedulePath: path.join(temporaryDirectory, 'api-schedule.json'),
     activityPath: path.join(temporaryDirectory, 'api-activity.json'),
+    settingsPath: path.join(temporaryDirectory, 'api-settings.json'),
     railwayVolumeMountPath: undefined,
   });
   config.channels.mailbox = '1520519675543293972';
@@ -447,6 +498,7 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
     await new Promise((resolve) => server.close(resolve));
     Object.assign(config.dashboard, originalDashboard);
     Object.assign(config.channels, originalChannels);
+    Object.assign(config.roles, originalRoles);
   });
   await once(server, 'listening');
 
@@ -463,7 +515,7 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
   assert.equal(health.response.status, 200);
   assert.equal(health.data.discord.latencyMs, 42);
   assert.equal(health.data.api.healthy, true);
-  assert.equal(health.data.storage.length, 10);
+  assert.equal(health.data.storage.length, 11);
   assert.equal(health.data.errors[0].source, 'Dashboard test');
 
   const analytics = await fetchJson(`${baseUrl}/api/analytics?days=30`, { headers });
@@ -486,6 +538,52 @@ test('authenticated dashboard APIs expose health, activity, and the schedule que
     ['general', 'announcements'],
   );
   assert.equal(discordChannels.data.defaults.mailbox, '1520519675543293972');
+
+  const configuration = await fetchJson(`${baseUrl}/api/configuration`, { headers });
+  const configurationOptions = await fetchJson(`${baseUrl}/api/configuration-options`, { headers });
+
+  assert.equal(configuration.response.status, 200);
+  assert.equal(configurationOptions.response.status, 200);
+  assert.equal(configurationOptions.data.channels.length, 2);
+  assert.equal(configuration.data.settings.channels.mailbox, '1520519675543293972');
+  assert.equal(configuration.data.storage.filePath, config.dashboard.settingsPath);
+
+  const updatedConfiguration = await fetchJson(`${baseUrl}/api/configuration`, {
+    method: 'PUT',
+    headers,
+    body: {
+      settings: {
+        ...configuration.data.settings,
+        channels: {
+          ...configuration.data.settings.channels,
+          mailbox: '1520519675543293973',
+        },
+      },
+    },
+  });
+
+  assert.equal(updatedConfiguration.response.status, 200);
+  assert.equal(updatedConfiguration.data.settings.channels.mailbox, '1520519675543293973');
+  assert.equal(updatedConfiguration.data.settings.audit[0].actor.role, 'founder');
+
+  const welcomeTest = await fetchJson(`${baseUrl}/api/test-announcement`, {
+    method: 'POST',
+    headers,
+    body: {
+      type: 'welcome',
+      channelId: '1520519675543293973',
+      settings: {
+        channelId: '1520519675543293973',
+        color: '#8FA1BE',
+        blocks: [{ type: 'text', content: 'Welcome {member} to {serverName}.' }],
+        buttons: [],
+        allowMentions: true,
+      },
+    },
+  });
+
+  assert.equal(welcomeTest.response.status, 200);
+  assert.deepEqual(sent.at(-1).payload.allowedMentions.parse, []);
 
   const youtubeEmbed = await fetchJson(`${baseUrl}/api/youtube-embed`, { headers });
 

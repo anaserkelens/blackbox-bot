@@ -13,7 +13,12 @@ const {
 module.exports = {
   name: Events.MessageUpdate,
   async execute(oldMessage, newMessage, client) {
-    if (!newMessage.guild || newMessage.author?.bot || oldMessage.content === newMessage.content) {
+    if (
+      !newMessage.guild
+      || newMessage.author?.bot
+      || oldMessage.content === newMessage.content
+      || config.dashboard.features?.detailedLogging === false
+    ) {
       return;
     }
 

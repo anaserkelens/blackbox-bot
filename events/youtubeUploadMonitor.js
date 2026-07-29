@@ -34,7 +34,7 @@ function setup(client) {
 }
 
 async function checkForUploads(client) {
-  if (checkInProgress) {
+  if (checkInProgress || !config.youtubeMonitor.enabled) {
     return;
   }
 

@@ -3,11 +3,24 @@ const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
 
-const { PermissionFlagsBits } = require('discord.js');
+const { ChannelType, PermissionFlagsBits } = require('discord.js');
 
 const { getActivityFeed, getActivityFeedStorageInfo } = require('./activityFeed');
 const { config } = require('./config');
+const {
+  channelKeys,
+  featureKeys,
+  getDashboardSettingsStorageInfo,
+  loadDashboardSettings,
+  roleKeys,
+  saveDashboardSettings,
+} = require('./dashboardSettings');
 const { createDashboardMessagePayload } = require('./dashboardMessage');
+const {
+  createStreamAnnouncementPayload,
+  createYouTubeAnnouncementPayload,
+} = require('./streamAnnouncement');
+const { createWelcomeAnnouncementPayload } = require('./welcomeAnnouncement');
 const {
   getDashboardAnalytics,
   getDashboardNotifications,
@@ -69,6 +82,10 @@ const { getTelemetrySnapshot, recordApiRequest } = require('./telemetry');
 
 const dashboardDirectory = path.join(__dirname, '..', 'dashboard');
 const sessionCookieName = 'bean_dashboard';
+const oauthStateCookieName = 'bean_dashboard_oauth_state';
+const oauthSessions = new Map();
+const oauthStates = new Map();
+let dashboardStartupFeatures = null;
 
 function startDashboard(client) {
   if (!config.dashboard.enabled) {
@@ -76,10 +93,14 @@ function startDashboard(client) {
     return null;
   }
 
-  if (!config.dashboard.password) {
-    console.log('Dashboard disabled. Set DASHBOARD_PASSWORD to enable it.');
+  if (!config.dashboard.password && !isDiscordOauthConfigured()) {
+    console.log('Dashboard disabled. Set DASHBOARD_PASSWORD or configure Discord OAuth.');
     return null;
   }
+
+  dashboardStartupFeatures = {
+    youtubeMonitor: Boolean(config.youtubeMonitor.enabled),
+  };
 
   logSavedMessagesStorage();
   logStreamEmbedStorage();
@@ -200,7 +221,18 @@ async function handleRequest(client, request, response) {
       botReady: client.isReady(),
       tag: client.user?.tag || null,
       guildName: getDashboardGuildName(client),
+      discordOauthEnabled: isDiscordOauthConfigured(),
     });
+    return;
+  }
+
+  if (request.method === 'GET' && url.pathname === '/auth/discord') {
+    handleDiscordOauthStart(request, response);
+    return;
+  }
+
+  if (request.method === 'GET' && url.pathname === '/auth/discord/callback') {
+    await handleDiscordOauthCallback(request, response, url);
     return;
   }
 
@@ -215,14 +247,22 @@ async function handleRequest(client, request, response) {
   }
 
   if (request.method === 'POST' && url.pathname === '/api/logout') {
+    oauthSessions.delete(parseCookies(request)[sessionCookieName]);
     setCookie(response, sessionCookieName, '', { maxAge: 0, secure: isSecureRequest(request) });
     sendJson(response, 200, { ok: true });
     return;
   }
 
   if (url.pathname.startsWith('/api/')) {
-    if (!isAuthenticated(request)) {
+    const session = getAuthenticatedSession(request);
+
+    if (!session) {
       sendJson(response, 401, { error: 'Not authenticated.' });
+      return;
+    }
+
+    if (!sessionCanAccess(session, request.method, url.pathname)) {
+      sendJson(response, 403, { error: 'Your dashboard role cannot perform that action.' });
       return;
     }
 
@@ -232,12 +272,35 @@ async function handleRequest(client, request, response) {
         botReady: client.isReady(),
         tag: client.user?.tag || null,
         guildName: getDashboardGuildName(client),
+        user: session.user,
+        permissions: getSessionPermissions(session),
+        discordOauthEnabled: isDiscordOauthConfigured(),
       });
       return;
     }
 
     if (request.method === 'GET' && url.pathname === '/api/channels') {
       await handleGetDiscordChannels(client, response);
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/roles') {
+      await handleGetDiscordRoles(client, response);
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/configuration') {
+      await handleGetDashboardConfiguration(client, response);
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/configuration-options') {
+      await handleGetConfigurationOptions(client, response);
+      return;
+    }
+
+    if (request.method === 'PUT' && url.pathname === '/api/configuration') {
+      await handleSaveDashboardConfiguration(client, request, response, session.user);
       return;
     }
 
@@ -403,6 +466,11 @@ async function handleRequest(client, request, response) {
       return;
     }
 
+    if (request.method === 'POST' && url.pathname === '/api/test-announcement') {
+      await handleTestAnnouncement(client, request, response);
+      return;
+    }
+
     sendJson(response, 404, { error: 'Unknown API route.' });
     return;
   }
@@ -433,7 +501,122 @@ async function handleLogin(client, request, response) {
     tag: client.user?.tag || null,
     guildName: getDashboardGuildName(client),
     sessionToken,
+    user: createPasswordSession().user,
+    permissions: getSessionPermissions(createPasswordSession()),
   });
+}
+
+function handleDiscordOauthStart(request, response) {
+  if (!isDiscordOauthConfigured()) {
+    redirect(response, '/?loginError=oauth-disabled');
+    return;
+  }
+
+  pruneOauthState();
+  const state = crypto.randomBytes(24).toString('hex');
+  const redirectUri = getDiscordOauthRedirectUri();
+  oauthStates.set(state, Date.now() + 10 * 60 * 1000);
+  setCookie(response, oauthStateCookieName, state, {
+    maxAge: 10 * 60,
+    secure: isSecureRequest(request),
+  });
+  const query = new URLSearchParams({
+    client_id: config.clientId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'identify guilds.members.read',
+    state,
+  });
+  redirect(response, `https://discord.com/oauth2/authorize?${query}`);
+}
+
+async function handleDiscordOauthCallback(request, response, url) {
+  const state = String(url.searchParams.get('state') || '');
+  const code = String(url.searchParams.get('code') || '');
+  const cookieState = parseCookies(request)[oauthStateCookieName];
+  const expiresAt = oauthStates.get(state);
+
+  oauthStates.delete(state);
+  setCookie(response, oauthStateCookieName, '', {
+    maxAge: 0,
+    secure: isSecureRequest(request),
+  });
+
+  if (
+    !isDiscordOauthConfigured()
+    || !state
+    || state !== cookieState
+    || !expiresAt
+    || expiresAt < Date.now()
+    || !code
+  ) {
+    redirect(response, '/?loginError=oauth');
+    return;
+  }
+
+  try {
+    const redirectUri = getDiscordOauthRedirectUri();
+    const tokenResponse = await fetch('https://discord.com/api/v10/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: config.clientId,
+        client_secret: config.dashboard.discordOauth.clientSecret,
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: redirectUri,
+      }),
+    });
+
+    if (!tokenResponse.ok) {
+      throw new Error(`Discord token exchange returned ${tokenResponse.status}.`);
+    }
+
+    const token = await tokenResponse.json();
+    const headers = { Authorization: `Bearer ${token.access_token}` };
+    const [userResponse, memberResponse] = await Promise.all([
+      fetch('https://discord.com/api/v10/users/@me', { headers }),
+      fetch(`https://discord.com/api/v10/users/@me/guilds/${config.guildId}/member`, { headers }),
+    ]);
+
+    if (!userResponse.ok || !memberResponse.ok) {
+      throw new Error('The Discord account is not a member of the configured server.');
+    }
+
+    const user = await userResponse.json();
+    const member = await memberResponse.json();
+    const dashboardRole = resolveDashboardRole(user.id, member.roles);
+
+    if (!dashboardRole) {
+      redirect(response, '/?loginError=access');
+      return;
+    }
+
+    const sessionToken = crypto.randomBytes(32).toString('hex');
+    const session = {
+      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+      user: {
+        id: user.id,
+        username: user.username,
+        displayName: member.nick || user.global_name || user.username,
+        avatarUrl: user.avatar
+          ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128`
+          : null,
+        role: dashboardRole,
+        authMode: 'discord',
+      },
+    };
+
+    oauthSessions.set(sessionToken, session);
+    setCookie(response, sessionCookieName, sessionToken, {
+      maxAge: 7 * 24 * 60 * 60,
+      secure: isSecureRequest(request),
+    });
+    redirect(response, '/');
+  } catch (error) {
+    console.error('Discord dashboard login failed:', error);
+    redirect(response, '/?loginError=oauth');
+  }
 }
 
 async function handleGetDiscordChannels(client, response) {
@@ -501,6 +684,332 @@ async function handleGetDiscordChannels(client, response) {
       youtube: config.channels.youtubeAnnouncements || config.channels.streamAnnouncements || '',
     },
   });
+}
+
+async function handleGetDiscordRoles(client, response) {
+  if (!client.isReady()) {
+    sendJson(response, 503, { error: 'Bot is not ready yet.' });
+    return;
+  }
+
+  const guild = getDashboardGuild(client);
+
+  if (!guild) {
+    sendJson(response, 404, { error: 'The dashboard Discord server was not found.' });
+    return;
+  }
+
+  const fetchedRoles = await guild.roles?.fetch?.().catch(() => null);
+  const roleCollection = fetchedRoles || guild.roles?.cache;
+  const roles = roleCollection
+    ? [...roleCollection.values()]
+      .filter((role) => role && role.id !== guild.id && !role.managed)
+      .map((role) => ({
+        id: role.id,
+        name: role.name || `role-${role.id}`,
+        color: role.hexColor && role.hexColor !== '#000000' ? role.hexColor : null,
+        position: Number.isFinite(role.position) ? role.position : 0,
+      }))
+      .sort((left, right) => right.position - left.position || left.name.localeCompare(right.name))
+    : [];
+
+  sendJson(response, 200, {
+    ok: true,
+    guildId: guild.id,
+    roles,
+    defaults: { ...config.roles },
+  });
+}
+
+async function handleGetConfigurationOptions(client, response) {
+  if (!client.isReady()) {
+    sendJson(response, 503, { error: 'Bot is not ready yet.' });
+    return;
+  }
+
+  const guild = getDashboardGuild(client);
+
+  if (!guild) {
+    sendJson(response, 404, { error: 'The dashboard Discord server was not found.' });
+    return;
+  }
+
+  const fetchedChannels = await guild.channels.fetch().catch(() => null);
+  const collection = fetchedChannels || guild.channels.cache;
+  const channels = [...collection.values()]
+    .filter((channel) => {
+      if (!channel || channel.isThread?.() || channel.type === ChannelType.GuildCategory) {
+        return false;
+      }
+
+      const permissions = channel.permissionsFor?.(client.user);
+      return !permissions || permissions.has(PermissionFlagsBits.ViewChannel);
+    })
+    .map((channel) => ({
+      id: channel.id,
+      name: channel.name || `channel-${channel.id}`,
+      parentId: channel.parentId || '',
+      parentName: channel.parent?.name || '',
+      parentPosition: Number.isFinite(channel.parent?.rawPosition) ? channel.parent.rawPosition : -1,
+      position: Number.isFinite(channel.rawPosition) ? channel.rawPosition : 0,
+      type: channel.type,
+      sendable: Boolean(channel.isSendable?.()),
+      voice: channel.type === ChannelType.GuildVoice || channel.type === ChannelType.GuildStageVoice,
+    }))
+    .sort((left, right) =>
+      left.parentPosition - right.parentPosition
+      || left.parentName.localeCompare(right.parentName)
+      || left.position - right.position
+      || left.name.localeCompare(right.name));
+
+  sendJson(response, 200, { ok: true, channels });
+}
+
+async function handleGetDashboardConfiguration(client, response) {
+  const settings = await loadDashboardSettings(config);
+  const diagnostics = await getConfigurationDiagnostics(client, settings);
+
+  sendJson(response, 200, {
+    ok: true,
+    settings,
+    diagnostics,
+    storage: getDashboardSettingsStorageInfo(config),
+    oauth: {
+      enabled: isDiscordOauthConfigured(),
+      configured: Boolean(
+        config.clientId
+        && config.guildId
+        && config.dashboard.discordOauth?.clientSecret
+        && config.dashboard.publicUrl
+      ),
+    },
+    schema: {
+      channels: channelKeys,
+      roles: roleKeys,
+      features: featureKeys,
+    },
+  });
+}
+
+async function handleSaveDashboardConfiguration(client, request, response, actor) {
+  const body = await readJsonBody(request, config.dashboard.maxBodyBytes);
+  let settings;
+
+  try {
+    settings = await saveDashboardSettings(config, body.settings, actor);
+  } catch (error) {
+    sendJson(response, 400, { error: error.message });
+    return;
+  }
+
+  const diagnostics = await getConfigurationDiagnostics(client, settings);
+
+  await sendStructuredLog(client, config.channels.operationLog, {
+    title: 'Dashboard Configuration Updated',
+    emoji: '⚙️',
+    color: colors.info,
+    summary: `**${actor?.displayName || 'A dashboard user'}** updated Bean's server configuration.`,
+    referenceId: `CONFIG-${Date.now()}`,
+    fields: [
+      { name: 'Dashboard Role', value: actor?.role || 'Founder' },
+      { name: 'Readiness', value: `${diagnostics.summary.ready}/${diagnostics.summary.total} checks ready` },
+      { name: 'Restart Required', value: diagnostics.summary.restartRequired ? 'Yes' : 'No' },
+    ],
+  }).catch((error) => console.error('Failed to log dashboard configuration update:', error));
+
+  sendJson(response, 200, {
+    ok: true,
+    settings,
+    diagnostics,
+    storage: getDashboardSettingsStorageInfo(config),
+  });
+}
+
+async function getConfigurationDiagnostics(client, settings) {
+  const guild = getDashboardGuild(client);
+  const channelCollection = guild?.channels?.cache;
+  const roleCollection = guild?.roles?.cache;
+  const botMember = guild?.members?.me
+    || guild?.members?.cache?.get?.(client.user?.id);
+  const checks = [];
+
+  for (const key of channelKeys) {
+    const id = settings.channels[key];
+    const channel = id
+      ? channelCollection?.get?.(id) || await client.channels?.fetch?.(id)?.catch(() => null)
+      : null;
+    const requiredPermissions = getRequiredChannelPermissions(key);
+    const permissions = channel?.permissionsFor?.(client.user || botMember);
+    const missingPermissions = permissions
+      ? requiredPermissions.filter((permission) => !permissions.has(permission.bit))
+      : [];
+
+    checks.push({
+      id: `channel-${key}`,
+      group: 'channels',
+      key,
+      label: humanizeSettingKey(key),
+      status: !id ? 'missing' : !channel ? 'invalid' : missingPermissions.length ? 'warning' : 'ready',
+      message: !id
+        ? 'No channel selected.'
+        : !channel
+          ? 'The selected channel no longer exists or is inaccessible.'
+          : missingPermissions.length
+            ? `Missing ${missingPermissions.map((item) => item.label).join(', ')}.`
+            : `Connected to #${channel.name || id}.`,
+      missingPermissions: missingPermissions.map((item) => item.label),
+    });
+  }
+
+  for (const key of roleKeys) {
+    const id = settings.roles[key];
+    const role = id ? roleCollection?.get?.(id) : null;
+    const botTopPosition = botMember?.roles?.highest?.position;
+    const manageable = !role
+      || !Number.isFinite(botTopPosition)
+      || !Number.isFinite(role.position)
+      || botTopPosition > role.position;
+
+    checks.push({
+      id: `role-${key}`,
+      group: 'roles',
+      key,
+      label: humanizeSettingKey(key),
+      status: !id ? 'missing' : !role ? 'invalid' : !manageable ? 'warning' : 'ready',
+      message: !id
+        ? 'No role selected.'
+        : !role
+          ? 'The selected role no longer exists.'
+          : !manageable
+            ? 'Move Bean above this role in Discord.'
+            : `Connected to @${role.name || id}.`,
+    });
+  }
+
+  const intentChecks = [
+    {
+      key: 'members',
+      label: 'Server Members intent',
+      enabled: Boolean(config.intents.members),
+      required: settings.features.welcomeMessages,
+      reason: 'automatic welcome messages',
+    },
+    {
+      key: 'messageContent',
+      label: 'Message Content intent',
+      enabled: Boolean(config.intents.messageContent),
+      required: settings.features.inviteModeration || settings.features.detailedLogging,
+      reason: 'invite moderation and detailed message logs',
+    },
+    {
+      key: 'presences',
+      label: 'Presence intent',
+      enabled: Boolean(config.intents.presences),
+      required: settings.features.streamMonitor,
+      reason: 'Twitch live detection and online analytics',
+    },
+  ];
+
+  for (const intent of intentChecks) {
+    checks.push({
+      id: `intent-${intent.key}`,
+      group: 'intents',
+      key: intent.key,
+      label: intent.label,
+      status: !intent.required || intent.enabled ? 'ready' : 'restart',
+      message: intent.enabled
+        ? `Enabled for ${intent.reason}.`
+        : intent.required
+          ? `Enable this in Discord and Railway for ${intent.reason}, then restart Bean.`
+          : 'Not required by the currently enabled features.',
+      restartRequired: intent.required && !intent.enabled,
+    });
+  }
+
+  if (settings.features.youtubeMonitor && dashboardStartupFeatures?.youtubeMonitor === false) {
+    checks.push({
+      id: 'feature-youtubeMonitor',
+      group: 'features',
+      key: 'youtubeMonitor',
+      label: 'YouTube monitor startup',
+      status: 'restart',
+      message: 'The monitor was disabled when Bean started. Restart Bean to begin polling.',
+      restartRequired: true,
+    });
+  }
+
+  const relevantChecks = checks.filter((check) => {
+    if (check.group === 'channels') {
+      return isConfigurationCheckRelevant(check.key, settings.features);
+    }
+
+    if (check.group === 'roles') {
+      return isRoleCheckRelevant(check.key, settings.features);
+    }
+
+    return true;
+  });
+  const ready = relevantChecks.filter((check) => check.status === 'ready').length;
+
+  return {
+    generatedAt: new Date().toISOString(),
+    checks,
+    summary: {
+      ready,
+      total: relevantChecks.length,
+      warnings: relevantChecks.filter((check) => ['warning', 'invalid', 'missing'].includes(check.status)).length,
+      restartRequired: relevantChecks.some((check) => check.restartRequired),
+    },
+  };
+}
+
+function getRequiredChannelPermissions(key) {
+  if (key === 'tempVoiceTrigger') {
+    return [
+      { bit: PermissionFlagsBits.ViewChannel, label: 'View Channel' },
+      { bit: PermissionFlagsBits.Connect, label: 'Connect' },
+      { bit: PermissionFlagsBits.ManageChannels, label: 'Manage Channels' },
+      { bit: PermissionFlagsBits.MoveMembers, label: 'Move Members' },
+    ];
+  }
+
+  const permissions = [
+    { bit: PermissionFlagsBits.ViewChannel, label: 'View Channel' },
+    { bit: PermissionFlagsBits.SendMessages, label: 'Send Messages' },
+  ];
+
+  permissions.push(
+    { bit: PermissionFlagsBits.EmbedLinks, label: 'Embed Links' },
+    { bit: PermissionFlagsBits.AttachFiles, label: 'Attach Files' },
+  );
+
+  return permissions;
+}
+
+function isConfigurationCheckRelevant(key, features) {
+  if (key === 'welcome') return features.welcomeMessages;
+  if (key === 'tickets' || key === 'ticketLogs') return features.tickets;
+  if (key === 'streamAnnouncements') return features.streamMonitor;
+  if (key === 'youtubeAnnouncements') return features.youtubeMonitor;
+  if (key === 'tempVoiceTrigger') return features.temporaryVoice;
+  if (['caseFiles', 'entryLog', 'signalLog', 'lineLog', 'operationLog', 'systemLog'].includes(key)) {
+    return features.detailedLogging;
+  }
+  return Boolean(config.channels[key]);
+}
+
+function isRoleCheckRelevant(key, features) {
+  if (key === 'live') return features.streamMonitor;
+  if (key === 'newUpload') return features.youtubeMonitor;
+  if (key === 'verified') return features.reactionRoles;
+  if (key.startsWith('dashboard')) return isDiscordOauthConfigured();
+  return Boolean(config.roles[key]);
+}
+
+function humanizeSettingKey(value) {
+  return String(value)
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/^./, (letter) => letter.toUpperCase());
 }
 
 async function handleClassicLogin(client, request, response) {
@@ -574,6 +1083,113 @@ async function handleSendMessage(client, request, response, options = {}) {
     messageId: message.id,
     url: message.url,
   });
+}
+
+async function handleTestAnnouncement(client, request, response) {
+  if (!client.isReady()) {
+    sendJson(response, 503, { error: 'Bot is not ready yet.' });
+    return;
+  }
+
+  const body = await readJsonBody(request, config.dashboard.maxBodyBytes);
+  const type = String(body.type || '').trim().toLowerCase();
+  const settings = body.settings && typeof body.settings === 'object' ? body.settings : {};
+  const channelId = String(body.channelId || settings.channelId || '').trim();
+
+  if (!['welcome', 'live', 'youtube'].includes(type)) {
+    sendJson(response, 400, { error: 'Choose welcome, live, or youtube for the test.' });
+    return;
+  }
+
+  if (!/^\d{17,20}$/.test(channelId)) {
+    sendJson(response, 400, { error: 'Choose a destination channel for the test.' });
+    return;
+  }
+
+  const channel = await client.channels.fetch(channelId).catch(() => null);
+
+  if (!channel?.isSendable?.()) {
+    sendJson(response, 404, { error: 'The selected test channel is unavailable or not sendable.' });
+    return;
+  }
+
+  const member = await getDashboardTestMember(client);
+  let payload;
+
+  try {
+    if (type === 'welcome') {
+      payload = createWelcomeAnnouncementPayload(settings, member);
+    } else if (type === 'youtube') {
+      payload = createYouTubeAnnouncementPayload(settings, {
+        member,
+        video: {
+          id: '67rGoXhQcvA',
+          title: 'A fresh upload from the cozy corner',
+          url: 'https://www.youtube.com/watch?v=67rGoXhQcvA',
+          thumbnailUrl: 'https://i.ytimg.com/vi/67rGoXhQcvA/hqdefault.jpg',
+          publishedAt: new Date().toISOString(),
+        },
+        channelHandle: config.youtubeMonitor.channelHandle,
+        timestamp: new Date(),
+      });
+    } else {
+      payload = createStreamAnnouncementPayload(settings, {
+        member,
+        streamingActivity: {
+          details: 'Building something under control',
+          state: 'Just Chatting',
+          url: 'https://twitch.tv/5noof',
+        },
+        twitchUsername: '5noof',
+        previewUrl: 'https://static-cdn.jtvnw.net/previews-ttv/live_user_5noof-1920x1080.jpg',
+        timestamp: new Date(),
+      });
+    }
+  } catch (error) {
+    sendJson(response, 400, { error: error.message });
+    return;
+  }
+
+  payload.allowedMentions = { parse: [], users: [], roles: [], repliedUser: false };
+  const message = await channel.send(payload);
+
+  sendJson(response, 200, {
+    ok: true,
+    type,
+    channelId,
+    messageId: message.id,
+    url: message.url,
+  });
+}
+
+async function getDashboardTestMember(client) {
+  const guild = getDashboardGuild(client);
+  const userId = config.ownerUserId;
+  const member = guild?.members?.cache?.get?.(userId)
+    || await guild?.members?.fetch?.(userId)?.catch(() => null);
+
+  if (member) {
+    return member;
+  }
+
+  const createdTimestamp = Date.now() - 365 * 24 * 60 * 60 * 1000;
+
+  return {
+    id: userId,
+    displayName: 'snuf',
+    guild: {
+      name: guild?.name || config.communityName,
+      memberCount: guild?.memberCount || 1,
+    },
+    user: {
+      id: userId,
+      username: '5nooof',
+      displayName: 'snuf',
+      createdTimestamp,
+    },
+    displayAvatarURL: () => '',
+    toString: () => `<@${userId}>`,
+  };
 }
 
 async function handleGetScheduledMailbox(response) {
@@ -727,6 +1343,7 @@ async function getDashboardStorageHealth() {
     ['YouTube Upload State', getYouTubeUploadStateStorageInfo(config)],
     ['Welcome Message', getWelcomeEmbedStorageInfo(config)],
     ['Presence', presence],
+    ['Dashboard Configuration', getDashboardSettingsStorageInfo(config)],
   ];
 
   return Promise.all(stores.map(async ([name, storage]) => {
@@ -1699,16 +2316,35 @@ function parseCookies(request) {
   );
 }
 
-function isAuthenticated(request) {
+function getAuthenticatedSession(request) {
   const cookie = parseCookies(request)[sessionCookieName];
   const bearerToken = readBearerToken(request);
   const expected = createSessionValue();
 
-  return matchesSessionValue(cookie, expected) || matchesSessionValue(bearerToken, expected);
+  if (matchesSessionValue(cookie, expected) || matchesSessionValue(bearerToken, expected)) {
+    return createPasswordSession();
+  }
+
+  const token = cookie || bearerToken;
+  const session = oauthSessions.get(token);
+
+  if (!session) {
+    return null;
+  }
+
+  if (session.expiresAt <= Date.now()) {
+    oauthSessions.delete(token);
+    return null;
+  }
+
+  return session;
 }
 
 function createSessionValue() {
-  return crypto.createHmac('sha256', config.dashboard.password).update('bean-dashboard-session').digest('hex');
+  return crypto
+    .createHmac('sha256', config.dashboard.password || config.dashboard.discordOauth?.clientSecret || 'bean')
+    .update('bean-dashboard-session')
+    .digest('hex');
 }
 
 function matchesSessionValue(value, expected) {
@@ -1745,7 +2381,110 @@ function isSecureRequest(request) {
 }
 
 function isDashboardPassword(value) {
-  return value.trim() === config.dashboard.password;
+  return Boolean(config.dashboard.password) && value.trim() === config.dashboard.password;
+}
+
+function createPasswordSession() {
+  return {
+    expiresAt: Number.POSITIVE_INFINITY,
+    user: {
+      id: config.ownerUserId || 'dashboard-owner',
+      username: 'Founder',
+      displayName: 'Dashboard Founder',
+      avatarUrl: null,
+      role: 'founder',
+      authMode: 'password',
+    },
+  };
+}
+
+function isDiscordOauthConfigured() {
+  return Boolean(
+    config.dashboard.discordOauth?.enabled
+    && config.dashboard.discordOauth?.clientSecret
+    && config.dashboard.publicUrl
+    && config.clientId
+    && config.guildId
+  );
+}
+
+function getDiscordOauthRedirectUri() {
+  return `${String(config.dashboard.publicUrl || '').replace(/\/+$/, '')}/auth/discord/callback`;
+}
+
+function resolveDashboardRole(userId, memberRoles = []) {
+  const roles = new Set(Array.isArray(memberRoles) ? memberRoles : []);
+
+  if (userId === config.ownerUserId || roles.has(config.roles.founder)) return 'founder';
+  if (roles.has(config.roles.dashboardAdmin) || roles.has(config.roles.staff)) return 'admin';
+  if (roles.has(config.roles.moderator)) return 'moderator';
+  if (roles.has(config.roles.dashboardEditor)) return 'editor';
+  if (roles.has(config.roles.dashboardViewer)) return 'viewer';
+  return null;
+}
+
+function getSessionPermissions(session) {
+  const role = session?.user?.role || 'viewer';
+  const level = getDashboardRoleLevel(role);
+
+  return {
+    role,
+    view: level >= 1,
+    create: level >= 2,
+    moderate: level >= 3,
+    configure: level >= 4,
+    owner: level >= 5,
+  };
+}
+
+function sessionCanAccess(session, method, pathname) {
+  if (method === 'GET') {
+    return true;
+  }
+
+  const level = getDashboardRoleLevel(session?.user?.role);
+
+  if (pathname === '/api/logout') return true;
+  if (pathname === '/api/configuration' || pathname.startsWith('/api/bot/')) return level >= 4;
+  if (pathname.startsWith('/api/moderation-cases/')) return level >= 3;
+  if (pathname.startsWith('/api/temp-voice/')) return level >= 3;
+  if (
+    pathname.startsWith('/api/send-message')
+    || pathname.startsWith('/api/test-announcement')
+    || pathname.startsWith('/api/mailbox/')
+    || pathname.startsWith('/api/saved-messages')
+    || pathname.endsWith('-embed')
+  ) {
+    return level >= 2;
+  }
+
+  return level >= 4;
+}
+
+function getDashboardRoleLevel(role) {
+  return {
+    viewer: 1,
+    editor: 2,
+    moderator: 3,
+    admin: 4,
+    founder: 5,
+  }[role] || 0;
+}
+
+function pruneOauthState() {
+  const now = Date.now();
+
+  for (const [state, expiresAt] of oauthStates) {
+    if (expiresAt <= now) {
+      oauthStates.delete(state);
+    }
+  }
+
+  for (const [token, session] of oauthSessions) {
+    if (session.expiresAt <= now) {
+      oauthSessions.delete(token);
+    }
+  }
 }
 
 function shouldLogDashboardRequest(method, pathname) {

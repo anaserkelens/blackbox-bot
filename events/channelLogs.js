@@ -14,16 +14,20 @@ const {
 
 module.exports = {
   setup(client) {
-    client.on(Events.ChannelCreate, (channel) => logChannelCreate(channel, client));
-    client.on(Events.ChannelDelete, (channel) => logChannelDelete(channel, client));
-    client.on(Events.ChannelUpdate, (oldChannel, newChannel) =>
-      logChannelUpdate(oldChannel, newChannel, client),
-    );
-    client.on(Events.ChannelPinsUpdate, (channel, time) =>
-      logChannelPinsUpdate(channel, time, client),
-    );
+    client.on(Events.ChannelCreate, logWhenEnabled((channel) => logChannelCreate(channel, client)));
+    client.on(Events.ChannelDelete, logWhenEnabled((channel) => logChannelDelete(channel, client)));
+    client.on(Events.ChannelUpdate, logWhenEnabled((oldChannel, newChannel) =>
+      logChannelUpdate(oldChannel, newChannel, client)));
+    client.on(Events.ChannelPinsUpdate, logWhenEnabled((channel, time) =>
+      logChannelPinsUpdate(channel, time, client)));
   },
 };
+
+function logWhenEnabled(handler) {
+  return (...args) => config.dashboard.features?.detailedLogging === false
+    ? undefined
+    : handler(...args);
+}
 
 async function logChannelCreate(channel, client) {
   if (!channel.guild) return;

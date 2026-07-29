@@ -16,7 +16,11 @@ const {
 module.exports = {
   name: Events.MessageDelete,
   async execute(message, client) {
-    if (!message.guild || message.author?.bot) {
+    if (
+      !message.guild
+      || message.author?.bot
+      || config.dashboard.features?.detailedLogging === false
+    ) {
       return;
     }
 

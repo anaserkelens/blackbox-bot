@@ -4,11 +4,23 @@ const loginForm = document.querySelector('#login-form');
 const loginError = document.querySelector('#login-error');
 const loginButton = document.querySelector('#login-button');
 const basicLoginButton = document.querySelector('#basic-login-button');
+const discordLoginWrap = document.querySelector('#discord-login-wrap');
 const apiStatus = document.querySelector('#api-status');
 const passwordInput = document.querySelector('#password');
 const logoutButton = document.querySelector('#logout');
 const botStatus = document.querySelector('#bot-status');
 const dashboardClock = document.querySelector('#dashboard-clock');
+const densityToggle = document.querySelector('#density-toggle');
+const sessionAvatar = document.querySelector('#session-avatar');
+const sessionName = document.querySelector('#session-name');
+const sessionRole = document.querySelector('#session-role');
+const notificationTrigger = document.querySelector('#notification-trigger');
+const notificationBadge = document.querySelector('#notification-badge');
+const notificationCenter = document.querySelector('#notification-center');
+const notificationCenterList = document.querySelector('#notification-center-list');
+const notificationCenterSummary = document.querySelector('#notification-center-summary');
+const notificationCloseButtons = [...document.querySelectorAll('[data-notification-close]')];
+const markNotificationsReadButton = document.querySelector('#mark-notifications-read');
 const overviewBotStatus = document.querySelector('#overview-bot-status');
 const overviewOpenCases = document.querySelector('#overview-open-cases');
 const healthStatus = document.querySelector('#health-status');
@@ -37,6 +49,7 @@ const memberResultCount = document.querySelector('#member-result-count');
 const memberSearchResults = document.querySelector('#member-search-results');
 const memberProfileEmpty = document.querySelector('#member-profile-empty');
 const memberProfileContent = document.querySelector('#member-profile-content');
+const memberProfilePanel = memberProfileContent?.closest('.member-profile-panel');
 const memberProfileAvatar = document.querySelector('#member-profile-avatar');
 const memberProfileAvatarFallback = document.querySelector('#member-profile-avatar-fallback');
 const memberProfileStatus = document.querySelector('#member-profile-status');
@@ -85,6 +98,7 @@ const caseResultCount = document.querySelector('#case-result-count');
 const caseList = document.querySelector('#case-list');
 const caseDetailEmpty = document.querySelector('#case-detail-empty');
 const caseDetailContent = document.querySelector('#case-detail-content');
+const caseDetailPanel = caseDetailContent?.closest('.case-detail-panel');
 const caseDetailReference = document.querySelector('#case-detail-reference');
 const caseDetailTitle = document.querySelector('#case-detail-title');
 const caseDetailStatus = document.querySelector('#case-detail-status');
@@ -139,6 +153,31 @@ const presenceActivityList = document.querySelector('#presence-activity-list');
 const addPresenceActivityButton = document.querySelector('#add-presence-activity');
 const saveBotPresenceButton = document.querySelector('#save-bot-presence');
 const presenceStorageStatus = document.querySelector('#presence-storage-status');
+const dashboardConfigForm = document.querySelector('#dashboard-config-form');
+const configSectionButtons = [...document.querySelectorAll('[data-config-section]')];
+const configSections = [...document.querySelectorAll('[data-config-panel]')];
+const configChannelGrid = document.querySelector('#config-channel-grid');
+const configRoleGrid = document.querySelector('#config-role-grid');
+const configFeatureGrid = document.querySelector('#config-feature-grid');
+const configDiagnosticList = document.querySelector('#config-diagnostic-list');
+const configAttentionList = document.querySelector('#config-attention-list');
+const configAuditList = document.querySelector('#config-audit-list');
+const configAttentionCount = document.querySelector('#config-attention-count');
+const configReadinessRing = document.querySelector('#config-readiness-ring');
+const configReadinessTitle = document.querySelector('#config-readiness-title');
+const configReadinessCopy = document.querySelector('#config-readiness-copy');
+const configOauthStatus = document.querySelector('#config-oauth-status');
+const configOauthCopy = document.querySelector('#config-oauth-copy');
+const configStorageStatus = document.querySelector('#config-storage-status');
+const configStorageCopy = document.querySelector('#config-storage-copy');
+const configCheckStatus = document.querySelector('#config-check-status');
+const configCheckCopy = document.querySelector('#config-check-copy');
+const configSaveState = document.querySelector('#config-save-state');
+const configSaveTime = document.querySelector('#config-save-time');
+const configDirtyDot = document.querySelector('#config-dirty-dot');
+const saveDashboardConfigButton = document.querySelector('#save-dashboard-config');
+const resetDashboardConfigButton = document.querySelector('#reset-dashboard-config');
+const refreshConfigDiagnosticsButton = document.querySelector('#refresh-config-diagnostics');
 const composer = document.querySelector('#composer');
 const messageNameInput = document.querySelector('#message-name');
 const channelInput = document.querySelector('#channel-id');
@@ -184,6 +223,9 @@ const scheduleMailboxButton = document.querySelector('#schedule-mailbox');
 const mailboxScheduleStorage = document.querySelector('#mailbox-schedule-storage');
 const refreshMailboxScheduleButton = document.querySelector('#refresh-mailbox-schedule');
 const scheduledMailboxList = document.querySelector('#scheduled-mailbox-list');
+const selectAllMailboxPosts = document.querySelector('#select-all-mailbox-posts');
+const mailboxSelectionCount = document.querySelector('#mailbox-selection-count');
+const removeSelectedMailboxPosts = document.querySelector('#remove-selected-mailbox-posts');
 const mailboxDiscordPreview = document.querySelector('#mailbox-discord-preview');
 const mailboxPreviewImage = document.querySelector('#mailbox-preview-image');
 const mailboxPreviewSections = document.querySelector('#mailbox-preview-sections');
@@ -265,6 +307,9 @@ const presenceStorageKey = 'bean_dashboard_presence';
 const liveEmbedStorageKey = 'bean_dashboard_live_embed';
 const youtubeEmbedStorageKey = 'bean_dashboard_youtube_embed';
 const welcomeEmbedStorageKey = 'bean_dashboard_welcome_embed';
+const notificationStorageKey = 'bean_dashboard_notification_center';
+const notificationReadStorageKey = 'bean_dashboard_notification_read';
+const interfacePreferenceStorageKey = 'bean_dashboard_interface_preferences';
 const welcomeMessageId = 'welcome-message';
 const workspaceMeta = {
   overview: { title: 'Room overview', hint: 'The full community signal', key: '01' },
@@ -278,7 +323,8 @@ const workspaceMeta = {
   'live-embed': { title: 'Creator notifications', hint: 'Shape Twitch and YouTube alerts', key: '04C' },
   'welcome-embed': { title: 'Welcome builder', hint: 'Design the first hello', key: '04D' },
   'voice-rooms': { title: 'Voice spaces', hint: 'Manage temporary rooms', key: '05' },
-  bot: { title: 'Bean settings', hint: 'Profile, identity, and presence', key: '06' },
+  config: { title: 'Server configuration', hint: 'Channels, roles, features, and access', key: '06' },
+  bot: { title: 'Bean profile', hint: 'Profile, identity, and presence', key: '06A' },
 };
 const workspaceGroupByTab = {
   members: 'community',
@@ -287,6 +333,7 @@ const workspaceGroupByTab = {
   mailbox: 'create',
   'live-embed': 'create',
   'welcome-embed': 'create',
+  bot: 'config',
 };
 const contextWorkspaceDefinitions = {
   community: {
@@ -295,6 +342,14 @@ const contextWorkspaceDefinitions = {
     items: [
       { tab: 'members', label: 'Members', icon: 'fa-solid fa-address-card' },
       { tab: 'analytics', label: 'Signals', icon: 'fa-solid fa-chart-line' },
+    ],
+  },
+  config: {
+    label: 'Settings',
+    panels: ['config', 'bot'],
+    items: [
+      { tab: 'config', label: 'Configuration', icon: 'fa-solid fa-sliders' },
+      { tab: 'bot', label: 'Bean profile', icon: 'fa-solid fa-robot' },
     ],
   },
 };
@@ -353,6 +408,7 @@ const state = {
   mailboxImage: null,
   scheduledMailboxPosts: [],
   mailboxScheduleStorage: null,
+  selectedMailboxPosts: new Set(),
   mailboxScheduleRefreshTimer: null,
   discordChannels: [],
   discordChannelDefaults: {},
@@ -371,6 +427,19 @@ const state = {
   notificationTimer: null,
   notificationCursor: null,
   seenNotifications: new Set(),
+  notifications: [],
+  readNotifications: new Set(),
+  notificationInitialLoad: true,
+  session: null,
+  configuration: null,
+  savedConfiguration: null,
+  configurationDiagnostics: null,
+  configurationStorage: null,
+  configurationOauth: null,
+  discordRoles: [],
+  configurationChannels: [],
+  configurationDirty: false,
+  builderManagers: new Map(),
   botAvatarImage: null,
   botBannerImage: null,
   savedMessages: [],
@@ -420,9 +489,11 @@ init();
 async function init() {
   initializeJournal();
   initializeWorkspaceNavigation();
+  initializeInterfacePreferences();
   bindEvents();
   resetMailboxBuilder();
   renderSavedMessages();
+  initializeBuilderWorkflows();
 
   checkApiStatus();
 
@@ -446,6 +517,11 @@ function bindEvents() {
   commandCloseButtons.forEach((button) => button.addEventListener('click', closeCommandPalette));
   commandSearch.addEventListener('input', renderCommandResults);
   commandResults.addEventListener('click', handleCommandResultClick);
+  notificationTrigger?.addEventListener('click', openNotificationCenter);
+  densityToggle?.addEventListener('click', toggleInterfaceDensity);
+  notificationCloseButtons.forEach((button) => button.addEventListener('click', closeNotificationCenter));
+  markNotificationsReadButton?.addEventListener('click', markAllNotificationsRead);
+  notificationCenterList?.addEventListener('click', handleNotificationCenterClick);
   document.addEventListener('keydown', handleCommandKeydown);
   dashboardView.addEventListener('pointermove', updateDashboardGlow);
   refreshHealthButton.addEventListener('click', () => {
@@ -457,6 +533,7 @@ function bindEvents() {
   activityFilterButtons.forEach((button) => {
     button.addEventListener('click', () => {
       state.activityType = button.dataset.activityType;
+      writeInterfacePreferences({ activityType: state.activityType });
       activityFilterButtons.forEach((item) => item.classList.toggle('active', item === button));
       loadActivityFeed(false).catch((error) => setSendStatus(error.message, 'error'));
     });
@@ -464,6 +541,7 @@ function bindEvents() {
   memberSearchForm.addEventListener('submit', handleMemberSearch);
   memberSearchResults.addEventListener('click', handleMemberResultClick);
   analyticsRangeInput.addEventListener('change', () => {
+    writeInterfacePreferences({ analyticsRange: analyticsRangeInput.value });
     loadDashboardAnalytics(false).catch((error) => setSendStatus(error.message, 'error'));
   });
   refreshAnalyticsButton.addEventListener('click', () => {
@@ -482,6 +560,16 @@ function bindEvents() {
   presenceActivityTypeInput.addEventListener('change', updatePresenceUrlVisibility);
   addPresenceActivityButton.addEventListener('click', () => addPresenceActivity(''));
   presenceActivityList.addEventListener('click', handlePresenceActivityListClick);
+  dashboardConfigForm?.addEventListener('submit', handleDashboardConfigSave);
+  dashboardConfigForm?.addEventListener('input', markDashboardConfigDirty);
+  dashboardConfigForm?.addEventListener('change', markDashboardConfigDirty);
+  configSectionButtons.forEach((button) => {
+    button.addEventListener('click', () => setConfigSection(button.dataset.configSection));
+  });
+  resetDashboardConfigButton?.addEventListener('click', resetDashboardConfiguration);
+  refreshConfigDiagnosticsButton?.addEventListener('click', () => {
+    loadDashboardConfiguration(true).catch((error) => setSendStatus(error.message, 'error'));
+  });
   composer.addEventListener('submit', handleSend);
   messageColorPicker.addEventListener('input', handleMessageColorPickerInput);
   messageColorInput.addEventListener('input', handleMessageColorInput);
@@ -489,10 +577,10 @@ function bindEvents() {
   refreshCasesButton.addEventListener('click', () => {
     loadModerationCases(true).catch((error) => setSendStatus(error.message, 'error'));
   });
-  caseSearchInput.addEventListener('input', renderModerationCases);
-  caseActionFilter.addEventListener('change', renderModerationCases);
-  caseStatusFilter.addEventListener('change', renderModerationCases);
-  caseDateFilter.addEventListener('change', renderModerationCases);
+  caseSearchInput.addEventListener('input', handleRememberedCaseFilters);
+  caseActionFilter.addEventListener('change', handleRememberedCaseFilters);
+  caseStatusFilter.addEventListener('change', handleRememberedCaseFilters);
+  caseDateFilter.addEventListener('change', handleRememberedCaseFilters);
   caseList.addEventListener('click', handleCaseListClick);
   caseReasonForm.addEventListener('submit', handleCaseReasonSave);
   caseRevokeForm.addEventListener('submit', handleCaseRevocation);
@@ -532,6 +620,9 @@ function bindEvents() {
     loadScheduledMailboxPosts(true).catch((error) => setSendStatus(error.message, 'error'));
   });
   scheduledMailboxList.addEventListener('click', handleScheduledMailboxClick);
+  scheduledMailboxList.addEventListener('change', handleScheduledMailboxSelection);
+  selectAllMailboxPosts?.addEventListener('change', handleSelectAllMailboxPosts);
+  removeSelectedMailboxPosts?.addEventListener('click', handleRemoveSelectedMailboxPosts);
   mailboxButtonsContainer.addEventListener('input', updateMailboxPreview);
   discordChannelSelects.forEach((select) => {
     select.addEventListener('change', () => updateChannelSelectAppearance(select));
@@ -569,6 +660,15 @@ function bindEvents() {
     button.addEventListener('click', () => activateEmbedBuilder(button.dataset.embedBuilder));
   });
   window.addEventListener('resize', handleCreateNavigationResize);
+  window.addEventListener('beforeunload', (event) => {
+    const hasUnsavedChanges = state.configurationDirty
+      || [...state.builderManagers.values()].some((manager) => manager.bar?.classList.contains('is-dirty'));
+
+    if (hasUnsavedChanges) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
+  });
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && getActiveTab() === 'messages' && !dashboardView.hidden) {
       loadSavedMessages({ silent: true }).catch(() => null);
@@ -626,6 +726,7 @@ async function checkApiStatus() {
     const botText = ping.botReady || health.botReady ? `Bot online${ping.tag ? `: ${ping.tag}` : ''}` : 'Bot not ready';
 
     setGuildName(ping.guildName);
+    discordLoginWrap.hidden = !ping.discordOauthEnabled;
     setApiStatus(`API connected. ${botText}.`, 'success');
   } catch (error) {
     setApiStatus(`API check failed on ${window.location.origin}: ${error.message}`, 'error');
@@ -656,6 +757,7 @@ async function handleSend(event) {
     });
 
     const link = result.url ? ` Message: ${result.url}` : '';
+    markBuilderSaved('message', 'Published to Discord');
     setSendStatus(`Sent to ${payload.channelId}.${link}`, 'success');
   } catch (error) {
     setSendStatus(error.message, 'error');
@@ -681,6 +783,7 @@ async function handleMailboxSend(event) {
     });
     const link = result.url ? ` Message: ${result.url}` : '';
 
+    markBuilderSaved('mailbox', 'Published to Discord');
     setSendStatus(`Sent to ${getDiscordChannelLabel(result.channelId)}.${link}`, 'success');
   } catch (error) {
     setSendStatus(error.message, 'error');
@@ -722,6 +825,7 @@ async function handleMailboxSchedule() {
     });
 
     await loadScheduledMailboxPosts(false);
+    markBuilderSaved('mailbox', 'Scheduled with Bean');
     setSendStatus(
       `Scheduled "${result.job.title}" for ${formatDashboardCaseDateTime(result.job.scheduledAt)}.`,
       'success',
@@ -797,6 +901,11 @@ async function loadScheduledMailboxPosts(showNotification = false) {
 function renderScheduledMailboxPosts() {
   const jobs = state.scheduledMailboxPosts;
   const storage = state.mailboxScheduleStorage;
+  const visibleIds = new Set(jobs.map((job) => job.id));
+
+  state.selectedMailboxPosts = new Set(
+    [...state.selectedMailboxPosts].filter((id) => visibleIds.has(id)),
+  );
 
   mailboxScheduleStorage.classList.remove('ready', 'offline');
   mailboxScheduleStorage.textContent = storage?.persistent ? 'Queue saved persistently' : 'Queue storage is temporary';
@@ -808,11 +917,14 @@ function renderScheduledMailboxPosts() {
     empty.className = 'schedule-empty';
     empty.innerHTML = '<i class="fa-regular fa-calendar-check" aria-hidden="true"></i><span>No scheduled posts yet.</span>';
     scheduledMailboxList.append(empty);
+    renderMailboxBulkActions();
     return;
   }
 
   for (const job of jobs) {
     const item = document.createElement('article');
+    const selection = document.createElement('label');
+    const checkbox = document.createElement('input');
     const icon = document.createElement('span');
     const copy = document.createElement('div');
     const heading = document.createElement('div');
@@ -823,6 +935,12 @@ function renderScheduledMailboxPosts() {
     const remove = document.createElement('button');
 
     item.className = 'scheduled-mailbox-item';
+    selection.className = 'scheduled-mailbox-select';
+    selection.setAttribute('aria-label', `Select ${job.title}`);
+    checkbox.type = 'checkbox';
+    checkbox.dataset.selectMailboxPost = job.id;
+    checkbox.checked = state.selectedMailboxPosts.has(job.id);
+    selection.append(checkbox);
     icon.className = 'scheduled-mailbox-icon';
     icon.innerHTML = `<i class="fa-solid ${getScheduleIcon(job.status)}" aria-hidden="true"></i>`;
     copy.className = 'scheduled-mailbox-copy';
@@ -860,9 +978,11 @@ function renderScheduledMailboxPosts() {
       copy.append(error);
     }
 
-    item.append(icon, copy, actions);
+    item.append(selection, icon, copy, actions);
     scheduledMailboxList.append(item);
   }
+
+  renderMailboxBulkActions();
 }
 
 function getScheduleIcon(status) {
@@ -920,6 +1040,73 @@ async function handleScheduledMailboxClick(event) {
     button.disabled = false;
     setSendStatus(error.message, 'error');
   }
+}
+
+function handleScheduledMailboxSelection(event) {
+  const checkbox = event.target.closest('[data-select-mailbox-post]');
+
+  if (!checkbox) {
+    return;
+  }
+
+  if (checkbox.checked) {
+    state.selectedMailboxPosts.add(checkbox.dataset.selectMailboxPost);
+  } else {
+    state.selectedMailboxPosts.delete(checkbox.dataset.selectMailboxPost);
+  }
+
+  renderMailboxBulkActions();
+}
+
+function handleSelectAllMailboxPosts() {
+  if (selectAllMailboxPosts.checked) {
+    state.scheduledMailboxPosts.forEach((job) => state.selectedMailboxPosts.add(job.id));
+  } else {
+    state.selectedMailboxPosts.clear();
+  }
+
+  scheduledMailboxList.querySelectorAll('[data-select-mailbox-post]').forEach((checkbox) => {
+    checkbox.checked = state.selectedMailboxPosts.has(checkbox.dataset.selectMailboxPost);
+  });
+  renderMailboxBulkActions();
+}
+
+async function handleRemoveSelectedMailboxPosts() {
+  const selected = [...state.selectedMailboxPosts];
+
+  if (selected.length === 0 || !window.confirm(`Remove ${selected.length} selected post${selected.length === 1 ? '' : 's'} from the Mailbox queue?`)) {
+    return;
+  }
+
+  removeSelectedMailboxPosts.disabled = true;
+  removeSelectedMailboxPosts.textContent = 'Removing…';
+  const results = await Promise.allSettled(
+    selected.map((id) => api(`/api/mailbox/scheduled/${encodeURIComponent(id)}`, { method: 'DELETE' })),
+  );
+  const removed = results.filter((result) => result.status === 'fulfilled').length;
+
+  state.selectedMailboxPosts.clear();
+  await loadScheduledMailboxPosts(false);
+  removeSelectedMailboxPosts.textContent = 'Remove selected';
+  setSendStatus(
+    removed === selected.length
+      ? `Removed ${removed} scheduled post${removed === 1 ? '' : 's'}.`
+      : `Removed ${removed} of ${selected.length} selected posts.`,
+    removed === selected.length ? 'success' : 'error',
+  );
+}
+
+function renderMailboxBulkActions() {
+  const selected = state.selectedMailboxPosts.size;
+  const total = state.scheduledMailboxPosts.length;
+
+  mailboxSelectionCount.textContent = selected
+    ? `${selected} post${selected === 1 ? '' : 's'} selected`
+    : 'No posts selected';
+  removeSelectedMailboxPosts.disabled = selected === 0;
+  selectAllMailboxPosts.disabled = total === 0;
+  selectAllMailboxPosts.checked = total > 0 && selected === total;
+  selectAllMailboxPosts.indeterminate = selected > 0 && selected < total;
 }
 
 function startMailboxScheduleSync() {
@@ -1460,6 +1647,861 @@ function getPresenceActivityNames() {
     .filter(Boolean);
 }
 
+const dashboardConfigurationDefinitions = {
+  channels: {
+    welcome: ['Welcome channel', 'Automatic greetings for new members.'],
+    guidelines: ['Guidelines channel', 'Community guidelines and onboarding links.'],
+    introductions: ['Introductions channel', 'Where new members introduce themselves.'],
+    rules: ['Rules channel', 'Rules and verification destination.'],
+    socials: ['Socials channel', 'Community social posts and links.'],
+    tickets: ['Ticket launcher channel', 'Where members open support tickets.'],
+    ticketLogs: ['Ticket log', 'Ticket creation and closure records.'],
+    caseFiles: ['Case files', 'Warnings, timeouts, kicks, bans, and corrections.'],
+    entryLog: ['Entry log', 'Joins, leaves, and invite moderation.'],
+    signalLog: ['Signal log', 'Message edits, deletes, and attachments.'],
+    lineLog: ['Voice log', 'Voice joins, moves, sessions, and state changes.'],
+    operationLog: ['Operation log', 'Bot startup, events, tickets, and dashboard changes.'],
+    systemLog: ['System log', 'Channels, roles, permissions, and user changes.'],
+    streamAnnouncements: ['Twitch announcements', 'Featured Twitch live notifications.'],
+    youtubeAnnouncements: ['YouTube announcements', 'New upload notifications.'],
+    mailbox: ['Mailbox default', 'Default destination for community posts.'],
+    tempVoiceTrigger: ['Voice-room lobby', 'Joining this channel creates a temporary room.'],
+  },
+  roles: {
+    founder: ['Founder role', 'Full bot and dashboard ownership.'],
+    staff: ['Staff role', 'Administrator-level dashboard access.'],
+    moderator: ['Moderator role', 'Cases, members, tickets, and voice operations.'],
+    verified: ['Verified role', 'Role granted by the verification system.'],
+    live: ['Going Live role', 'Granted to members streaming on Twitch.'],
+    newUpload: ['New Upload role', 'Mentioned for YouTube upload alerts.'],
+    dashboardAdmin: ['Dashboard Administrator', 'Configuration, publishing, and moderation.'],
+    dashboardEditor: ['Dashboard Editor', 'Builders, scheduling, and publishing.'],
+    dashboardViewer: ['Dashboard Viewer', 'Read-only dashboard access.'],
+  },
+  features: {
+    welcomeMessages: ['Welcome messages', 'Greet new members with the saved Welcome template.', 'fa-hand-sparkles'],
+    inviteModeration: ['Invite moderation', 'Remove unauthorized Discord invites and timeout the sender.', 'fa-link-slash'],
+    streamMonitor: ['Twitch monitor', 'Detect featured streams and manage the Going Live role.', 'fa-brands fa-twitch'],
+    youtubeMonitor: ['YouTube monitor', 'Check the channel feed and publish new upload alerts.', 'fa-brands fa-youtube'],
+    temporaryVoice: ['Temporary voice rooms', 'Create member-owned rooms from the configured lobby.', 'fa-headphones'],
+    tickets: ['Ticket system', 'Let members create private support tickets.', 'fa-ticket'],
+    reactionRoles: ['Reaction roles', 'Grant the configured verification role from Discord reactions.', 'fa-user-check'],
+    detailedLogging: ['Detailed audit logging', 'Record message, member, voice, role, and channel changes.', 'fa-clipboard-list'],
+  },
+};
+
+async function loadDashboardConfiguration(showNotification = false) {
+  if (!dashboardConfigForm) {
+    return;
+  }
+
+  dashboardConfigForm.classList.add('is-loading');
+
+  try {
+    const [result, rolesResult, optionsResult] = await Promise.all([
+      api('/api/configuration'),
+      api('/api/roles').catch(() => ({ roles: [] })),
+      api('/api/configuration-options').catch(() => ({ channels: state.discordChannels })),
+    ]);
+
+    state.configuration = cloneData(result.settings);
+    state.savedConfiguration = cloneData(result.settings);
+    state.configurationDiagnostics = result.diagnostics;
+    state.configurationStorage = result.storage;
+    state.configurationOauth = result.oauth;
+    state.discordRoles = Array.isArray(rolesResult.roles) ? rolesResult.roles : [];
+    state.configurationChannels = Array.isArray(optionsResult.channels)
+      ? optionsResult.channels
+      : state.discordChannels;
+    state.configurationDirty = false;
+    renderDashboardConfiguration();
+
+    if (showNotification) {
+      setSendStatus('Configuration and Discord checks refreshed.', 'success');
+    }
+  } finally {
+    dashboardConfigForm.classList.remove('is-loading');
+  }
+}
+
+function renderDashboardConfiguration() {
+  if (!state.configuration) {
+    return;
+  }
+
+  renderConfigurationChannels();
+  renderConfigurationRoles();
+  renderConfigurationFeatures();
+  renderConfigurationDiagnostics();
+  renderConfigurationAudit();
+  renderConfigurationSummary();
+  setDashboardConfigDirty(false);
+  applySessionPermissions(state.session?.permissions || {});
+}
+
+function renderConfigurationChannels() {
+  configChannelGrid.replaceChildren();
+
+  for (const [key, [label, description]] of Object.entries(dashboardConfigurationDefinitions.channels)) {
+    const card = document.createElement('label');
+    const heading = document.createElement('span');
+    const title = document.createElement('strong');
+    const copy = document.createElement('small');
+    const shell = document.createElement('span');
+    const icon = document.createElement('span');
+    const select = document.createElement('select');
+    const chevron = document.createElement('i');
+
+    card.className = 'config-field-card';
+    heading.className = 'config-field-heading';
+    title.textContent = label;
+    copy.textContent = description;
+    heading.append(title, copy);
+    shell.className = 'cozy-channel-select';
+    icon.className = 'cozy-channel-select-icon';
+    icon.innerHTML = '<i class="fa-solid fa-hashtag" aria-hidden="true"></i>';
+    select.id = `config-channel-${key}`;
+    select.dataset.configChannel = key;
+    select.className = 'discord-channel-select';
+    chevron.className = 'fa-solid fa-chevron-down cozy-channel-select-chevron';
+    chevron.setAttribute('aria-hidden', 'true');
+    shell.append(icon, select, chevron);
+    card.append(heading, shell);
+    configChannelGrid.append(card);
+    renderConfigurationChannelSelect(select, key, state.configuration.channels[key] || '');
+  }
+}
+
+function renderConfigurationChannelSelect(select, key, selectedValue) {
+  const channels = state.configurationChannels.filter((channel) =>
+    key === 'tempVoiceTrigger' ? channel.voice : channel.sendable !== false);
+  const placeholder = document.createElement('option');
+  const groups = new Map();
+
+  placeholder.value = '';
+  placeholder.textContent = key === 'tempVoiceTrigger'
+    ? 'No voice lobby selected'
+    : 'No channel selected';
+  select.replaceChildren(placeholder);
+
+  for (const channel of channels) {
+    const groupName = channel.parentName || 'Server channels';
+
+    if (!groups.has(groupName)) {
+      groups.set(groupName, []);
+    }
+    groups.get(groupName).push(channel);
+  }
+
+  for (const [groupName, groupedChannels] of groups) {
+    const group = document.createElement('optgroup');
+
+    group.label = groupName;
+
+    for (const channel of groupedChannels) {
+      const option = document.createElement('option');
+
+      option.value = channel.id;
+      option.textContent = `${channel.voice ? '🔊' : '#'} ${channel.name}`;
+      group.append(option);
+    }
+    select.append(group);
+  }
+
+  setSelectValueWithUnavailableOption(select, selectedValue, 'Unavailable channel');
+  updateChannelSelectAppearance(select);
+}
+
+function renderConfigurationRoles() {
+  configRoleGrid.replaceChildren();
+
+  for (const [key, [label, description]] of Object.entries(dashboardConfigurationDefinitions.roles)) {
+    const card = document.createElement('label');
+    const heading = document.createElement('span');
+    const title = document.createElement('strong');
+    const copy = document.createElement('small');
+    const shell = document.createElement('span');
+    const icon = document.createElement('span');
+    const select = document.createElement('select');
+    const placeholder = document.createElement('option');
+    const chevron = document.createElement('i');
+
+    card.className = 'config-field-card';
+    heading.className = 'config-field-heading';
+    title.textContent = label;
+    copy.textContent = description;
+    heading.append(title, copy);
+    shell.className = 'cozy-role-select';
+    icon.className = 'cozy-role-select-icon';
+    icon.innerHTML = '<i class="fa-solid fa-at" aria-hidden="true"></i>';
+    select.id = `config-role-${key}`;
+    select.dataset.configRole = key;
+    placeholder.value = '';
+    placeholder.textContent = 'No role selected';
+    select.append(placeholder);
+
+    for (const role of state.discordRoles) {
+      const option = document.createElement('option');
+
+      option.value = role.id;
+      option.textContent = `@ ${role.name}`;
+      select.append(option);
+    }
+
+    setSelectValueWithUnavailableOption(
+      select,
+      state.configuration.roles[key],
+      'Unavailable role',
+    );
+    chevron.className = 'fa-solid fa-chevron-down cozy-role-select-chevron';
+    chevron.setAttribute('aria-hidden', 'true');
+    shell.append(icon, select, chevron);
+    card.append(heading, shell);
+    configRoleGrid.append(card);
+  }
+}
+
+function renderConfigurationFeatures() {
+  configFeatureGrid.replaceChildren();
+
+  for (const [key, [label, description, iconClass]] of Object.entries(dashboardConfigurationDefinitions.features)) {
+    const card = document.createElement('label');
+
+    card.className = 'config-feature-card';
+    card.innerHTML = `
+      <span class="config-feature-icon"><i class="${escapeHtml(iconClass)}" aria-hidden="true"></i></span>
+      <span class="config-feature-copy"><strong>${escapeHtml(label)}</strong><small>${escapeHtml(description)}</small></span>
+      <span class="config-feature-toggle"><input type="checkbox" data-config-feature="${escapeHtml(key)}"><i></i></span>
+    `;
+    card.querySelector('input').checked = Boolean(state.configuration.features[key]);
+    configFeatureGrid.append(card);
+  }
+}
+
+function renderConfigurationDiagnostics() {
+  const checks = state.configurationDiagnostics?.checks || [];
+  const attention = checks.filter((check) => check.status !== 'ready' && isVisibleConfigurationCheck(check));
+
+  renderDiagnosticItems(configDiagnosticList, checks.filter(isVisibleConfigurationCheck));
+  renderDiagnosticItems(configAttentionList, attention.slice(0, 8), {
+    emptyMessage: 'Everything required by your enabled features is connected.',
+  });
+  configAttentionCount.textContent = attention.length ? `${attention.length} to review` : 'All clear';
+  configAttentionCount.classList.toggle('ready', attention.length === 0);
+  configAttentionCount.classList.toggle('offline', attention.length > 0);
+}
+
+function renderDiagnosticItems(container, checks, options = {}) {
+  container.replaceChildren();
+
+  if (checks.length === 0) {
+    const empty = document.createElement('div');
+
+    empty.className = 'config-diagnostic-empty';
+    empty.innerHTML = `<i class="fa-solid fa-circle-check" aria-hidden="true"></i><span>${escapeHtml(options.emptyMessage || 'No checks are available yet.')}</span>`;
+    container.append(empty);
+    return;
+  }
+
+  for (const check of checks) {
+    const item = document.createElement('article');
+    const icon = getDiagnosticIcon(check.status);
+
+    item.className = `config-diagnostic-item ${check.status}`;
+    item.innerHTML = `
+      <span><i class="fa-solid ${icon}" aria-hidden="true"></i></span>
+      <div><strong>${escapeHtml(check.label)}</strong><p>${escapeHtml(check.message)}</p></div>
+      <small>${escapeHtml(check.group)}</small>
+    `;
+
+    if (['channels', 'roles'].includes(check.group)) {
+      const action = document.createElement('button');
+
+      action.type = 'button';
+      action.className = 'secondary';
+      action.textContent = 'Fix';
+      action.addEventListener('click', () => setConfigSection(check.group));
+      item.append(action);
+    }
+
+    container.append(item);
+  }
+}
+
+function renderConfigurationAudit() {
+  const entries = state.configuration.audit || [];
+  configAuditList.replaceChildren();
+
+  if (entries.length === 0) {
+    configAuditList.innerHTML = '<p class="config-audit-empty">Configuration changes will appear here after the first save.</p>';
+    return;
+  }
+
+  for (const entry of entries.slice(0, 20)) {
+    const item = document.createElement('article');
+    const count = entry.changes?.length || 0;
+
+    item.className = 'config-audit-item';
+    item.innerHTML = `
+      <span class="config-audit-avatar">${entry.actor?.avatarUrl ? `<img src="${escapeHtml(entry.actor.avatarUrl)}" alt="">` : '<i class="fa-solid fa-user" aria-hidden="true"></i>'}</span>
+      <div>
+        <strong>${escapeHtml(entry.actor?.displayName || 'Dashboard user')}</strong>
+        <p>Changed ${count} setting${count === 1 ? '' : 's'} · ${escapeHtml(formatConfigurationChanges(entry.changes))}</p>
+        <small>${escapeHtml(formatDateTime(entry.createdAt))}</small>
+      </div>
+    `;
+    configAuditList.append(item);
+  }
+}
+
+function renderConfigurationSummary() {
+  const summary = state.configurationDiagnostics?.summary || {};
+  const total = Number(summary.total) || 0;
+  const ready = Number(summary.ready) || 0;
+  const percent = total ? Math.round((ready / total) * 100) : 100;
+  const warnings = Number(summary.warnings) || 0;
+  const storage = state.configurationStorage || {};
+  const oauth = state.configurationOauth || {};
+
+  configReadinessRing.textContent = `${percent}%`;
+  configReadinessRing.style.setProperty('--readiness', `${percent * 3.6}deg`);
+  configReadinessTitle.textContent = warnings ? 'Setup needs attention' : 'Bean is configured';
+  configReadinessCopy.textContent = `${ready} of ${total} required checks are ready.`;
+  configOauthStatus.textContent = oauth.enabled ? 'Discord login active' : oauth.configured ? 'Ready to enable' : 'Password access';
+  configOauthCopy.textContent = oauth.enabled
+    ? 'Staff permissions follow their Discord roles.'
+    : 'Add the OAuth environment values to enable role-based staff access.';
+  configStorageStatus.textContent = storage.persistent ? 'Saved persistently' : 'Local storage only';
+  configStorageCopy.textContent = storage.persistent
+    ? `Configuration uses ${storage.source}.`
+    : 'Attach a Railway volume so settings survive redeploys.';
+  configCheckStatus.textContent = warnings ? `${warnings} issue${warnings === 1 ? '' : 's'}` : 'All required checks pass';
+  configCheckCopy.textContent = summary.restartRequired
+    ? 'At least one change requires a Discord intent update and restart.'
+    : 'Channel, role, and intent checks are current.';
+}
+
+function setConfigSection(sectionName) {
+  const next = configSections.some((section) => section.dataset.configPanel === sectionName)
+    ? sectionName
+    : 'overview';
+
+  configSectionButtons.forEach((button) => {
+    const selected = button.dataset.configSection === next;
+    button.classList.toggle('active', selected);
+    button.setAttribute('aria-selected', String(selected));
+  });
+  configSections.forEach((section) => {
+    section.hidden = section.dataset.configPanel !== next;
+    section.classList.toggle('active', section.dataset.configPanel === next);
+  });
+}
+
+function markDashboardConfigDirty() {
+  if (state.configuration) {
+    setDashboardConfigDirty(true);
+  }
+}
+
+function setDashboardConfigDirty(dirty) {
+  state.configurationDirty = Boolean(dirty);
+  dashboardConfigForm.classList.toggle('is-dirty', state.configurationDirty);
+  configDirtyDot.classList.toggle('active', state.configurationDirty);
+  configSaveState.textContent = state.configurationDirty ? 'Unsaved changes' : 'All changes saved';
+  configSaveTime.textContent = state.configurationDirty
+    ? 'Review and save when you are ready.'
+    : state.configuration?.updatedAt
+      ? `Last updated ${formatDateTime(state.configuration.updatedAt)}.`
+      : 'Configuration is synced with Bean.';
+  resetDashboardConfigButton.disabled = !state.configurationDirty || state.session?.permissions?.configure === false;
+}
+
+async function handleDashboardConfigSave(event) {
+  event.preventDefault();
+
+  if (!state.session?.permissions?.configure && state.session?.permissions) {
+    setSendStatus('Your dashboard role cannot change configuration.', 'error');
+    return;
+  }
+
+  saveDashboardConfigButton.disabled = true;
+  saveDashboardConfigButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Saving…';
+
+  try {
+    const settings = collectDashboardConfiguration();
+    const result = await api('/api/configuration', {
+      method: 'PUT',
+      body: { settings },
+    });
+
+    state.configuration = cloneData(result.settings);
+    state.savedConfiguration = cloneData(result.settings);
+    state.configurationDiagnostics = result.diagnostics;
+    state.configurationStorage = result.storage;
+    renderDashboardConfiguration();
+    setSendStatus('Dashboard configuration saved and applied.', 'success');
+  } catch (error) {
+    setDashboardConfigDirty(true);
+    setSendStatus(error.message, 'error');
+  } finally {
+    saveDashboardConfigButton.disabled = false;
+    saveDashboardConfigButton.innerHTML = '<i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save configuration';
+  }
+}
+
+function collectDashboardConfiguration() {
+  const settings = cloneData(state.configuration);
+
+  dashboardConfigForm.querySelectorAll('[data-config-channel]').forEach((select) => {
+    settings.channels[select.dataset.configChannel] = select.value || null;
+  });
+  dashboardConfigForm.querySelectorAll('[data-config-role]').forEach((select) => {
+    settings.roles[select.dataset.configRole] = select.value || null;
+  });
+  dashboardConfigForm.querySelectorAll('[data-config-feature]').forEach((input) => {
+    settings.features[input.dataset.configFeature] = input.checked;
+  });
+  return settings;
+}
+
+function resetDashboardConfiguration() {
+  if (!state.savedConfiguration) {
+    return;
+  }
+
+  state.configuration = cloneData(state.savedConfiguration);
+  renderDashboardConfiguration();
+  setSendStatus('Unsaved configuration changes discarded.', 'success');
+}
+
+function isVisibleConfigurationCheck(check) {
+  if (check.group === 'channels') {
+    const featureMap = {
+      welcome: 'welcomeMessages',
+      tickets: 'tickets',
+      ticketLogs: 'tickets',
+      streamAnnouncements: 'streamMonitor',
+      youtubeAnnouncements: 'youtubeMonitor',
+      tempVoiceTrigger: 'temporaryVoice',
+    };
+    const feature = featureMap[check.key];
+    return !feature || state.configuration?.features?.[feature];
+  }
+
+  return true;
+}
+
+function getDiagnosticIcon(status) {
+  return {
+    ready: 'fa-circle-check',
+    warning: 'fa-triangle-exclamation',
+    missing: 'fa-circle-minus',
+    invalid: 'fa-link-slash',
+    restart: 'fa-power-off',
+  }[status] || 'fa-circle-info';
+}
+
+function setSelectValueWithUnavailableOption(select, value, label) {
+  const normalized = String(value || '');
+
+  if (normalized && ![...select.options].some((option) => option.value === normalized)) {
+    const unavailable = document.createElement('option');
+
+    unavailable.value = normalized;
+    unavailable.textContent = `${label} · ${normalized}`;
+    select.append(unavailable);
+  }
+
+  select.value = normalized;
+}
+
+function formatConfigurationChanges(changes = []) {
+  return changes
+    .slice(0, 3)
+    .map((change) => `${change.group}.${change.key}`)
+    .join(', ')
+    + (changes.length > 3 ? ` +${changes.length - 3} more` : '');
+}
+
+function formatDateTime(value) {
+  const date = new Date(value || '');
+  return Number.isNaN(date.getTime())
+    ? 'just now'
+    : new Intl.DateTimeFormat(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(date);
+}
+
+function cloneData(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function renderLoadingSkeleton(container, rows = 3) {
+  if (!container) {
+    return;
+  }
+
+  container.replaceChildren();
+
+  for (let index = 0; index < rows; index += 1) {
+    const skeleton = document.createElement('div');
+
+    skeleton.className = 'loading-skeleton-row';
+    skeleton.innerHTML = '<span></span><div><i></i><i></i></div>';
+    container.append(skeleton);
+  }
+}
+
+function renderLoadingFailure(container, message) {
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="loading-failure">
+      <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+      <span>${escapeHtml(message || 'This information could not be loaded.')}</span>
+    </div>
+  `;
+}
+
+function initializeBuilderWorkflows() {
+  const definitions = [
+    {
+      key: 'message',
+      label: 'Message draft',
+      form: composer,
+      capture: () => collectPayload(),
+      apply: (snapshot) => applyMessage(snapshot),
+      duplicate: (snapshot) => {
+        state.currentMessageId = null;
+        snapshot.name = `${snapshot.name || 'Untitled message'} copy`;
+        applyMessage(snapshot);
+      },
+    },
+    {
+      key: 'mailbox',
+      label: 'Mailbox draft',
+      form: mailboxForm,
+      capture: collectMailboxDraft,
+      apply: applyMailboxDraft,
+    },
+    {
+      key: 'welcome',
+      label: 'Welcome draft',
+      form: welcomeMessageForm,
+      capture: collectWelcomeMessageSettings,
+      apply: applyWelcomeMessageSettings,
+      test: (snapshot) => sendAnnouncementTest('welcome', snapshot),
+    },
+    {
+      key: 'creator',
+      label: 'Creator notification',
+      form: liveEmbedForm,
+      capture: () => ({
+        kind: state.activeEmbedBuilder,
+        settings: collectLiveEmbedSettings(),
+      }),
+      apply: (snapshot) => {
+        activateEmbedBuilder(snapshot.kind || 'live');
+        applyLiveEmbedSettings(snapshot.settings || snapshot);
+      },
+      test: (snapshot) => sendAnnouncementTest(
+        snapshot.kind === 'youtube' ? 'youtube' : 'live',
+        snapshot.settings || snapshot,
+      ),
+    },
+  ];
+
+  for (const definition of definitions) {
+    if (!definition.form || state.builderManagers.has(definition.key)) {
+      continue;
+    }
+
+    const manager = {
+      ...definition,
+      history: readBuilderHistory(definition.key),
+      undo: [],
+      redo: [],
+      timer: null,
+      applying: false,
+      lastSerialized: '',
+    };
+    const bar = createBuilderWorkflowBar(manager);
+
+    definition.form.prepend(bar);
+    manager.bar = bar;
+    state.builderManagers.set(definition.key, manager);
+    definition.form.addEventListener('input', (event) => scheduleBuilderAutosave(manager, event));
+    definition.form.addEventListener('change', (event) => scheduleBuilderAutosave(manager, event));
+    renderBuilderWorkflowBar(manager);
+  }
+}
+
+function createBuilderWorkflowBar(manager) {
+  const bar = document.createElement('section');
+
+  bar.className = 'builder-workflow-bar';
+  bar.dataset.builderWorkflow = manager.key;
+  bar.innerHTML = `
+    <div class="builder-workflow-state">
+      <span><i class="fa-solid fa-cloud" aria-hidden="true"></i></span>
+      <p><strong>${escapeHtml(manager.label)}</strong><small data-builder-status>Ready · browser autosave on</small></p>
+    </div>
+    <div class="builder-workflow-actions">
+      <button class="secondary icon-button" type="button" data-builder-action="undo" aria-label="Undo draft change" title="Undo"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></button>
+      <button class="secondary icon-button" type="button" data-builder-action="redo" aria-label="Redo draft change" title="Redo"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i></button>
+      <button class="secondary" type="button" data-builder-action="duplicate"><i class="fa-regular fa-copy" aria-hidden="true"></i> Duplicate</button>
+      ${manager.test ? '<button class="secondary" type="button" data-builder-action="test"><i class="fa-solid fa-flask" aria-hidden="true"></i> Send test</button>' : ''}
+      <details class="builder-history-menu">
+        <summary><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> <span data-builder-history-count>History</span></summary>
+        <div data-builder-history-list></div>
+      </details>
+    </div>
+  `;
+  bar.addEventListener('click', (event) => handleBuilderWorkflowAction(manager, event));
+  return bar;
+}
+
+function scheduleBuilderAutosave(manager, event) {
+  if (manager.applying || event.target.closest('.builder-workflow-bar')) {
+    return;
+  }
+
+  window.clearTimeout(manager.timer);
+  manager.timer = window.setTimeout(() => captureBuilderVersion(manager), 650);
+  const status = manager.bar.querySelector('[data-builder-status]');
+
+  status.textContent = 'Unsaved change · autosaving…';
+  manager.bar.classList.add('is-dirty');
+}
+
+function captureBuilderVersion(manager, options = {}) {
+  if (manager.applying) {
+    return;
+  }
+
+  const snapshot = cloneData(manager.capture());
+  const serialized = JSON.stringify(snapshot);
+
+  if (!options.force && serialized === manager.lastSerialized) {
+    manager.bar.classList.remove('is-dirty');
+    return;
+  }
+
+  if (manager.lastSerialized) {
+    const previous = manager.history[0]?.snapshot;
+
+    if (previous) {
+      manager.undo.push(cloneData(previous));
+      manager.undo = manager.undo.slice(-25);
+    }
+  }
+
+  const version = {
+    id: `${manager.key}-${Date.now()}`,
+    createdAt: new Date().toISOString(),
+    label: options.label || 'Autosaved draft',
+    snapshot,
+  };
+
+  manager.lastSerialized = serialized;
+  manager.history = [
+    version,
+    ...manager.history.filter((item) => JSON.stringify(item.snapshot) !== serialized),
+  ].slice(0, 15);
+  manager.redo = [];
+  writeBuilderHistory(manager.key, manager.history);
+  manager.bar.classList.remove('is-dirty');
+  renderBuilderWorkflowBar(manager);
+}
+
+function handleBuilderWorkflowAction(manager, event) {
+  const action = event.target.closest('[data-builder-action]');
+  const version = event.target.closest('[data-builder-version]');
+
+  if (version) {
+    const selected = manager.history.find((item) => item.id === version.dataset.builderVersion);
+
+    if (selected) {
+      applyBuilderSnapshot(manager, selected.snapshot, `Restored ${formatDateTime(selected.createdAt)}`);
+      version.closest('details')?.removeAttribute('open');
+    }
+    return;
+  }
+
+  if (!action) {
+    return;
+  }
+
+  if (action.dataset.builderAction === 'undo') {
+    const snapshot = manager.undo.pop();
+
+    if (snapshot) {
+      manager.redo.push(cloneData(manager.capture()));
+      applyBuilderSnapshot(manager, snapshot, 'Undid the last draft change');
+    }
+    return;
+  }
+
+  if (action.dataset.builderAction === 'redo') {
+    const snapshot = manager.redo.pop();
+
+    if (snapshot) {
+      manager.undo.push(cloneData(manager.capture()));
+      applyBuilderSnapshot(manager, snapshot, 'Redid the draft change');
+    }
+    return;
+  }
+
+  if (action.dataset.builderAction === 'duplicate') {
+    const snapshot = cloneData(manager.capture());
+
+    manager.undo.push(cloneData(snapshot));
+
+    if (manager.duplicate) {
+      manager.duplicate(snapshot);
+    } else {
+      manager.apply(snapshot);
+    }
+
+    captureBuilderVersion(manager, { force: true, label: 'Duplicated draft' });
+    setSendStatus(`${manager.label} duplicated as a new browser draft.`, 'success');
+    return;
+  }
+
+  if (action.dataset.builderAction === 'test' && manager.test) {
+    action.disabled = true;
+    manager.test(cloneData(manager.capture()))
+      .catch((error) => setSendStatus(error.message, 'error'))
+      .finally(() => {
+        action.disabled = false;
+      });
+  }
+}
+
+function applyBuilderSnapshot(manager, snapshot, message) {
+  manager.applying = true;
+
+  try {
+    manager.apply(cloneData(snapshot));
+    manager.lastSerialized = JSON.stringify(manager.capture());
+    manager.bar.querySelector('[data-builder-status]').textContent = message;
+    manager.bar.classList.remove('is-dirty');
+    renderBuilderWorkflowBar(manager);
+  } finally {
+    manager.applying = false;
+  }
+}
+
+function renderBuilderWorkflowBar(manager) {
+  const count = manager.bar.querySelector('[data-builder-history-count]');
+  const list = manager.bar.querySelector('[data-builder-history-list]');
+  const undo = manager.bar.querySelector('[data-builder-action="undo"]');
+  const redo = manager.bar.querySelector('[data-builder-action="redo"]');
+
+  count.textContent = `History ${manager.history.length ? `(${manager.history.length})` : ''}`;
+  undo.disabled = manager.undo.length === 0;
+  redo.disabled = manager.redo.length === 0;
+  list.replaceChildren();
+
+  if (manager.history.length === 0) {
+    list.innerHTML = '<p>No browser versions yet. They appear as you edit.</p>';
+    return;
+  }
+
+  for (const version of manager.history) {
+    const button = document.createElement('button');
+
+    button.type = 'button';
+    button.dataset.builderVersion = version.id;
+    button.innerHTML = `<strong>${escapeHtml(version.label)}</strong><small>${escapeHtml(formatDateTime(version.createdAt))}</small>`;
+    list.append(button);
+  }
+}
+
+function markBuilderSaved(key, label = 'Saved to Bean') {
+  const manager = state.builderManagers.get(key);
+
+  if (!manager) {
+    return;
+  }
+
+  captureBuilderVersion(manager, { force: true, label });
+  manager.bar.querySelector('[data-builder-status]').textContent = `${label} · browser version kept`;
+}
+
+function readBuilderHistory(key) {
+  try {
+    const items = JSON.parse(window.localStorage.getItem(`bean_dashboard_versions_${key}`) || '[]');
+    return Array.isArray(items) ? items.slice(0, 15) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeBuilderHistory(key, history) {
+  try {
+    window.localStorage.setItem(`bean_dashboard_versions_${key}`, JSON.stringify(history.slice(0, 15)));
+  } catch {
+    // Server saves remain available when browser storage is full or blocked.
+  }
+}
+
+function collectMailboxDraft() {
+  return {
+    channelId: mailboxChannelInput.value,
+    postType: mailboxTypeInput.value,
+    title: mailboxTitleInput.value,
+    body: mailboxBodyInput.value,
+    note: mailboxNoteInput.value,
+    color: mailboxColorInput.value,
+    image: state.mailboxImage,
+    allowMentions: mailboxAllowMentionsInput.checked,
+    scheduledAt: mailboxScheduleAtInput.value,
+    buttons: [...mailboxButtonsContainer.querySelectorAll('.mailbox-link-button')].map((block) => ({
+      label: block.querySelector('.mailbox-button-label').value,
+      emoji: block.querySelector('.mailbox-button-emoji').value,
+      url: block.querySelector('.mailbox-button-url').value,
+    })),
+  };
+}
+
+function applyMailboxDraft(draft) {
+  mailboxForm.reset();
+  setChannelSelectValue(mailboxChannelInput, draft.channelId || '');
+  mailboxTypeInput.value = draft.postType || 'Update';
+  mailboxTitleInput.value = draft.title || '';
+  mailboxBodyInput.value = draft.body || '';
+  mailboxNoteInput.value = draft.note || '';
+  mailboxColorInput.value = normalizeMessageColor(draft.color) || '#8FA1BE';
+  mailboxColorPicker.value = mailboxColorInput.value;
+  mailboxAllowMentionsInput.checked = Boolean(draft.allowMentions);
+  mailboxScheduleAtInput.value = draft.scheduledAt || toLocalDateTimeValue(new Date(Date.now() + 60 * 60 * 1000));
+  state.mailboxImage = draft.image || null;
+  mailboxButtonsContainer.replaceChildren();
+  (draft.buttons || []).forEach((button) => addMailboxLinkButton(button));
+  updateMailboxButtonLimit();
+  updateMailboxPreview();
+}
+
+async function sendAnnouncementTest(type, settings) {
+  const channelId = String(settings.channelId || '').trim();
+
+  if (!channelId) {
+    throw new Error('Choose a destination channel before sending a test.');
+  }
+
+  const result = await api('/api/test-announcement', {
+    method: 'POST',
+    body: { type, channelId, settings },
+  });
+  const link = result.url ? ` ${result.url}` : '';
+
+  setSendStatus(`${capitalizeDashboardText(type)} test sent without pinging members or roles.${link}`, 'success');
+}
+
 function initializeWorkspaceNavigation() {
   Object.entries(contextWorkspaceDefinitions).forEach(([group, definition]) => {
     const switcher = `
@@ -1486,6 +2528,13 @@ function initializeWorkspaceNavigation() {
 }
 
 function handleDashboardNavigationClick(event) {
+  const detailClose = event.target.closest('[data-detail-drawer-close]');
+
+  if (detailClose) {
+    closeDetailDrawer(detailClose.dataset.detailDrawerClose);
+    return;
+  }
+
   const createLauncher = event.target.closest('[data-create-launcher]');
 
   if (createLauncher && dashboardView.contains(createLauncher)) {
@@ -1554,6 +2603,69 @@ function initializeJournal() {
   }).format(new Date());
 }
 
+function initializeInterfacePreferences() {
+  const preferences = readInterfacePreferences();
+
+  state.activityType = String(preferences.activityType || '');
+  activityFilterButtons.forEach((button) => {
+    button.classList.toggle('active', button.dataset.activityType === state.activityType);
+  });
+
+  if (preferences.analyticsRange && [...analyticsRangeInput.options].some((option) => option.value === preferences.analyticsRange)) {
+    analyticsRangeInput.value = preferences.analyticsRange;
+  }
+
+  caseSearchInput.value = String(preferences.caseSearch || '');
+  setRememberedSelectValue(caseActionFilter, preferences.caseAction);
+  setRememberedSelectValue(caseStatusFilter, preferences.caseStatus);
+  setRememberedSelectValue(caseDateFilter, preferences.caseDate);
+  document.body.classList.toggle('compact-density', Boolean(preferences.compactDensity));
+  densityToggle?.setAttribute('aria-pressed', String(Boolean(preferences.compactDensity)));
+}
+
+function toggleInterfaceDensity() {
+  const compact = !document.body.classList.contains('compact-density');
+
+  document.body.classList.toggle('compact-density', compact);
+  densityToggle.setAttribute('aria-pressed', String(compact));
+  writeInterfacePreferences({ compactDensity: compact });
+  setSendStatus(compact ? 'Compact dashboard density enabled.' : 'Cozy dashboard density restored.', 'success');
+}
+
+function handleRememberedCaseFilters() {
+  writeInterfacePreferences({
+    caseSearch: caseSearchInput.value,
+    caseAction: caseActionFilter.value,
+    caseStatus: caseStatusFilter.value,
+    caseDate: caseDateFilter.value,
+  });
+  renderModerationCases();
+}
+
+function setRememberedSelectValue(select, value) {
+  if (value && [...select.options].some((option) => option.value === value)) {
+    select.value = value;
+  }
+}
+
+function readInterfacePreferences() {
+  try {
+    const preferences = JSON.parse(window.localStorage.getItem(interfacePreferenceStorageKey) || '{}');
+    return preferences && typeof preferences === 'object' ? preferences : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeInterfacePreferences(patch) {
+  try {
+    const next = { ...readInterfacePreferences(), ...patch };
+    window.localStorage.setItem(interfacePreferenceStorageKey, JSON.stringify(next));
+  } catch {
+    // Preferences are optional when browser storage is unavailable.
+  }
+}
+
 function showLogin() {
   dashboardView.hidden = true;
   loginView.hidden = false;
@@ -1561,8 +2673,16 @@ function showLogin() {
   document.body.classList.remove('dashboard-active');
   stopInterfaceClock();
 
-  if (new URLSearchParams(window.location.search).get('loginError') === 'invalid') {
-    loginError.textContent = 'Invalid dashboard password.';
+  const loginErrorCode = new URLSearchParams(window.location.search).get('loginError');
+  const loginMessages = {
+    invalid: 'Invalid dashboard password.',
+    oauth: 'Discord login could not be completed. Please try again.',
+    'oauth-disabled': 'Discord login has not been configured for this dashboard.',
+    access: 'Your Discord roles do not grant dashboard access.',
+  };
+
+  if (loginMessages[loginErrorCode]) {
+    loginError.textContent = loginMessages[loginErrorCode];
     window.history.replaceState({}, '', '/');
   }
 
@@ -1576,6 +2696,9 @@ function showDashboard(session) {
   document.body.classList.add('dashboard-active');
   startInterfaceClock();
   setGuildName(session?.guildName);
+  state.session = session;
+  renderSessionIdentity(session);
+  applySessionPermissions(session?.permissions);
   setBotStatus(Boolean(session?.botReady), session?.tag);
   setActiveTab(getActiveTab());
   renderSavedMessages();
@@ -1602,6 +2725,86 @@ function setBotStatus(isReady, tag) {
   overviewBotStatus.textContent = overviewText;
   botStatus.classList.toggle('ready', isReady);
   botStatus.classList.toggle('offline', !isReady);
+}
+
+function renderSessionIdentity(session) {
+  const user = session?.user || {};
+  const role = session?.permissions?.role || user.role || 'founder';
+
+  sessionName.textContent = user.displayName || user.username || 'Dashboard Founder';
+  sessionRole.textContent = `${capitalizeDashboardText(role)} access`;
+  sessionAvatar.replaceChildren();
+
+  if (user.avatarUrl) {
+    const image = document.createElement('img');
+
+    image.src = user.avatarUrl;
+    image.alt = '';
+    sessionAvatar.append(image);
+  } else {
+    const icon = document.createElement('i');
+
+    icon.className = 'fa-solid fa-user';
+    icon.setAttribute('aria-hidden', 'true');
+    sessionAvatar.append(icon);
+  }
+}
+
+function applySessionPermissions(permissions = {}) {
+  document.body.dataset.dashboardRole = permissions.role || 'founder';
+  document.querySelectorAll('[data-requires-permission]').forEach((element) => {
+    const required = element.dataset.requiresPermission;
+    const allowed = Boolean(permissions[required]);
+
+    element.toggleAttribute('disabled', !allowed);
+    element.setAttribute('aria-disabled', String(!allowed));
+  });
+
+  if (dashboardConfigForm) {
+    const canConfigure = permissions.configure !== false;
+
+    setControlsPermission(
+      dashboardConfigForm.querySelectorAll('input, select, textarea, button'),
+      canConfigure,
+    );
+    dashboardConfigForm.classList.toggle('is-read-only', !canConfigure);
+  }
+
+  setFormPermission(composer, permissions.create !== false);
+  setFormPermission(mailboxForm, permissions.create !== false);
+  setFormPermission(welcomeMessageForm, permissions.create !== false);
+  setFormPermission(liveEmbedForm, permissions.create !== false);
+  setFormPermission(caseReasonForm, permissions.moderate !== false);
+  setFormPermission(caseRevokeForm, permissions.moderate !== false);
+  setFormPermission(voiceRoomSettingsForm, permissions.moderate !== false);
+  setFormPermission(botBioForm, permissions.configure !== false);
+  setFormPermission(botPresenceForm, permissions.configure !== false);
+  saveBotAvatarButton.disabled = permissions.configure === false;
+  saveBotBannerButton.disabled = permissions.configure === false;
+}
+
+function setFormPermission(form, allowed) {
+  if (!form) {
+    return;
+  }
+
+  form.classList.toggle('is-read-only', !allowed);
+  setControlsPermission(form.querySelectorAll('input, select, textarea, button'), allowed);
+}
+
+function setControlsPermission(controls, allowed) {
+  controls.forEach((control) => {
+    if (!allowed) {
+      control.dataset.permissionDisabled = 'true';
+      control.disabled = true;
+      return;
+    }
+
+    if (control.dataset.permissionDisabled === 'true') {
+      control.disabled = false;
+      delete control.dataset.permissionDisabled;
+    }
+  });
 }
 
 function startInterfaceClock() {
@@ -1820,6 +3023,7 @@ async function handleMemberSearch(event) {
 
   memberSearchButton.disabled = true;
   memberResultCount.textContent = 'Searching';
+  renderLoadingSkeleton(memberSearchResults, 4);
 
   try {
     const result = await api(`/api/member-profiles?query=${encodeURIComponent(query)}`);
@@ -1888,6 +3092,7 @@ async function loadMemberProfile(memberId) {
   renderMemberSearchResults();
   memberProfileEmpty.hidden = true;
   memberProfileContent.hidden = false;
+  memberProfilePanel?.classList.add('is-drawer-open');
   memberProfileName.textContent = 'Gathering member history…';
   memberProfileUsername.textContent = memberId;
 
@@ -2263,8 +3468,11 @@ function startDashboardNotifications() {
     return;
   }
 
-  state.notificationCursor = new Date().toISOString();
-  state.seenNotifications.clear();
+  restoreNotificationCenter();
+  state.notificationInitialLoad = true;
+  state.notificationCursor = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  state.seenNotifications = new Set(state.notifications.map((item) => item.id));
+  renderNotificationCenter();
   window.setTimeout(() => pollDashboardNotifications().catch(() => null), 1500);
   state.notificationTimer = window.setInterval(() => {
     if (!document.hidden && !dashboardView.hidden) {
@@ -2280,7 +3488,6 @@ function stopDashboardNotifications() {
 
   state.notificationTimer = null;
   state.notificationCursor = null;
-  state.seenNotifications.clear();
 }
 
 async function pollDashboardNotifications() {
@@ -2293,14 +3500,27 @@ async function pollDashboardNotifications() {
   );
   state.notificationCursor = result.generatedAt || new Date().toISOString();
 
-  for (const notification of result.notifications || []) {
+  const incoming = result.notifications || [];
+
+  for (const notification of incoming) {
     if (state.seenNotifications.has(notification.id)) {
       continue;
     }
 
     state.seenNotifications.add(notification.id);
-    showDashboardNotification(notification);
+    state.notifications.unshift(notification);
+
+    if (!state.notificationInitialLoad) {
+      showDashboardNotification(notification);
+    }
   }
+
+  state.notificationInitialLoad = false;
+  state.notifications = state.notifications
+    .sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt))
+    .slice(0, 100);
+  persistNotificationCenter();
+  renderNotificationCenter();
 }
 
 function showDashboardNotification(notification) {
@@ -2346,6 +3566,117 @@ function getNotificationIcon(type) {
     error: 'fa-triangle-exclamation',
     joins: 'fa-user-group',
   }[type] || 'fa-bell';
+}
+
+function openNotificationCenter() {
+  notificationCenter.hidden = false;
+  notificationTrigger.setAttribute('aria-expanded', 'true');
+  document.body.classList.add('notification-center-open');
+  renderNotificationCenter();
+}
+
+function closeNotificationCenter() {
+  if (notificationCenter.hidden) {
+    return;
+  }
+
+  notificationCenter.hidden = true;
+  notificationTrigger.setAttribute('aria-expanded', 'false');
+  document.body.classList.remove('notification-center-open');
+  notificationTrigger.focus();
+}
+
+function handleNotificationCenterClick(event) {
+  const action = event.target.closest('[data-notification-id]');
+
+  if (!action) {
+    return;
+  }
+
+  const notification = state.notifications.find((item) => item.id === action.dataset.notificationId);
+
+  if (!notification) {
+    return;
+  }
+
+  state.readNotifications.add(notification.id);
+  persistNotificationCenter();
+  renderNotificationCenter();
+  setActiveTab(notification.tab || 'overview');
+  closeNotificationCenter();
+}
+
+function markAllNotificationsRead() {
+  state.notifications.forEach((notification) => state.readNotifications.add(notification.id));
+  persistNotificationCenter();
+  renderNotificationCenter();
+}
+
+function renderNotificationCenter() {
+  if (!notificationCenterList) {
+    return;
+  }
+
+  const unread = state.notifications.filter((item) => !state.readNotifications.has(item.id));
+  notificationBadge.hidden = unread.length === 0;
+  notificationBadge.textContent = unread.length > 99 ? '99+' : String(unread.length);
+  notificationCenterSummary.textContent = unread.length
+    ? `${unread.length} unread notification${unread.length === 1 ? '' : 's'}`
+    : 'You are all caught up';
+  markNotificationsReadButton.disabled = unread.length === 0;
+  notificationCenterList.replaceChildren();
+
+  if (state.notifications.length === 0) {
+    notificationCenterList.innerHTML = `
+      <div class="notification-center-empty">
+        <span><i class="fa-solid fa-mug-hot" aria-hidden="true"></i></span>
+        <strong>The room is quiet</strong>
+        <p>Cases, publishing failures, bot errors, and unusual activity will collect here.</p>
+      </div>
+    `;
+    return;
+  }
+
+  for (const notification of state.notifications) {
+    const button = document.createElement('button');
+    const unreadClass = state.readNotifications.has(notification.id) ? '' : ' unread';
+
+    button.type = 'button';
+    button.className = `notification-center-item ${notification.type || 'info'}${unreadClass}`;
+    button.dataset.notificationId = notification.id;
+    button.innerHTML = `
+      <span class="notification-center-icon"><i class="fa-solid ${getNotificationIcon(notification.type)}" aria-hidden="true"></i></span>
+      <span class="notification-center-copy">
+        <strong>${escapeHtml(notification.title)}</strong>
+        <span>${escapeHtml(notification.message)}</span>
+        <small>${escapeHtml(formatDateTime(notification.createdAt))}</small>
+      </span>
+      <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+    `;
+    notificationCenterList.append(button);
+  }
+}
+
+function restoreNotificationCenter() {
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(notificationStorageKey) || '[]');
+    const read = JSON.parse(window.localStorage.getItem(notificationReadStorageKey) || '[]');
+
+    state.notifications = Array.isArray(saved) ? saved.slice(0, 100) : [];
+    state.readNotifications = new Set(Array.isArray(read) ? read : []);
+  } catch {
+    state.notifications = [];
+    state.readNotifications = new Set();
+  }
+}
+
+function persistNotificationCenter() {
+  try {
+    window.localStorage.setItem(notificationStorageKey, JSON.stringify(state.notifications.slice(0, 100)));
+    window.localStorage.setItem(notificationReadStorageKey, JSON.stringify([...state.readNotifications].slice(-500)));
+  } catch {
+    // The live in-memory notification center remains available when storage is blocked.
+  }
 }
 
 async function loadDiscordChannels(force = false) {
@@ -2512,6 +3843,7 @@ function setGuildName(guildName) {
 
 function getActiveTab() {
   return dashboardView.dataset.activeTab
+    || readInterfacePreferences().activeTab
     || tabButtons.find((button) => button.getAttribute('aria-selected') === 'true')?.dataset.tab
     || 'overview';
 }
@@ -2521,6 +3853,7 @@ function setActiveTab(tab) {
   const primaryTab = workspaceGroupByTab[nextTab] || nextTab;
 
   dashboardView.dataset.activeTab = nextTab;
+  writeInterfacePreferences({ activeTab: nextTab });
 
   for (const button of tabButtons) {
     const isSelected = button.dataset.tab === primaryTab;
@@ -2549,8 +3882,19 @@ function setActiveTab(tab) {
     button.toggleAttribute('aria-current', isSelected);
   });
 
+  dashboardView.querySelectorAll('.nav-inline-submenu [data-tab-link]').forEach((button) => {
+    const isSelected = button.dataset.tabLink === nextTab;
+
+    button.classList.toggle('is-current', isSelected);
+    button.toggleAttribute('aria-current', isSelected);
+  });
+
   if (nextTab === 'bot' && !dashboardView.hidden) {
     refreshBotSettings().catch((error) => setSendStatus(error.message, 'error'));
+  }
+
+  if (nextTab === 'config' && !dashboardView.hidden) {
+    loadDashboardConfiguration(false).catch((error) => setSendStatus(error.message, 'error'));
   }
 
   if (nextTab === 'live-embed' && !dashboardView.hidden) {
@@ -2628,17 +3972,18 @@ function closeCommandPalette() {
 function renderCommandResults() {
   const query = commandSearch.value.trim().toLowerCase();
 
-  commandMatches = tabButtons
-    .map((button) => {
-      const tab = button.dataset.tab;
-      const meta = workspaceMeta[tab] || {};
+  commandMatches = Object.entries(workspaceMeta)
+    .filter(([tab]) => tab === 'create' || tabPanels.some((panel) => panel.dataset.panel === tab))
+    .map(([tab, meta]) => {
+      const primaryTab = workspaceGroupByTab[tab] || tab;
+      const button = tabButtons.find((item) => item.dataset.tab === primaryTab);
 
       return {
         tab,
-        title: meta.title || button.textContent.trim(),
+        title: meta.title || button?.textContent.trim() || tab,
         hint: meta.hint || '',
         key: meta.key || '',
-        icon: button.querySelector('i')?.className || 'fa-solid fa-circle',
+        icon: button?.querySelector('i')?.className || 'fa-solid fa-circle',
       };
     })
     .filter((item) => `${item.title} ${item.hint} ${item.tab}`.toLowerCase().includes(query));
@@ -2703,6 +4048,12 @@ function handleCommandKeydown(event) {
   }
 
   if (commandPalette.hidden) {
+    if (event.key === 'Escape' && notificationCenter?.hidden === false) {
+      event.preventDefault();
+      closeNotificationCenter();
+      return;
+    }
+
     if (event.key === 'Escape' && createNavSubmenu?.hidden === false) {
       event.preventDefault();
       setCreateMenuExpanded(false);
@@ -2776,17 +4127,24 @@ function stopSavedMessagesSync() {
 }
 
 async function loadVoiceRooms(showNotification = false) {
-  const result = await api('/api/temp-voice');
+  renderLoadingSkeleton(voiceRoomList, 3);
 
-  state.voiceRooms.settings = result.settings || {};
-  state.voiceRooms.channels = Array.isArray(result.channels) ? result.channels : [];
-  state.voiceRooms.totals = result.totals || {};
-  state.voiceRooms.storage = result.storage || null;
+  try {
+    const result = await api('/api/temp-voice');
 
-  renderVoiceRooms();
+    state.voiceRooms.settings = result.settings || {};
+    state.voiceRooms.channels = Array.isArray(result.channels) ? result.channels : [];
+    state.voiceRooms.totals = result.totals || {};
+    state.voiceRooms.storage = result.storage || null;
 
-  if (showNotification) {
-    setSendStatus('Voice rooms refreshed.', 'success');
+    renderVoiceRooms();
+
+    if (showNotification) {
+      setSendStatus('Voice rooms refreshed.', 'success');
+    }
+  } catch (error) {
+    renderLoadingFailure(voiceRoomList, error.message);
+    throw error;
   }
 }
 
@@ -2966,17 +4324,24 @@ async function handleVoiceRoomListClick(event) {
 }
 
 async function loadModerationCases(showNotification = false) {
-  const result = await api('/api/moderation-cases');
+  renderLoadingSkeleton(caseList, 5);
 
-  state.moderationCases = Array.isArray(result.cases)
-    ? result.cases.map(sanitizeModerationCase).filter(Boolean)
-    : [];
-  state.moderationCaseStorage = result.storage || null;
-  renderModerationCaseStorage();
-  renderModerationCases();
+  try {
+    const result = await api('/api/moderation-cases');
 
-  if (showNotification) {
-    setSendStatus('Moderation cases refreshed.', 'success');
+    state.moderationCases = Array.isArray(result.cases)
+      ? result.cases.map(sanitizeModerationCase).filter(Boolean)
+      : [];
+    state.moderationCaseStorage = result.storage || null;
+    renderModerationCaseStorage();
+    renderModerationCases();
+
+    if (showNotification) {
+      setSendStatus('Moderation cases refreshed.', 'success');
+    }
+  } catch (error) {
+    renderLoadingFailure(caseList, error.message);
+    throw error;
   }
 }
 
@@ -3160,7 +4525,17 @@ function handleCaseListClick(event) {
   }
 
   state.selectedCaseNumber = Number.parseInt(item.dataset.caseNumber, 10);
+  caseDetailPanel?.classList.add('is-drawer-open');
   renderModerationCases();
+}
+
+function closeDetailDrawer(kind) {
+  if (kind === 'member') {
+    memberProfilePanel?.classList.remove('is-drawer-open');
+    return;
+  }
+
+  caseDetailPanel?.classList.remove('is-drawer-open');
 }
 
 function renderSelectedModerationCase() {
@@ -3465,6 +4840,7 @@ async function handleSaveMessage() {
   state.currentMessageId = savedMessage.id;
   messageNameInput.value = savedMessage.name;
   renderSavedMessages();
+  markBuilderSaved('message', 'Saved to Bean');
   setSendStatus(`Saved "${savedMessage.name}".`, 'success');
 }
 
@@ -4209,6 +5585,7 @@ async function handleSaveWelcomeMessage(event) {
     applyWelcomeMessageSettings(state.welcomeSettings);
     writeWelcomeMessageBackup(state.welcomeSettings);
     renderWelcomeMessageStorageStatus(state.welcomeStorage);
+    markBuilderSaved('welcome', 'Saved to Bean');
     setSendStatus('Welcome message saved.', 'success');
   } catch (error) {
     setSendStatus(error.message, 'error');
@@ -4755,6 +6132,7 @@ async function handleSaveLiveEmbed(event) {
     applyLiveEmbedSettings(result.settings || {});
     writeLiveEmbedBackup(result.settings, kind);
     renderLiveEmbedStorageStatus(result.storage);
+    markBuilderSaved('creator', 'Saved to Bean');
     setSendStatus(`${definition.label} saved.`, 'success');
   } catch (error) {
     setSendStatus(error.message, 'error');

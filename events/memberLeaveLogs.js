@@ -15,6 +15,10 @@ const {
 module.exports = {
   name: Events.GuildMemberRemove,
   async execute(member, client) {
+    if (config.dashboard.features?.detailedLogging === false) {
+      return;
+    }
+
     if (
       hasRecentBotModerationAction('kick', member.guild.id, member.id) ||
       hasRecentBotModerationAction('ban', member.guild.id, member.id)

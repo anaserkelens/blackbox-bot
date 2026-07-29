@@ -13,13 +13,18 @@ const {
 
 module.exports = {
   setup(client) {
-    client.on(Events.GuildRoleCreate, (role) => logRoleCreate(role, client));
-    client.on(Events.GuildRoleDelete, (role) => logRoleDelete(role, client));
-    client.on(Events.GuildRoleUpdate, (oldRole, newRole) =>
-      logRoleUpdate(oldRole, newRole, client),
-    );
+    client.on(Events.GuildRoleCreate, logWhenEnabled((role) => logRoleCreate(role, client)));
+    client.on(Events.GuildRoleDelete, logWhenEnabled((role) => logRoleDelete(role, client)));
+    client.on(Events.GuildRoleUpdate, logWhenEnabled((oldRole, newRole) =>
+      logRoleUpdate(oldRole, newRole, client)));
   },
 };
+
+function logWhenEnabled(handler) {
+  return (...args) => config.dashboard.features?.detailedLogging === false
+    ? undefined
+    : handler(...args);
+}
 
 async function logRoleCreate(role, client) {
   const entry = await fetchAuditEntry(role.guild, AuditLogEvent.RoleCreate, role.id);

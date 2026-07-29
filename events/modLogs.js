@@ -14,13 +14,18 @@ const {
 
 module.exports = {
   setup(client) {
-    client.on(Events.GuildBanAdd, (ban) => logBanAdd(ban, client));
-    client.on(Events.GuildBanRemove, (ban) => logBanRemove(ban, client));
-    client.on(Events.GuildMemberUpdate, (oldMember, newMember) =>
-      logTimeoutUpdate(oldMember, newMember, client),
-    );
+    client.on(Events.GuildBanAdd, logWhenEnabled((ban) => logBanAdd(ban, client)));
+    client.on(Events.GuildBanRemove, logWhenEnabled((ban) => logBanRemove(ban, client)));
+    client.on(Events.GuildMemberUpdate, logWhenEnabled((oldMember, newMember) =>
+      logTimeoutUpdate(oldMember, newMember, client)));
   },
 };
+
+function logWhenEnabled(handler) {
+  return (...args) => config.dashboard.features?.detailedLogging === false
+    ? undefined
+    : handler(...args);
+}
 
 async function logBanAdd(ban, client) {
   if (hasRecentBotModerationAction('ban', ban.guild.id, ban.user.id)) {

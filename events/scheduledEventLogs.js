@@ -14,19 +14,22 @@ const {
 
 module.exports = {
   setup(client) {
-    client.on(Events.GuildScheduledEventCreate, (event) => logEventCreate(event, client));
-    client.on(Events.GuildScheduledEventDelete, (event) => logEventDelete(event, client));
-    client.on(Events.GuildScheduledEventUpdate, (oldEvent, newEvent) =>
-      logEventUpdate(oldEvent, newEvent, client),
-    );
-    client.on(Events.GuildScheduledEventUserAdd, (event, user) =>
-      logEventUser(event, user, client, true),
-    );
-    client.on(Events.GuildScheduledEventUserRemove, (event, user) =>
-      logEventUser(event, user, client, false),
-    );
+    client.on(Events.GuildScheduledEventCreate, logWhenEnabled((event) => logEventCreate(event, client)));
+    client.on(Events.GuildScheduledEventDelete, logWhenEnabled((event) => logEventDelete(event, client)));
+    client.on(Events.GuildScheduledEventUpdate, logWhenEnabled((oldEvent, newEvent) =>
+      logEventUpdate(oldEvent, newEvent, client)));
+    client.on(Events.GuildScheduledEventUserAdd, logWhenEnabled((event, user) =>
+      logEventUser(event, user, client, true)));
+    client.on(Events.GuildScheduledEventUserRemove, logWhenEnabled((event, user) =>
+      logEventUser(event, user, client, false)));
   },
 };
+
+function logWhenEnabled(handler) {
+  return (...args) => config.dashboard.features?.detailedLogging === false
+    ? undefined
+    : handler(...args);
+}
 
 async function logEventCreate(event, client) {
   const entry = await fetchAuditEntry(

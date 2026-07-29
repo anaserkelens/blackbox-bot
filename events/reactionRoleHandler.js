@@ -5,7 +5,7 @@ const { config } = require('../utils/config');
 module.exports = {
   name: Events.MessageReactionAdd,
   async execute(reaction, user) {
-    if (user.bot) {
+    if (user.bot || config.dashboard.features?.reactionRoles === false) {
       return;
     }
 

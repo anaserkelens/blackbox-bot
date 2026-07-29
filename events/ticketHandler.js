@@ -24,6 +24,10 @@ const activeTickets = new Map();
 module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction) {
+    if (config.dashboard.features?.tickets === false) {
+      return;
+    }
+
     if (interaction.isButton() && interaction.customId === 'create_ticket') {
       await handleTicketCreation(interaction);
       return;

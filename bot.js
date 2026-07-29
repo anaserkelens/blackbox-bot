@@ -1,12 +1,14 @@
 const { Client, Collection, GatewayIntentBits, Partials } = require('discord.js');
 
 const { config } = require('./utils/config');
+const { initializeDashboardSettings } = require('./utils/dashboardSettings');
 const { loadCommands } = require('./utils/loadCommands');
 const { loadEvents } = require('./utils/loadEvents');
 const { startDashboard } = require('./utils/dashboardServer');
 const { installConsoleErrorCapture } = require('./utils/telemetry');
 
 installConsoleErrorCapture();
+initializeDashboardSettings(config);
 
 function buildIntents() {
   const intents = [

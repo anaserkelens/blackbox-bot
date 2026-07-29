@@ -90,6 +90,10 @@ https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=412605
    DASHBOARD_PASSWORD
    DASHBOARD_MAX_BODY_MB
    DASHBOARD_MAX_UPLOAD_MB
+   DASHBOARD_SETTINGS_PATH
+   DASHBOARD_DISCORD_OAUTH_ENABLED
+   DASHBOARD_PUBLIC_URL
+   DISCORD_CLIENT_SECRET
    DASHBOARD_SAVED_MESSAGES_PATH
    DASHBOARD_PRESENCE_PATH
    DASHBOARD_STREAM_EMBED_PATH
@@ -172,6 +176,12 @@ Set `DASHBOARD_PASSWORD` in Railway to enable the browser dashboard. Railway wil
 ```text
 https://your-service.up.railway.app/
 ```
+
+The Settings workspace now includes a persistent Configuration Center for channels, roles, feature switches, storage, Discord permissions, privileged intents, dashboard access, and audited change history. It writes to `dashboard-settings.json` on the Railway volume, or to `DASHBOARD_SETTINGS_PATH` when explicitly configured. Saved channel and role choices are available to active systems immediately. Gateway intent changes and enabling a monitor that was disabled during startup still require updating the Discord Developer Portal/Railway variables when applicable and restarting Bean.
+
+Discord sign-in can replace or complement the shared password. Set `DASHBOARD_DISCORD_OAUTH_ENABLED=true`, `DASHBOARD_PUBLIC_URL`, and `DISCORD_CLIENT_SECRET`, then add `DASHBOARD_PUBLIC_URL/auth/discord/callback` to the application's OAuth2 redirects in the Discord Developer Portal. Access follows the bot owner, Founder, Staff, Moderator, Dashboard Administrator, Dashboard Editor, and Dashboard Viewer roles. Read and write permissions are enforced by the API, not only hidden in the interface.
+
+The dashboard header includes a persistent notification inbox for cases, failed scheduled posts, bot errors, and join spikes. Message, Mailbox, Welcome, Twitch, and YouTube builders keep browser version history with autosave, undo, redo, and duplication. Welcome and creator-notification drafts can be test-sent from the dashboard without resolving real member or role pings. Staff filters, the current workspace, and compact-density preference are remembered per browser.
 
 The dashboard sends messages through the running bot, so no restart or slash command is needed. The bot must already be online, and it must have permission to send messages and attach files in the target channel.
 

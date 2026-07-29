@@ -14,7 +14,7 @@ const { loadWelcomeEmbedSettings } = require('../utils/welcomeEmbedSettings');
 module.exports = {
   name: Events.GuildMemberAdd,
   async execute(member, client) {
-    if (!member.user.bot) {
+    if (!member.user.bot && config.dashboard.features?.welcomeMessages !== false) {
       try {
         await sendWelcomeMessage(member, client);
       } catch (error) {
@@ -22,7 +22,7 @@ module.exports = {
       }
     }
 
-    if (!config.channels.entryLog) {
+    if (!config.channels.entryLog || config.dashboard.features?.detailedLogging === false) {
       return;
     }
 

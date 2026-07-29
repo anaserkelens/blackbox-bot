@@ -14,6 +14,10 @@ const voiceSessions = new Map();
 module.exports = {
   name: Events.VoiceStateUpdate,
   async execute(oldState, newState, client) {
+    if (config.dashboard.features?.detailedLogging === false) {
+      return;
+    }
+
     const member = newState.member || oldState.member;
 
     if (!member || member.user.bot) {

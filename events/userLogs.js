@@ -13,12 +13,18 @@ const {
 
 module.exports = {
   setup(client) {
-    client.on(Events.GuildMemberUpdate, (oldMember, newMember) =>
-      logGuildMemberUpdate(oldMember, newMember, client),
-    );
-    client.on(Events.UserUpdate, (oldUser, newUser) => logUserUpdate(oldUser, newUser, client));
+    client.on(Events.GuildMemberUpdate, logWhenEnabled((oldMember, newMember) =>
+      logGuildMemberUpdate(oldMember, newMember, client)));
+    client.on(Events.UserUpdate, logWhenEnabled((oldUser, newUser) =>
+      logUserUpdate(oldUser, newUser, client)));
   },
 };
+
+function logWhenEnabled(handler) {
+  return (...args) => config.dashboard.features?.detailedLogging === false
+    ? undefined
+    : handler(...args);
+}
 
 async function logGuildMemberUpdate(oldMember, newMember, client) {
   if (oldMember.nickname !== newMember.nickname) {

@@ -37,6 +37,14 @@
               Basic login
             </button>
           </div>
+          <div id="discord-login-wrap" class="discord-login-wrap" hidden>
+            <span>or</span>
+            <a class="discord-login-button" href="/auth/discord">
+              <i class="fa-brands fa-discord" aria-hidden="true"></i>
+              Continue with Discord
+            </a>
+            <small>Your server role decides what you can view and change.</small>
+          </div>
           <p id="api-status" class="api-status" role="status">Checking dashboard API...</p>
           <p id="login-error" class="error" role="status"></p>
         </form>
@@ -54,11 +62,33 @@
           <div class="status-cluster">
             <time id="dashboard-clock" class="topbar-clock" aria-label="Local dashboard time">--:--</time>
             <span id="bot-status" class="topbar-presence">Checking</span>
+            <button id="density-toggle" class="secondary density-toggle" type="button" aria-pressed="false" aria-label="Toggle compact dashboard density" title="Toggle compact density">
+              <i class="fa-solid fa-table-list" aria-hidden="true"></i>
+            </button>
+            <button
+              id="notification-trigger"
+              class="secondary notification-trigger"
+              type="button"
+              aria-haspopup="dialog"
+              aria-expanded="false"
+              aria-controls="notification-center"
+              aria-label="Open notification center"
+            >
+              <i class="fa-solid fa-bell" aria-hidden="true"></i>
+              <span id="notification-badge" class="notification-badge" hidden>0</span>
+            </button>
             <button id="command-trigger" class="secondary command-trigger" type="button" aria-haspopup="dialog" aria-label="Search dashboard">
               <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
               <span>Search</span>
               <kbd>Ctrl K</kbd>
             </button>
+            <div id="session-identity" class="session-identity">
+              <span id="session-avatar" class="session-avatar"><i class="fa-solid fa-user" aria-hidden="true"></i></span>
+              <span>
+                <strong id="session-name">Founder</strong>
+                <small id="session-role">Dashboard access</small>
+              </span>
+            </div>
             <button id="logout" class="secondary topbar-logout" type="button" aria-label="Log out" title="Log out">
               <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
             </button>
@@ -76,10 +106,16 @@
               <i class="fa-solid fa-house" aria-hidden="true"></i>
               <span class="tab-label">Overview</span>
             </button>
-            <button class="tab-button" type="button" data-tab="community" aria-selected="false">
-              <i class="fa-solid fa-people-group" aria-hidden="true"></i>
-              <span class="tab-label">Community</span>
-            </button>
+            <div class="nav-section-group">
+              <button class="tab-button" type="button" data-tab="community" aria-selected="false">
+                <i class="fa-solid fa-people-group" aria-hidden="true"></i>
+                <span class="tab-label">Community</span>
+              </button>
+              <nav class="nav-inline-submenu" aria-label="Community tools">
+                <button type="button" data-tab-link="members"><i class="fa-solid fa-address-card" aria-hidden="true"></i><span>Members</span></button>
+                <button type="button" data-tab-link="analytics"><i class="fa-solid fa-chart-line" aria-hidden="true"></i><span>Analytics</span></button>
+              </nav>
+            </div>
             <button class="tab-button" type="button" data-tab="cases" aria-selected="false">
               <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
               <span class="tab-label">Moderation</span>
@@ -122,7 +158,7 @@
               <i class="fa-solid fa-headphones" aria-hidden="true"></i>
               <span class="tab-label">Voice</span>
             </button>
-            <button class="tab-button" type="button" data-tab="bot" aria-selected="false">
+            <button class="tab-button" type="button" data-tab="config" aria-selected="false">
               <i class="fa-solid fa-gear" aria-hidden="true"></i>
               <span class="tab-label">Settings</span>
             </button>
@@ -458,6 +494,11 @@
                 </button>
               </div>
             </div>
+            <div id="mailbox-bulk-bar" class="bulk-action-bar">
+              <label><input id="select-all-mailbox-posts" type="checkbox" /> Select visible</label>
+              <span id="mailbox-selection-count">No posts selected</span>
+              <button id="remove-selected-mailbox-posts" class="danger" type="button" disabled>Remove selected</button>
+            </div>
             <div id="scheduled-mailbox-list" class="scheduled-mailbox-list"></div>
           </section>
         </section>
@@ -654,6 +695,7 @@
             </aside>
 
             <section id="case-detail-panel" class="dashboard-panel case-detail-panel">
+              <button class="detail-drawer-close secondary icon-button" type="button" data-detail-drawer-close="case" aria-label="Close case details"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
               <div id="case-detail-empty" class="case-empty-state">
                 <strong>Select a case</strong>
                 <span class="muted">Its complete record and member timeline will appear here.</span>
@@ -738,6 +780,7 @@
             </aside>
 
             <section class="dashboard-panel member-profile-panel">
+              <button class="detail-drawer-close secondary icon-button" type="button" data-detail-drawer-close="member" aria-label="Close member details"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
               <div id="member-profile-empty" class="member-profile-empty">
                 <span><i class="fa-solid fa-seedling" aria-hidden="true"></i></span>
                 <strong>Choose a member</strong>
@@ -1325,6 +1368,120 @@
           </section>
         </section>
 
+        <section class="tab-panel config-workspace" data-panel="config" hidden>
+          <header class="config-hero">
+            <div>
+              <p class="eyebrow">Control center</p>
+              <h1>Server configuration</h1>
+              <p>Connect Bean's channels, roles, features, access, and Discord requirements in one place.</p>
+            </div>
+            <div class="config-readiness-card">
+              <span id="config-readiness-ring">—</span>
+              <div>
+                <strong id="config-readiness-title">Checking setup</strong>
+                <small id="config-readiness-copy">Loading Discord diagnostics…</small>
+              </div>
+            </div>
+          </header>
+
+          <nav class="config-section-tabs" aria-label="Configuration sections">
+            <button class="active" type="button" data-config-section="overview"><i class="fa-solid fa-grid-2" aria-hidden="true"></i> Overview</button>
+            <button type="button" data-config-section="channels"><i class="fa-solid fa-hashtag" aria-hidden="true"></i> Channels</button>
+            <button type="button" data-config-section="roles"><i class="fa-solid fa-users-gear" aria-hidden="true"></i> Roles</button>
+            <button type="button" data-config-section="features"><i class="fa-solid fa-toggle-on" aria-hidden="true"></i> Features</button>
+            <button type="button" data-config-section="diagnostics"><i class="fa-solid fa-stethoscope" aria-hidden="true"></i> Diagnostics</button>
+            <button type="button" data-config-section="access"><i class="fa-solid fa-key" aria-hidden="true"></i> Access & audit</button>
+          </nav>
+
+          <form id="dashboard-config-form" class="dashboard-config-form">
+            <section class="config-section active" data-config-panel="overview">
+              <div class="config-overview-grid">
+                <article class="dashboard-panel config-summary-card">
+                  <span class="config-summary-icon"><i class="fa-brands fa-discord" aria-hidden="true"></i></span>
+                  <div><small>Discord access</small><strong id="config-oauth-status">Checking</strong><p id="config-oauth-copy">Looking for OAuth configuration.</p></div>
+                </article>
+                <article class="dashboard-panel config-summary-card">
+                  <span class="config-summary-icon"><i class="fa-solid fa-hard-drive" aria-hidden="true"></i></span>
+                  <div><small>Configuration storage</small><strong id="config-storage-status">Checking</strong><p id="config-storage-copy">Looking for persistent storage.</p></div>
+                </article>
+                <article class="dashboard-panel config-summary-card">
+                  <span class="config-summary-icon"><i class="fa-solid fa-shield-heart" aria-hidden="true"></i></span>
+                  <div><small>Permission checks</small><strong id="config-check-status">Checking</strong><p id="config-check-copy">Inspecting channels, roles, and intents.</p></div>
+                </article>
+              </div>
+              <section class="dashboard-panel config-needs-attention">
+                <div class="section-heading">
+                  <div><p class="eyebrow">Setup assistant</p><h2>Needs attention</h2></div>
+                  <span id="config-attention-count" class="status-pill">Checking</span>
+                </div>
+                <div id="config-attention-list" class="config-diagnostic-list"></div>
+              </section>
+            </section>
+
+            <section class="config-section" data-config-panel="channels" hidden>
+              <header class="config-section-heading">
+                <div><p class="eyebrow">Destinations</p><h2>Channels</h2><p>Choose where Bean publishes, logs, welcomes, and creates temporary rooms.</p></div>
+              </header>
+              <div id="config-channel-grid" class="config-field-grid"></div>
+            </section>
+
+            <section class="config-section" data-config-panel="roles" hidden>
+              <header class="config-section-heading">
+                <div><p class="eyebrow">Permissions</p><h2>Roles</h2><p>Connect community roles and decide who may use each part of the dashboard.</p></div>
+              </header>
+              <div id="config-role-grid" class="config-field-grid"></div>
+            </section>
+
+            <section class="config-section" data-config-panel="features" hidden>
+              <header class="config-section-heading">
+                <div><p class="eyebrow">Systems</p><h2>Features</h2><p>Enable the parts of Bean that belong in your server. Requirements are checked automatically.</p></div>
+              </header>
+              <div id="config-feature-grid" class="config-feature-grid"></div>
+            </section>
+
+            <section class="config-section" data-config-panel="diagnostics" hidden>
+              <header class="config-section-heading">
+                <div><p class="eyebrow">Health check</p><h2>Permissions and intents</h2><p>Bean checks every configured destination, role, and privileged gateway intent.</p></div>
+                <button id="refresh-config-diagnostics" class="secondary" type="button"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Run checks</button>
+              </header>
+              <div id="config-diagnostic-list" class="config-diagnostic-list"></div>
+            </section>
+
+            <section class="config-section" data-config-panel="access" hidden>
+              <div class="config-access-grid">
+                <section class="dashboard-panel">
+                  <div class="config-section-heading">
+                    <div><p class="eyebrow">Staff access</p><h2>Dashboard roles</h2></div>
+                  </div>
+                  <div class="access-level-list">
+                    <div><strong>Founder</strong><span>Everything, including access configuration.</span></div>
+                    <div><strong>Administrator</strong><span>Configuration, publishing, moderation, and bot settings.</span></div>
+                    <div><strong>Moderator</strong><span>Members, cases, tickets, and voice-room actions.</span></div>
+                    <div><strong>Editor</strong><span>Message builders, scheduling, and publishing.</span></div>
+                    <div><strong>Viewer</strong><span>Read-only overview, members, activity, and analytics.</span></div>
+                  </div>
+                  <p class="config-access-note">Assign the matching Discord roles in the Roles section. Founder access also follows the configured bot owner and Founder role.</p>
+                </section>
+                <section class="dashboard-panel">
+                  <div class="config-section-heading">
+                    <div><p class="eyebrow">Change history</p><h2>Configuration audit</h2></div>
+                  </div>
+                  <div id="config-audit-list" class="config-audit-list"></div>
+                </section>
+              </div>
+            </section>
+
+            <footer class="config-save-dock">
+              <div>
+                <span id="config-dirty-dot"></span>
+                <p><strong id="config-save-state">All changes saved</strong><small id="config-save-time">Configuration is synced with Bean.</small></p>
+              </div>
+              <button id="reset-dashboard-config" class="secondary" type="button">Discard changes</button>
+              <button id="save-dashboard-config" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save configuration</button>
+            </footer>
+          </form>
+        </section>
+
         <section class="tab-panel" data-panel="bot" hidden>
           <div class="bot-grid bot-settings-layout">
             <section class="dashboard-panel bot-identity-panel bot-settings-card">
@@ -1485,6 +1642,23 @@
         <footer><span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span><span><kbd>↵</kbd> Open</span></footer>
       </section>
     </div>
+    <aside id="notification-center" class="notification-center" role="dialog" aria-modal="true" aria-labelledby="notification-center-title" hidden>
+      <button class="notification-backdrop" type="button" data-notification-close aria-label="Close notification center"></button>
+      <section class="notification-drawer">
+        <header>
+          <div>
+            <p class="eyebrow">Bean inbox</p>
+            <h2 id="notification-center-title">Notifications</h2>
+          </div>
+          <button class="icon-button secondary" type="button" data-notification-close aria-label="Close notification center"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </header>
+        <div class="notification-toolbar">
+          <span id="notification-center-summary">Nothing new</span>
+          <button id="mark-notifications-read" class="secondary" type="button">Mark all read</button>
+        </div>
+        <div id="notification-center-list" class="notification-center-list"></div>
+      </section>
+    </aside>
     <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
 
     <script src="/app.js"></script>

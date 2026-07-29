@@ -15,7 +15,7 @@ const {
 module.exports = {
   name: Events.MessageBulkDelete,
   async execute(messages, channel, client) {
-    if (!channel.guild) {
+    if (!channel.guild || config.dashboard.features?.detailedLogging === false) {
       return;
     }
 
