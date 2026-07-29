@@ -251,6 +251,7 @@ const livePreviewFooterIcon = document.querySelector('#live-preview-footer-icon'
 const livePreviewFooterText = document.querySelector('#live-preview-footer-text');
 const livePreviewTimestamp = document.querySelector('#live-preview-timestamp');
 const livePreviewButtons = document.querySelector('#live-preview-buttons');
+const discordChannelSelects = [...document.querySelectorAll('.discord-channel-select')];
 const embedBuilderTitle = document.querySelector('#embed-builder-title');
 const embedBuilderSubtitle = document.querySelector('#embed-builder-subtitle');
 const embedPlaceholderList = document.querySelector('#embed-placeholder-list');
@@ -532,6 +533,9 @@ function bindEvents() {
   });
   scheduledMailboxList.addEventListener('click', handleScheduledMailboxClick);
   mailboxButtonsContainer.addEventListener('input', updateMailboxPreview);
+  discordChannelSelects.forEach((select) => {
+    select.addEventListener('change', () => updateChannelSelectAppearance(select));
+  });
   welcomeMessageForm.addEventListener('submit', handleSaveWelcomeMessage);
   welcomeMessageForm.addEventListener('input', updateWelcomePreview);
   welcomeMessageForm.addEventListener('change', updateWelcomePreview);
@@ -2434,6 +2438,7 @@ function renderDiscordChannelSelect(select, selectedValue = '') {
 
   select.disabled = state.discordChannels.length === 0;
   setChannelSelectValue(select, selectedValue);
+  updateChannelSelectAppearance(select);
 }
 
 function setChannelSelectValue(select, channelId) {
@@ -2445,6 +2450,7 @@ function setChannelSelectValue(select, channelId) {
 
   if (!value) {
     select.value = '';
+    updateChannelSelectAppearance(select);
     return;
   }
 
@@ -2459,6 +2465,21 @@ function setChannelSelectValue(select, channelId) {
 
   select.value = value;
   select.disabled = false;
+  updateChannelSelectAppearance(select);
+}
+
+function updateChannelSelectAppearance(select) {
+  const shell = select?.closest('.cozy-channel-select');
+
+  if (!shell) {
+    return;
+  }
+
+  const selectedOption = select.selectedOptions?.[0];
+
+  shell.classList.toggle('has-value', Boolean(select.value));
+  shell.classList.toggle('has-unavailable-value', selectedOption?.dataset.unavailable === 'true');
+  shell.classList.toggle('is-disabled', select.disabled);
 }
 
 function getDiscordChannelLabel(channelId) {

@@ -321,9 +321,13 @@
               <div class="form-grid">
                 <label class="field span-2">
                   Destination channel
-                  <select id="mailbox-channel-id" class="discord-channel-select" required>
-                    <option value="">Loading Discord channels…</option>
-                  </select>
+                  <span class="cozy-channel-select">
+                    <span class="cozy-channel-select-icon" aria-hidden="true"><i class="fa-solid fa-hashtag"></i></span>
+                    <select id="mailbox-channel-id" class="discord-channel-select" required>
+                      <option value="">Loading Discord channels…</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down cozy-channel-select-chevron" aria-hidden="true"></i>
+                  </span>
                 </label>
 
                 <label class="field">
@@ -492,14 +496,18 @@
 
                 <label class="field span-2">
                   Destination channel
-                  <select
-                    id="channel-id"
-                    name="channelId"
-                    class="discord-channel-select"
-                    required
-                  >
-                    <option value="">Loading Discord channels…</option>
-                  </select>
+                  <span class="cozy-channel-select">
+                    <span class="cozy-channel-select-icon" aria-hidden="true"><i class="fa-solid fa-hashtag"></i></span>
+                    <select
+                      id="channel-id"
+                      name="channelId"
+                      class="discord-channel-select"
+                      required
+                    >
+                      <option value="">Loading Discord channels…</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down cozy-channel-select-chevron" aria-hidden="true"></i>
+                  </span>
                 </label>
 
                 <label class="field">
@@ -1009,13 +1017,17 @@
               <div class="form-grid">
                 <label class="field span-2">
                   Welcome channel
-                  <select
-                    id="welcome-channel-id"
-                    class="discord-channel-select"
-                    required
-                  >
-                    <option value="">Loading Discord channels…</option>
-                  </select>
+                  <span class="cozy-channel-select">
+                    <span class="cozy-channel-select-icon" aria-hidden="true"><i class="fa-solid fa-hashtag"></i></span>
+                    <select
+                      id="welcome-channel-id"
+                      class="discord-channel-select"
+                      required
+                    >
+                      <option value="">Loading Discord channels…</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down cozy-channel-select-chevron" aria-hidden="true"></i>
+                  </span>
                 </label>
 
                 <label class="field">
@@ -1126,12 +1138,16 @@
                 <div class="form-grid">
                   <label class="field span-2">
                     <span id="embed-channel-label">Announcement channel</span>
-                    <select
-                      id="live-channel-id"
-                      class="discord-channel-select"
-                    >
-                      <option value="">Loading Discord channels…</option>
-                    </select>
+                    <span class="cozy-channel-select">
+                      <span class="cozy-channel-select-icon" aria-hidden="true"><i class="fa-solid fa-hashtag"></i></span>
+                      <select
+                        id="live-channel-id"
+                        class="discord-channel-select"
+                      >
+                        <option value="">Loading Discord channels…</option>
+                      </select>
+                      <i class="fa-solid fa-chevron-down cozy-channel-select-chevron" aria-hidden="true"></i>
+                    </span>
                   </label>
 
                   <label class="field span-2">
@@ -1310,11 +1326,11 @@
         </section>
 
         <section class="tab-panel" data-panel="bot" hidden>
-          <div class="bot-grid">
-            <section class="dashboard-panel bot-identity-panel">
+          <div class="bot-grid bot-settings-layout">
+            <section class="dashboard-panel bot-identity-panel bot-settings-card">
               <div class="toolbar-row">
-                <div>
-                <h2>Bean Profile</h2>
+                <div class="bot-card-heading">
+                  <h2>Bean Profile</h2>
                   <span id="bot-profile-tag" class="muted">Loading profile</span>
                 </div>
                 <button id="refresh-bot" class="secondary" type="button">Refresh</button>
@@ -1334,28 +1350,33 @@
               </div>
             </section>
 
-            <section class="dashboard-panel">
-              <div>
+            <section class="dashboard-panel bot-image-panel bot-settings-card">
+              <div class="bot-card-heading">
                 <h2>Profile Images</h2>
+                <span class="muted">Update Bean's Discord avatar and banner.</span>
               </div>
 
               <div class="bot-upload-grid">
-                <label class="field">
-                  Avatar
-                  <input id="bot-avatar-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" />
-                </label>
-                <button id="save-bot-avatar" type="button">Update Avatar</button>
+                <div class="bot-upload-row">
+                  <label class="field">
+                    Avatar
+                    <input id="bot-avatar-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" />
+                  </label>
+                  <button id="save-bot-avatar" type="button">Update Avatar</button>
+                </div>
 
-                <label class="field">
-                  Banner
-                  <input id="bot-banner-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" />
-                </label>
-                <button id="save-bot-banner" type="button">Update Banner</button>
+                <div class="bot-upload-row">
+                  <label class="field">
+                    Banner
+                    <input id="bot-banner-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" />
+                  </label>
+                  <button id="save-bot-banner" type="button">Update Banner</button>
+                </div>
               </div>
             </section>
 
-            <section class="dashboard-panel">
-              <div>
+            <section class="dashboard-panel bot-bio-panel bot-settings-card">
+              <div class="bot-card-heading">
                 <h2>Bio</h2>
                 <span class="muted">Shown on the bot's Discord profile.</span>
               </div>
@@ -1380,7 +1401,10 @@
 
             <section class="dashboard-panel bot-presence-panel">
               <div class="toolbar-row">
-                <h2>Presence</h2>
+                <div class="bot-card-heading">
+                  <h2>Presence</h2>
+                  <span class="muted">Control Bean's status and rotating activity text.</span>
+                </div>
                 <span id="presence-storage-status" class="status-pill">Checking storage</span>
               </div>
 

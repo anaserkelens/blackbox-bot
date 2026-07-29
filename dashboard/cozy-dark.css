@@ -3409,6 +3409,156 @@ body :is(
   }
 }
 
+/* Cozy Discord channel selector */
+
+.cozy-channel-select {
+  min-height: 48px;
+  border: 1px solid rgba(242, 226, 207, 0.09);
+  border-radius: 15px;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(215, 154, 97, 0.1), transparent 8rem),
+    linear-gradient(145deg, #1c1d24, #17181e);
+  box-shadow:
+    inset 0 1px rgba(255, 244, 230, 0.035),
+    0 8px 22px rgba(0, 0, 0, 0.1);
+  display: block;
+  overflow: hidden;
+  position: relative;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.cozy-channel-select:hover {
+  border-color: rgba(215, 154, 97, 0.24);
+  box-shadow:
+    inset 0 1px rgba(255, 244, 230, 0.05),
+    0 10px 26px rgba(0, 0, 0, 0.16);
+  transform: translateY(-1px);
+}
+
+.cozy-channel-select:focus-within {
+  border-color: rgba(68, 154, 255, 0.72);
+  box-shadow:
+    0 0 0 3px rgba(0, 122, 255, 0.13),
+    inset 0 1px rgba(255, 255, 255, 0.055),
+    0 12px 28px rgba(0, 0, 0, 0.18);
+}
+
+.cozy-channel-select-icon {
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(242, 226, 207, 0.07);
+  border-radius: 10px;
+  background: rgba(215, 154, 97, 0.08);
+  color: #8e8176;
+  display: grid;
+  font-size: 10px;
+  left: 9px;
+  place-items: center;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: background 180ms ease, color 180ms ease;
+  z-index: 2;
+}
+
+.cozy-channel-select.has-value .cozy-channel-select-icon {
+  border-color: rgba(0, 122, 255, 0.2);
+  background: rgba(0, 122, 255, 0.14);
+  color: #8ec5ff;
+}
+
+.cozy-channel-select.has-unavailable-value {
+  border-color: rgba(221, 168, 92, 0.38);
+}
+
+.cozy-channel-select.has-unavailable-value .cozy-channel-select-icon {
+  border-color: rgba(221, 168, 92, 0.24);
+  background: rgba(221, 168, 92, 0.13);
+  color: #e0b477;
+}
+
+.cozy-channel-select .discord-channel-select {
+  width: 100%;
+  min-height: 46px;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  box-shadow: none;
+  color: #ded7cf;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 620;
+  outline: 0;
+  padding: 0 43px 0 50px;
+  position: relative;
+  z-index: 1;
+  color-scheme: dark;
+}
+
+.cozy-channel-select .discord-channel-select:invalid {
+  color: #77736f;
+}
+
+.cozy-channel-select .discord-channel-select option,
+.cozy-channel-select .discord-channel-select optgroup {
+  background: #191a20;
+  color: #ded7cf;
+  font-family: Geist, system-ui, sans-serif;
+}
+
+.cozy-channel-select .discord-channel-select optgroup {
+  color: #b79b7e;
+  font-weight: 700;
+}
+
+.cozy-channel-select-chevron {
+  color: #77736f;
+  font-size: 8px;
+  pointer-events: none;
+  position: absolute;
+  right: 17px;
+  top: 50%;
+  transform: translateY(-50%) rotate(0);
+  transition: color 180ms ease, transform 180ms ease;
+  z-index: 2;
+}
+
+.cozy-channel-select:hover .cozy-channel-select-chevron {
+  color: #c7bdb4;
+}
+
+.cozy-channel-select:focus-within .cozy-channel-select-chevron {
+  color: #8ec5ff;
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.cozy-channel-select.is-disabled {
+  opacity: 0.62;
+  transform: none;
+}
+
+.cozy-channel-select.is-disabled .discord-channel-select {
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .cozy-channel-select {
+    min-height: 46px;
+    border-radius: 14px;
+  }
+
+  .cozy-channel-select .discord-channel-select {
+    min-height: 44px;
+    font-size: 10.5px;
+  }
+}
+
 /*
  * Overview — the evening desk
  * One focused workspace instead of stacked promotional sections.
@@ -4427,4 +4577,168 @@ button.member-result:hover,
   background: #c58b58;
   box-shadow: none;
   opacity: 0.72;
+}
+
+/*
+ * Bean settings
+ * Keep profile editing compact and balanced instead of stretching the
+ * identity preview to the height of two unrelated cards.
+ */
+
+.bot-settings-layout {
+  align-items: start;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.bot-settings-layout .bot-settings-card {
+  align-self: start;
+  grid-row: auto;
+  min-width: 0;
+  padding: 26px;
+}
+
+.bot-card-heading {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.bot-card-heading h2 {
+  margin: 0;
+}
+
+.bot-settings-layout .toolbar-row {
+  min-height: 47px;
+}
+
+.bot-settings-layout .bot-banner-frame {
+  height: auto;
+  min-height: 118px;
+  aspect-ratio: 3.05 / 1;
+  margin-top: 4px;
+}
+
+.bot-settings-layout .bot-avatar-row {
+  border-top: 1px solid var(--cozy-line);
+  margin-top: 4px;
+  padding-top: 16px;
+}
+
+.bot-settings-layout .bot-avatar-preview {
+  width: 72px;
+  height: 72px;
+}
+
+.bot-settings-layout #bot-profile-name {
+  font-size: 20px;
+}
+
+.bot-image-panel,
+.bot-bio-panel {
+  background: #191a1f;
+}
+
+.bot-upload-grid {
+  align-items: stretch;
+  grid-template-columns: 1fr;
+  margin-top: 4px;
+}
+
+.bot-upload-row {
+  align-items: end;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+  border: 1px solid var(--cozy-line);
+  border-radius: 15px;
+  background: var(--cozy-raised);
+  padding: 11px;
+}
+
+.bot-upload-row .field,
+.bot-upload-row input[type="file"] {
+  min-width: 0;
+  width: 100%;
+}
+
+.bot-upload-row button {
+  min-width: 112px;
+}
+
+.bot-bio-panel .bot-bio-form {
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.bot-bio-panel .bot-bio-input {
+  min-height: 148px;
+  resize: vertical;
+}
+
+.bot-bio-panel .action-row {
+  margin-top: 0;
+  padding-top: 14px;
+}
+
+.bot-presence-panel {
+  grid-column: 1 / -1;
+  padding: clamp(24px, 2.2vw, 32px);
+}
+
+.bot-presence-panel .bot-presence-form {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 4px;
+}
+
+.bot-presence-panel .presence-activities,
+.bot-presence-panel .action-row {
+  grid-column: 1 / -1;
+}
+
+.bot-presence-panel .presence-activity-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.bot-presence-panel .action-row {
+  justify-content: flex-end;
+  margin-top: 0;
+  padding-top: 16px;
+}
+
+@media (max-width: 1180px) {
+  .bot-settings-layout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bot-bio-panel,
+  .bot-presence-panel {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 760px) {
+  .bot-settings-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .bot-settings-layout .bot-settings-card,
+  .bot-presence-panel {
+    grid-column: auto;
+    padding: 22px;
+  }
+
+  .bot-presence-panel .bot-presence-form,
+  .bot-presence-panel .presence-activity-list {
+    grid-template-columns: 1fr;
+  }
+
+  .bot-upload-row {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .bot-upload-row button {
+    width: 100%;
+  }
 }
