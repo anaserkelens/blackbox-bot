@@ -85,10 +85,38 @@
               <span class="tab-label">Moderation</span>
             </button>
             <p class="nav-section-label">Create</p>
-            <button class="tab-button" type="button" data-tab="create" aria-selected="false">
-              <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
-              <span class="tab-label">Create</span>
-            </button>
+            <div id="create-nav-group" class="nav-create-group">
+              <button
+                class="tab-button"
+                type="button"
+                data-tab="create"
+                aria-selected="false"
+                aria-expanded="false"
+                aria-controls="create-nav-submenu"
+              >
+                <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+                <span class="tab-label">Create</span>
+                <i class="fa-solid fa-chevron-down nav-group-chevron" aria-hidden="true"></i>
+              </button>
+              <nav id="create-nav-submenu" class="nav-create-submenu" aria-label="Create tools" hidden>
+                <button type="button" data-tab-link="messages">
+                  <i class="fa-solid fa-message" aria-hidden="true"></i>
+                  <span>Discord message</span>
+                </button>
+                <button type="button" data-tab-link="mailbox">
+                  <i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i>
+                  <span>Mailbox post</span>
+                </button>
+                <button type="button" data-tab-link="live-embed">
+                  <i class="fa-solid fa-bell" aria-hidden="true"></i>
+                  <span>Creator notifications</span>
+                </button>
+                <button type="button" data-tab-link="welcome-embed">
+                  <i class="fa-solid fa-hand-sparkles" aria-hidden="true"></i>
+                  <span>Welcome message</span>
+                </button>
+              </nav>
+            </div>
             <p class="nav-section-label">Operate</p>
             <button class="tab-button" type="button" data-tab="voice-rooms" aria-selected="false">
               <i class="fa-solid fa-headphones" aria-hidden="true"></i>
@@ -103,6 +131,7 @@
               <small>Encrypted · Private</small>
             </div>
           </nav>
+          <button id="create-menu-backdrop" class="create-menu-backdrop" type="button" aria-label="Close Create menu" hidden></button>
 
           <div class="dashboard-content">
             <section class="tab-panel" data-panel="overview">
@@ -125,9 +154,9 @@
                   <span><small>Start here</small><strong>Write a message</strong></span>
                   <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                 </button>
-                <button type="button" data-tab-link="create">
+                <button type="button" data-create-launcher>
                   <span><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i></span>
-                  <span><small>Choose a format</small><strong>Open the creation room</strong></span>
+                  <span><small>Choose a format</small><strong>Create something</strong></span>
                   <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                 </button>
               </div>
@@ -271,63 +300,6 @@
                 <small>Patterns</small>
                 <strong>Community signals</strong>
                 <span>See growth, engagement, voice activity, and moderation trends.</span>
-              </span>
-              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-            </button>
-          </div>
-        </section>
-
-        <section class="tab-panel workspace-hub create-hub" data-panel="create" hidden>
-          <header class="hub-hero">
-            <div>
-              <p class="eyebrow">Creation room</p>
-              <h1>What are we<br />making tonight?</h1>
-            </div>
-            <p>Choose the kind of message first. Bean will open the right tools and keep each draft in its own place.</p>
-          </header>
-          <div class="hub-option-grid create-option-grid">
-            <button class="hub-option" type="button" data-tab-link="messages">
-              <span class="hub-option-icon"><i class="fa-solid fa-message" aria-hidden="true"></i></span>
-              <span class="hub-option-copy">
-                <small>Reusable</small>
-                <strong>Discord message</strong>
-                <span>Compose flexible posts and keep them ready for later.</span>
-              </span>
-              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-            </button>
-            <button class="hub-option" type="button" data-tab-link="mailbox">
-              <span class="hub-option-icon"><i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i></span>
-              <span class="hub-option-copy">
-                <small>Community update</small>
-                <strong>Mailbox post</strong>
-                <span>Publish or schedule a focused update for the mailbox channel.</span>
-              </span>
-              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-            </button>
-            <button class="hub-option" type="button" data-tab-link="live-embed" data-embed-builder-link="live">
-              <span class="hub-option-icon"><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i></span>
-              <span class="hub-option-copy">
-                <small>Broadcast</small>
-                <strong>Live announcement</strong>
-                <span>Shape the next stream alert and preview it before publishing.</span>
-              </span>
-              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-            </button>
-            <button class="hub-option" type="button" data-tab-link="live-embed" data-embed-builder-link="youtube">
-              <span class="hub-option-icon"><i class="fa-brands fa-youtube" aria-hidden="true"></i></span>
-              <span class="hub-option-copy">
-                <small>New video</small>
-                <strong>YouTube upload</strong>
-                <span>Customize the alert posted when a new @5nooof video appears.</span>
-              </span>
-              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-            </button>
-            <button class="hub-option" type="button" data-tab-link="welcome-embed">
-              <span class="hub-option-icon"><i class="fa-solid fa-hand-sparkles" aria-hidden="true"></i></span>
-              <span class="hub-option-copy">
-                <small>First impression</small>
-                <strong>Welcome message</strong>
-                <span>Design the greeting that meets every new community member.</span>
               </span>
               <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
             </button>

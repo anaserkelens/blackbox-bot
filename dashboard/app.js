@@ -110,6 +110,10 @@ const voiceRoomListCount = document.querySelector('#voice-room-list-count');
 const voiceRoomList = document.querySelector('#voice-room-list');
 const tabButtons = [...document.querySelectorAll('.tab-button')];
 const tabPanels = [...document.querySelectorAll('.tab-panel')];
+const createNavGroup = document.querySelector('#create-nav-group');
+const createNavButton = createNavGroup?.querySelector('[data-tab="create"]');
+const createNavSubmenu = document.querySelector('#create-nav-submenu');
+const createMenuBackdrop = document.querySelector('#create-menu-backdrop');
 const refreshBotButton = document.querySelector('#refresh-bot');
 const botProfileTag = document.querySelector('#bot-profile-tag');
 const botProfileName = document.querySelector('#bot-profile-name');
@@ -265,10 +269,10 @@ const workspaceMeta = {
   members: { title: 'Member directory', hint: 'Find people and context', key: '02A' },
   analytics: { title: 'Community signals', hint: 'Patterns, momentum, rhythm', key: '02B' },
   cases: { title: 'Moderation desk', hint: 'History, context, and actions', key: '03' },
-  create: { title: 'Creation room', hint: 'Choose what you want to build', key: '04' },
+  create: { title: 'Create something', hint: 'Open the creation tools', key: '04' },
   messages: { title: 'Message builder', hint: 'Compose reusable Discord posts', key: '04A' },
   mailbox: { title: 'Mailbox builder', hint: 'Publish updates and notices', key: '04B' },
-  'live-embed': { title: 'Live announcement', hint: 'Shape the next stream alert', key: '04C' },
+  'live-embed': { title: 'Creator notifications', hint: 'Shape Twitch and YouTube alerts', key: '04C' },
   'welcome-embed': { title: 'Welcome builder', hint: 'Design the first hello', key: '04D' },
   'voice-rooms': { title: 'Voice spaces', hint: 'Manage temporary rooms', key: '05' },
   bot: { title: 'Bean settings', hint: 'Profile, identity, and presence', key: '06' },
@@ -288,16 +292,6 @@ const contextWorkspaceDefinitions = {
     items: [
       { tab: 'members', label: 'Members', icon: 'fa-solid fa-address-card' },
       { tab: 'analytics', label: 'Signals', icon: 'fa-solid fa-chart-line' },
-    ],
-  },
-  create: {
-    label: 'Create',
-    panels: ['messages', 'mailbox', 'live-embed', 'welcome-embed'],
-    items: [
-      { tab: 'messages', label: 'Message', icon: 'fa-solid fa-message' },
-      { tab: 'mailbox', label: 'Mailbox', icon: 'fa-solid fa-envelope-open-text' },
-      { tab: 'live-embed', label: 'Live', icon: 'fa-solid fa-tower-broadcast' },
-      { tab: 'welcome-embed', label: 'Welcome', icon: 'fa-solid fa-hand-sparkles' },
     ],
   },
 };
@@ -437,8 +431,9 @@ async function init() {
 function bindEvents() {
   loginForm.addEventListener('submit', handleLogin);
   logoutButton.addEventListener('click', handleLogout);
-  tabButtons.forEach((button) => button.addEventListener('click', () => setActiveTab(button.dataset.tab)));
+  tabButtons.forEach((button) => button.addEventListener('click', () => handlePrimaryTabClick(button)));
   dashboardView.addEventListener('click', handleDashboardNavigationClick);
+  createMenuBackdrop?.addEventListener('click', () => setCreateMenuExpanded(false));
   commandTrigger.addEventListener('click', openCommandPalette);
   commandCloseButtons.forEach((button) => button.addEventListener('click', closeCommandPalette));
   commandSearch.addEventListener('input', renderCommandResults);
@@ -562,6 +557,7 @@ function bindEvents() {
   embedBuilderButtons.forEach((button) => {
     button.addEventListener('click', () => activateEmbedBuilder(button.dataset.embedBuilder));
   });
+  window.addEventListener('resize', handleCreateNavigationResize);
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && getActiveTab() === 'messages' && !dashboardView.hidden) {
       loadSavedMessages({ silent: true }).catch(() => null);
@@ -1467,6 +1463,13 @@ function initializeWorkspaceNavigation() {
 }
 
 function handleDashboardNavigationClick(event) {
+  const createLauncher = event.target.closest('[data-create-launcher]');
+
+  if (createLauncher && dashboardView.contains(createLauncher)) {
+    setCreateMenuExpanded(true, { focusFirst: true });
+    return;
+  }
+
   const link = event.target.closest('[data-tab-link]');
 
   if (!link || !dashboardView.contains(link)) {
@@ -1477,6 +1480,46 @@ function handleDashboardNavigationClick(event) {
 
   if (link.dataset.embedBuilderLink) {
     activateEmbedBuilder(link.dataset.embedBuilderLink);
+  }
+}
+
+function handlePrimaryTabClick(button) {
+  if (button.dataset.tab === 'create') {
+    setCreateMenuExpanded(createNavSubmenu?.hidden !== false, { focusFirst: true });
+    return;
+  }
+
+  setActiveTab(button.dataset.tab);
+}
+
+function setCreateMenuExpanded(expanded, options = {}) {
+  if (!createNavButton || !createNavSubmenu) {
+    return;
+  }
+
+  const isExpanded = Boolean(expanded);
+  const compact = isCompactCreateNavigation();
+
+  createNavSubmenu.hidden = !isExpanded;
+  createNavButton.setAttribute('aria-expanded', String(isExpanded));
+  createNavGroup?.classList.toggle('is-expanded', isExpanded);
+  createMenuBackdrop.hidden = !isExpanded || !compact;
+  document.body.classList.toggle('create-menu-open', isExpanded && compact);
+
+  if (isExpanded && options.focusFirst) {
+    window.setTimeout(() => {
+      createNavSubmenu.querySelector('[data-tab-link]')?.focus();
+    }, 0);
+  }
+}
+
+function isCompactCreateNavigation() {
+  return window.matchMedia('(max-width: 960px)').matches;
+}
+
+function handleCreateNavigationResize() {
+  if (createNavSubmenu?.hidden === false) {
+    setCreateMenuExpanded(true);
   }
 }
 
@@ -2313,11 +2356,20 @@ function setActiveTab(tab) {
     button.toggleAttribute('aria-current', isSelected);
   }
 
+  setCreateMenuExpanded(primaryTab === 'create' && !isCompactCreateNavigation());
+
   for (const panel of tabPanels) {
     panel.hidden = panel.dataset.panel !== nextTab;
   }
 
   dashboardView.querySelectorAll('[data-workspace-switcher] [data-tab-link]').forEach((button) => {
+    const isSelected = button.dataset.tabLink === nextTab;
+
+    button.classList.toggle('is-current', isSelected);
+    button.toggleAttribute('aria-current', isSelected);
+  });
+
+  createNavSubmenu?.querySelectorAll('[data-tab-link]').forEach((button) => {
     const isSelected = button.dataset.tabLink === nextTab;
 
     button.classList.toggle('is-current', isSelected);
@@ -2451,8 +2503,17 @@ function handleCommandResultClick(event) {
     return;
   }
 
-  setActiveTab(result.dataset.commandTab);
+  navigateToCommandDestination(result.dataset.commandTab);
   closeCommandPalette();
+}
+
+function navigateToCommandDestination(tab) {
+  if (tab === 'create') {
+    setCreateMenuExpanded(true, { focusFirst: true });
+    return;
+  }
+
+  setActiveTab(tab);
 }
 
 function handleCommandKeydown(event) {
@@ -2469,6 +2530,12 @@ function handleCommandKeydown(event) {
   }
 
   if (commandPalette.hidden) {
+    if (event.key === 'Escape' && createNavSubmenu?.hidden === false) {
+      event.preventDefault();
+      setCreateMenuExpanded(false);
+      createNavButton?.focus();
+    }
+
     return;
   }
 
@@ -2491,7 +2558,7 @@ function handleCommandKeydown(event) {
     commandSelectionIndex = (commandSelectionIndex - 1 + commandMatches.length) % commandMatches.length;
     renderCommandResults();
   } else {
-    setActiveTab(commandMatches[commandSelectionIndex].tab);
+    navigateToCommandDestination(commandMatches[commandSelectionIndex].tab);
     closeCommandPalette();
   }
 }
