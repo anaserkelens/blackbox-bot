@@ -1735,11 +1735,12 @@ input[type='search'] {
     border-top: 1px solid var(--line);
     border-left: 1px solid var(--line);
     border-right: 1px solid var(--line);
-    border-radius: 22px 0 0;
+    border-radius: var(--r-xl) 0 0;
     box-shadow: none;
   }
 
   .dashboard-tabs .guild-switcher-art {
+    border-top-left-radius: calc(var(--r-xl) - 1px);
     border-top-right-radius: 0;
   }
 
