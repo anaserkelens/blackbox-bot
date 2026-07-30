@@ -102,14 +102,14 @@
         <div class="dashboard-layout">
           <nav class="dashboard-tabs" aria-label="Dashboard spaces">
             <div class="guild-header">
-              <span class="guild-switcher-art" aria-hidden="true">
-                <img class="guild-switcher-backdrop" src="/assets/bean-icon.png" alt="" data-guild-icon />
-              </span>
               <strong class="guild-header-name" data-guild-name>UNDR CTRL</strong>
               <small class="guild-header-members">
                 <i class="fa-solid fa-user-group" aria-hidden="true"></i>
                 <span data-guild-members>Members: —</span>
               </small>
+            </div>
+            <div class="guild-banner" aria-hidden="true">
+              <img class="guild-switcher-backdrop" src="/assets/bean-icon.png" alt="" data-guild-icon />
             </div>
             <div class="current-server-readiness">
               <div class="current-server-readiness-copy">
@@ -198,19 +198,21 @@
                 <span>Voice rooms</span>
               </button>
             </nav>
-            <div class="nav-foot" aria-label="Account">
-              <div id="session-identity" class="session-identity">
-                <span id="session-avatar" class="session-avatar"><i class="fa-solid fa-user" aria-hidden="true"></i></span>
-                <span>
-                  <strong id="session-name">Founder</strong>
-                  <small id="session-role">Dashboard access</small>
-                </span>
-              </div>
-              <button id="logout" class="secondary nav-logout" type="button" aria-label="Log out" title="Log out">
-                <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
-              </button>
-            </div>
           </nav>
+          <!-- Sibling of the sidebar, not a child: a fixed child of the sidebar is trapped in
+               its stacking context and can never float above the server rail. -->
+          <div class="nav-foot" aria-label="Account">
+            <div id="session-identity" class="session-identity">
+              <span id="session-avatar" class="session-avatar"><i class="fa-solid fa-user" aria-hidden="true"></i></span>
+              <span>
+                <strong id="session-name">Founder</strong>
+                <small id="session-role">Dashboard access</small>
+              </span>
+            </div>
+            <button id="logout" class="secondary nav-logout" type="button" aria-label="Log out" title="Log out">
+              <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
+            </button>
+          </div>
           <div class="dashboard-content">
             <section class="tab-panel" data-panel="overview">
           <section class="overview-desk" aria-labelledby="room-heading">
