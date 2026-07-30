@@ -38,6 +38,40 @@
       </section>
 
       <section id="dashboard-view" class="dashboard" hidden>
+        <nav class="server-rail" aria-label="Servers">
+          <button class="server-rail-home" type="button" data-tab-link="overview" aria-label="Open Bean home" title="Bean home">
+            <img src="/assets/bean-icon.png" alt="" />
+          </button>
+          <span class="server-rail-divider" aria-hidden="true"></span>
+          <div class="server-rail-switcher-wrap">
+            <button
+              type="button"
+              id="guild-switcher"
+              class="server-rail-server"
+              aria-haspopup="listbox"
+              aria-expanded="false"
+              aria-controls="guild-switcher-menu"
+              aria-label="Switch server"
+              title="Switch server"
+            >
+              <img src="/assets/bean-icon.png" alt="" data-guild-icon />
+            </button>
+            <div class="guild-switcher-menu" id="guild-switcher-menu" role="listbox" aria-label="Your servers" hidden>
+              <button type="button" class="guild-switcher-option is-active" role="option" aria-selected="true">
+                <span class="guild-switcher-avatar sm">
+                  <img src="/assets/bean-icon.png" alt="" data-guild-icon />
+                </span>
+                <span class="guild-switcher-meta">
+                  <strong data-guild-name>UNDR CTRL</strong>
+                  <small data-guild-members>Members: —</small>
+                </span>
+                <i class="fa-solid fa-check guild-switcher-check" aria-hidden="true"></i>
+              </button>
+              <p class="guild-switcher-note">Managing 1 server · more coming soon</p>
+            </div>
+          </div>
+        </nav>
+
         <header class="topbar">
           <div class="home-brand">
             <button class="home-bean-button" type="button" data-tab-link="overview" aria-label="Open overview" title="Open overview">
@@ -71,15 +105,7 @@
                 <img class="guild-switcher-backdrop" src="/assets/bean-icon.png" alt="" data-guild-icon />
               </span>
               <div class="guild-switcher-wrap">
-                <button
-                  type="button"
-                  id="guild-switcher"
-                  class="guild-switcher"
-                  aria-haspopup="listbox"
-                  aria-expanded="false"
-                  aria-controls="guild-switcher-menu"
-                  title="Switch server"
-                >
+                <div class="guild-switcher guild-current" aria-label="Current server">
                   <span class="guild-switcher-avatar">
                     <img src="/assets/bean-icon.png" alt="" data-guild-icon />
                   </span>
@@ -87,23 +113,6 @@
                     <strong data-guild-name>UNDR CTRL</strong>
                     <small data-guild-members>Members: —</small>
                   </span>
-                  <span class="guild-switcher-caret" aria-hidden="true">
-                    <i class="fa-solid fa-chevron-up"></i>
-                    <i class="fa-solid fa-chevron-down"></i>
-                  </span>
-                </button>
-                <div class="guild-switcher-menu" id="guild-switcher-menu" role="listbox" aria-label="Your servers" hidden>
-                  <button type="button" class="guild-switcher-option is-active" role="option" aria-selected="true">
-                    <span class="guild-switcher-avatar sm">
-                      <img src="/assets/bean-icon.png" alt="" data-guild-icon />
-                    </span>
-                    <span class="guild-switcher-meta">
-                      <strong data-guild-name>UNDR CTRL</strong>
-                      <small data-guild-members>Members: —</small>
-                    </span>
-                    <i class="fa-solid fa-check guild-switcher-check" aria-hidden="true"></i>
-                  </button>
-                  <p class="guild-switcher-note">Managing 1 server · more coming soon</p>
                 </div>
               </div>
               <p class="nav-section-label">General</p>
