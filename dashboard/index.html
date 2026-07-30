@@ -172,9 +172,13 @@
                 <i class="fa-solid fa-hand-sparkles" aria-hidden="true"></i>
                 <span>Welcome message</span>
               </button>
+              <button type="button" data-tab-link="auto-responder">
+                <i class="fa-solid fa-comment-dots" aria-hidden="true"></i>
+                <span>Auto responder</span>
+              </button>
             </nav>
             <p class="nav-section-label">Moderation &amp; Security</p>
-            <nav id="feature-nav-list" class="nav-feature-list" aria-label="Moderation, security, and server tools">
+            <nav id="feature-nav-list" class="nav-feature-list" aria-label="Moderation, security, server, and community tools">
               <button class="tab-button" type="button" data-tab="cases" aria-selected="false">
                 <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
                 <span class="tab-label">Moderation</span>
@@ -191,6 +195,10 @@
                 <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
                 <span>Audit logs</span>
               </button>
+              <button type="button" data-tab-link="report-system">
+                <i class="fa-solid fa-flag" aria-hidden="true"></i>
+                <span>Report system</span>
+              </button>
               <p class="nav-section-label">Server Management</p>
               <button type="button" data-tab-link="tickets" data-feature-nav="tickets">
                 <i class="fa-solid fa-ticket" aria-hidden="true"></i>
@@ -203,6 +211,23 @@
               <button type="button" data-tab-link="voice-rooms" data-feature-nav="temporaryVoice">
                 <i class="fa-solid fa-headphones" aria-hidden="true"></i>
                 <span>Voice rooms</span>
+              </button>
+              <button type="button" data-tab-link="automations">
+                <i class="fa-solid fa-bolt" aria-hidden="true"></i>
+                <span>Automations</span>
+              </button>
+              <button type="button" data-tab-link="backup">
+                <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
+                <span>Backup</span>
+              </button>
+              <p class="nav-section-label">Community &amp; Engagement</p>
+              <button type="button" data-tab-link="giveaways">
+                <i class="fa-solid fa-gift" aria-hidden="true"></i>
+                <span>Giveaways</span>
+              </button>
+              <button type="button" data-tab-link="boosts">
+                <i class="fa-solid fa-rocket" aria-hidden="true"></i>
+                <span>Boosts</span>
               </button>
             </nav>
           </nav>
@@ -1637,6 +1662,92 @@
               <div><strong>Publish the launcher in Discord</strong><p>Use <code>/ticketsetup</code> in the configured channel whenever you need to recreate the ticket panel.</p></div>
             </section>
           </div>
+        </section>
+
+        <!-- Placeholder feature pages. Nav entry + route + panel exist so each can be built in
+             place later; replace the note card with the real UI, nothing else needs touching. -->
+        <section class="tab-panel feature-page" data-panel="report-system" hidden>
+          <section class="dashboard-panel feature-page-hero">
+            <div class="feature-page-heading">
+              <span><i class="fa-solid fa-flag" aria-hidden="true"></i></span>
+              <div><p class="eyebrow">Moderation &amp; security</p><h1>Report System</h1><p>Let members report messages and users, and give staff a queue to work through.</p></div>
+            </div>
+            <span class="status-pill">Planned</span>
+          </section>
+          <section class="dashboard-panel feature-note-card">
+            <span><i class="fa-solid fa-hammer" aria-hidden="true"></i></span>
+            <div><strong>Not built yet</strong><p>This page is a placeholder. The navigation entry and route are already wired, so the feature can be built here without changing the dashboard shell.</p></div>
+          </section>
+        </section>
+
+        <section class="tab-panel feature-page" data-panel="auto-responder" hidden>
+          <section class="dashboard-panel feature-page-hero">
+            <div class="feature-page-heading">
+              <span><i class="fa-solid fa-comment-dots" aria-hidden="true"></i></span>
+              <div><p class="eyebrow">Messaging &amp; embeds</p><h1>Auto Responder</h1><p>Reply automatically to keywords and the questions your members ask most.</p></div>
+            </div>
+            <span class="status-pill">Planned</span>
+          </section>
+          <section class="dashboard-panel feature-note-card">
+            <span><i class="fa-solid fa-hammer" aria-hidden="true"></i></span>
+            <div><strong>Not built yet</strong><p>This page is a placeholder. The navigation entry and route are already wired, so the feature can be built here without changing the dashboard shell.</p></div>
+          </section>
+        </section>
+
+        <section class="tab-panel feature-page" data-panel="automations" hidden>
+          <section class="dashboard-panel feature-page-hero">
+            <div class="feature-page-heading">
+              <span><i class="fa-solid fa-bolt" aria-hidden="true"></i></span>
+              <div><p class="eyebrow">Server management</p><h1>Automations</h1><p>Chain triggers and actions into rules that run without staff having to step in.</p></div>
+            </div>
+            <span class="status-pill">Planned</span>
+          </section>
+          <section class="dashboard-panel feature-note-card">
+            <span><i class="fa-solid fa-hammer" aria-hidden="true"></i></span>
+            <div><strong>Not built yet</strong><p>This page is a placeholder. The navigation entry and route are already wired, so the feature can be built here without changing the dashboard shell.</p></div>
+          </section>
+        </section>
+
+        <section class="tab-panel feature-page" data-panel="backup" hidden>
+          <section class="dashboard-panel feature-page-hero">
+            <div class="feature-page-heading">
+              <span><i class="fa-solid fa-box-archive" aria-hidden="true"></i></span>
+              <div><p class="eyebrow">Server management</p><h1>Backup</h1><p>Snapshot roles, channels, and settings so the server can be restored after a mistake.</p></div>
+            </div>
+            <span class="status-pill">Planned</span>
+          </section>
+          <section class="dashboard-panel feature-note-card">
+            <span><i class="fa-solid fa-hammer" aria-hidden="true"></i></span>
+            <div><strong>Not built yet</strong><p>This page is a placeholder. The navigation entry and route are already wired, so the feature can be built here without changing the dashboard shell.</p></div>
+          </section>
+        </section>
+
+        <section class="tab-panel feature-page" data-panel="giveaways" hidden>
+          <section class="dashboard-panel feature-page-hero">
+            <div class="feature-page-heading">
+              <span><i class="fa-solid fa-gift" aria-hidden="true"></i></span>
+              <div><p class="eyebrow">Community &amp; engagement</p><h1>Giveaways</h1><p>Run timed giveaways with entry requirements and automatic winner rolls.</p></div>
+            </div>
+            <span class="status-pill">Planned</span>
+          </section>
+          <section class="dashboard-panel feature-note-card">
+            <span><i class="fa-solid fa-hammer" aria-hidden="true"></i></span>
+            <div><strong>Not built yet</strong><p>This page is a placeholder. The navigation entry and route are already wired, so the feature can be built here without changing the dashboard shell.</p></div>
+          </section>
+        </section>
+
+        <section class="tab-panel feature-page" data-panel="boosts" hidden>
+          <section class="dashboard-panel feature-page-hero">
+            <div class="feature-page-heading">
+              <span><i class="fa-solid fa-rocket" aria-hidden="true"></i></span>
+              <div><p class="eyebrow">Community &amp; engagement</p><h1>Boosts</h1><p>Track who is boosting, thank them automatically, and manage booster perks.</p></div>
+            </div>
+            <span class="status-pill">Planned</span>
+          </section>
+          <section class="dashboard-panel feature-note-card">
+            <span><i class="fa-solid fa-hammer" aria-hidden="true"></i></span>
+            <div><strong>Not built yet</strong><p>This page is a placeholder. The navigation entry and route are already wired, so the feature can be built here without changing the dashboard shell.</p></div>
+          </section>
         </section>
 
         <section class="tab-panel feature-page" data-panel="reaction-roles" data-feature-page="reactionRoles" hidden>

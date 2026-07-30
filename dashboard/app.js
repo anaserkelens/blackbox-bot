@@ -483,6 +483,12 @@ const dashboardRouteByTab = Object.freeze({
   'reaction-roles': '/dashboard/reaction-roles',
   'voice-rooms': '/dashboard/voice-rooms',
   'audit-logging': '/dashboard/audit-logs',
+  'report-system': '/dashboard/reports',
+  'auto-responder': '/dashboard/auto-responder',
+  automations: '/dashboard/automations',
+  backup: '/dashboard/backup',
+  giveaways: '/dashboard/giveaways',
+  boosts: '/dashboard/boosts',
   config: '/dashboard/settings',
   bot: '/dashboard/settings/bot',
 });

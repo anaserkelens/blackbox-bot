@@ -126,6 +126,12 @@ const dashboardAppRoutes = new Set([
   '/dashboard/reaction-roles',
   '/dashboard/voice-rooms',
   '/dashboard/audit-logs',
+  '/dashboard/reports',
+  '/dashboard/auto-responder',
+  '/dashboard/automations',
+  '/dashboard/backup',
+  '/dashboard/giveaways',
+  '/dashboard/boosts',
   '/dashboard/settings',
   '/dashboard/settings/bot',
 ]);
