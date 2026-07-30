@@ -102,6 +102,9 @@
         <div class="dashboard-layout">
           <nav class="dashboard-tabs" aria-label="Dashboard spaces">
             <div class="guild-header">
+              <span class="guild-switcher-art" aria-hidden="true">
+                <img class="guild-switcher-backdrop" src="/assets/bean-icon.png" alt="" data-guild-icon />
+              </span>
               <strong class="guild-header-name" data-guild-name>UNDR CTRL</strong>
               <small class="guild-header-members">
                 <i class="fa-solid fa-user-group" aria-hidden="true"></i>
@@ -109,20 +112,19 @@
               </small>
             </div>
             <div class="current-server-readiness">
-                <div class="current-server-readiness-copy">
-                  <span><i class="fa-solid fa-seedling" aria-hidden="true"></i> Bean coverage</span>
-                  <strong id="current-server-readiness-label" aria-live="polite">Checking…</strong>
-                </div>
-                <span
-                  id="current-server-readiness-progress"
-                  class="current-server-readiness-progress"
-                  role="progressbar"
-                  aria-label="Enabled Bean features"
-                  aria-valuemin="0"
-                  aria-valuemax="9"
-                  aria-valuenow="0"
-                ><i aria-hidden="true"></i></span>
+              <div class="current-server-readiness-copy">
+                <span><i class="fa-solid fa-seedling" aria-hidden="true"></i> Bean coverage</span>
+                <strong id="current-server-readiness-label" aria-live="polite">Checking…</strong>
               </div>
+              <span
+                id="current-server-readiness-progress"
+                class="current-server-readiness-progress"
+                role="progressbar"
+                aria-label="Enabled Bean features"
+                aria-valuemin="0"
+                aria-valuemax="9"
+                aria-valuenow="0"
+              ><i aria-hidden="true"></i></span>
             </div>
             <p class="nav-section-label">General</p>
             <button class="tab-button" type="button" data-tab="overview" aria-selected="true">

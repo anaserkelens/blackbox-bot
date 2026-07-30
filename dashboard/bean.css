@@ -1296,16 +1296,38 @@ input[type='search'] {
   position: sticky;
   top: 0;
   z-index: 12;
+  isolation: isolate;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 0.08rem;
-  min-height: 52px;
+  min-height: 60px;
   margin: 0 -0.75rem 0.3rem;
-  padding: 0.55rem 1rem;
+  padding: 0.6rem 1rem;
+  border-radius: 21px 21px 0 0;
   background: var(--well);
   border-bottom: 1px solid var(--line);
   box-shadow: 0 6px 14px rgba(4, 7, 13, 0.3);
+}
+
+/* Blurred live guild icon washing behind the header */
+.guild-header .guild-switcher-art {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: #171d2c;
+  pointer-events: none;
+}
+
+.guild-header .guild-switcher-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(12, 15, 21, 0.72), rgba(12, 15, 21, 0.42) 70%, rgba(12, 15, 21, 0.34)),
+    linear-gradient(180deg, rgba(22, 26, 34, 0.24), rgba(22, 26, 34, 0.52));
 }
 
 .guild-header-name {
@@ -1317,6 +1339,7 @@ input[type='search'] {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 .guild-header-members {
@@ -1324,12 +1347,13 @@ input[type='search'] {
   align-items: center;
   gap: 0.34rem;
   font-size: 0.66rem;
-  color: var(--text-faint);
+  color: rgba(236, 235, 228, 0.72);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 .guild-header-members i {
   font-size: 0.56rem;
-  color: rgba(236, 235, 228, 0.42);
+  color: rgba(236, 235, 228, 0.55);
 }
 
 .current-server-readiness {
@@ -1778,9 +1802,8 @@ input[type='search'] {
     box-shadow: none;
   }
 
-  .dashboard-tabs .guild-switcher-art {
-    border-top-left-radius: calc(var(--r-xl) - 1px);
-    border-top-right-radius: 0;
+  .dashboard-tabs .guild-header {
+    border-radius: calc(var(--r-xl) - 1px) 0 0 0;
   }
 
   .server-rail {
