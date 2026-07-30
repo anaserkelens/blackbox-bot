@@ -1289,35 +1289,51 @@ input[type='search'] {
   align-items: center;
   gap: 0.65rem;
   width: 100%;
-  min-height: 64px;
-  padding: 0.65rem 0.6rem;
-  border-radius: var(--r-lg);
-  background: var(--raised);
-  border: 1px solid var(--line);
+  min-height: 72px;
+  padding: 0.75rem 0.7rem;
+  border-radius: var(--r-md);
+  background: linear-gradient(135deg, #28334a, #171c29);
+  border: 1px solid rgba(166, 180, 203, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 20px rgba(4, 7, 13, 0.2);
   cursor: pointer;
   text-align: left;
-  transition: border-color var(--t-fast);
+  transition:
+    border-color var(--t-fast),
+    transform var(--t-fast),
+    box-shadow var(--t-fast);
 }
 
-/* blurred server-icon backdrop that fills the card */
+/* Oversize the live guild icon so it becomes recognizable card artwork. */
 .guild-switcher-backdrop {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  left: 24%;
+  top: 50%;
+  width: 190px;
+  height: 190px;
   object-fit: cover;
-  transform: scale(1.7);
-  filter: blur(18px) saturate(1.2);
-  opacity: 0.32;
+  object-position: center;
+  transform: translateY(-50%) scale(1.05);
+  filter: blur(8px) saturate(1.35) brightness(0.95);
+  opacity: 0.68;
   z-index: 0;
   pointer-events: none;
+  transition:
+    transform var(--t-med),
+    opacity var(--t-fast);
 }
 
 .guild-switcher::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(172deg, rgba(12, 15, 21, 0.45), rgba(12, 15, 21, 0.86));
+  background: linear-gradient(
+    90deg,
+    rgba(12, 15, 21, 0.24) 0%,
+    rgba(12, 15, 21, 0.44) 52%,
+    rgba(12, 15, 21, 0.67) 100%
+  );
   z-index: 1;
   pointer-events: none;
 }
@@ -1331,6 +1347,15 @@ input[type='search'] {
 
 .guild-switcher:hover {
   border-color: var(--line-strong);
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 10px 24px rgba(4, 7, 13, 0.28);
+}
+
+.guild-switcher:hover .guild-switcher-backdrop {
+  transform: translateY(-50%) scale(1.1);
+  opacity: 0.74;
 }
 
 .guild-switcher[aria-expanded='true'] {
@@ -1339,15 +1364,17 @@ input[type='search'] {
 
 .guild-switcher-avatar {
   flex: none;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   overflow: hidden;
   display: grid;
   place-items: center;
   background: var(--well);
-  border: 2px solid var(--bean);
-  box-shadow: 0 0 0 3px var(--bean-softer);
+  border: 2px solid var(--bean-bright);
+  box-shadow:
+    0 0 0 3px rgba(143, 161, 190, 0.2),
+    0 5px 14px rgba(4, 7, 13, 0.25);
 }
 
 .guild-switcher-avatar.sm {
@@ -1371,16 +1398,18 @@ input[type='search'] {
 
 .guild-switcher-meta strong {
   font-family: var(--font-display);
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
 }
 
 .guild-switcher-meta small {
   font-size: 0.72rem;
-  color: var(--text-faint);
+  color: rgba(236, 235, 228, 0.62);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 .guild-switcher-caret {
@@ -1388,7 +1417,7 @@ input[type='search'] {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  color: var(--text-faint);
+  color: rgba(255, 255, 255, 0.9);
   font-size: 0.62rem;
   line-height: 0.7;
 }
