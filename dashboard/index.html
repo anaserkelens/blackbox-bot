@@ -106,7 +106,7 @@
                   <p class="guild-switcher-note">Managing 1 server · more coming soon</p>
                 </div>
               </div>
-              <p class="nav-section-label">Observe</p>
+              <p class="nav-section-label">General</p>
             </div>
             <button class="tab-button" type="button" data-tab="overview" aria-selected="true">
               <i class="fa-solid fa-house" aria-hidden="true"></i>
@@ -124,12 +124,12 @@
               <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
               <span class="tab-label">Analytics</span>
             </button>
-            <button class="tab-button" type="button" data-tab="cases" aria-selected="false">
-              <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
-              <span class="tab-label">Moderation</span>
+            <button class="tab-button" type="button" data-tab="config" aria-selected="false">
+              <i class="fa-solid fa-gear" aria-hidden="true"></i>
+              <span class="tab-label">Settings</span>
             </button>
-            <p class="nav-section-label">Create</p>
-            <nav id="create-nav-list" class="nav-create-list" aria-label="Create tools">
+            <p class="nav-section-label">Messaging &amp; Embeds</p>
+            <nav id="create-nav-list" class="nav-create-list" aria-label="Messaging and embed tools">
               <button type="button" data-tab-link="messages">
                 <i class="fa-solid fa-message" aria-hidden="true"></i>
                 <span>Discord message</span>
@@ -147,8 +147,12 @@
                 <span>Welcome message</span>
               </button>
             </nav>
-            <p class="nav-section-label">Operate</p>
-            <nav id="feature-nav-list" class="nav-feature-list" aria-label="Feature tools">
+            <p class="nav-section-label">Moderation &amp; Security</p>
+            <nav id="feature-nav-list" class="nav-feature-list" aria-label="Moderation, security, and server tools">
+              <button class="tab-button" type="button" data-tab="cases" aria-selected="false">
+                <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                <span class="tab-label">Moderation</span>
+              </button>
               <button type="button" data-tab-link="bean-protection" data-feature-nav="beanProtection">
                 <i class="fa-solid fa-shield-heart" aria-hidden="true"></i>
                 <span>Bean Protection</span>
@@ -157,6 +161,11 @@
                 <i class="fa-solid fa-link-slash" aria-hidden="true"></i>
                 <span>Invite filter</span>
               </button>
+              <button type="button" data-tab-link="audit-logging" data-feature-nav="detailedLogging">
+                <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
+                <span>Audit logs</span>
+              </button>
+              <p class="nav-section-label">Server Management</p>
               <button type="button" data-tab-link="tickets" data-feature-nav="tickets">
                 <i class="fa-solid fa-ticket" aria-hidden="true"></i>
                 <span>Tickets</span>
@@ -169,15 +178,7 @@
                 <i class="fa-solid fa-headphones" aria-hidden="true"></i>
                 <span>Voice rooms</span>
               </button>
-              <button type="button" data-tab-link="audit-logging" data-feature-nav="detailedLogging">
-                <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>
-                <span>Audit logs</span>
-              </button>
             </nav>
-            <button class="tab-button" type="button" data-tab="config" aria-selected="false">
-              <i class="fa-solid fa-gear" aria-hidden="true"></i>
-              <span class="tab-label">Settings</span>
-            </button>
             <div class="nav-foot" aria-label="Account">
               <div id="session-identity" class="session-identity">
                 <span id="session-avatar" class="session-avatar"><i class="fa-solid fa-user" aria-hidden="true"></i></span>
