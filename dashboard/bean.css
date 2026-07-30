@@ -1277,8 +1277,13 @@ input[type='search'] {
     inset -1px 0 rgba(255, 255, 255, 0.015),
     var(--shadow-sm);
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(143, 161, 190, 0.2) transparent;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.dashboard-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .server-rail {

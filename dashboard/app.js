@@ -1,5 +1,8 @@
 const loginView = document.querySelector('#login-view');
 const dashboardView = document.querySelector('#dashboard-view');
+const dashboardTopbar = document.querySelector('.topbar');
+const dashboardSidebar = document.querySelector('.dashboard-tabs');
+const dashboardServerRail = document.querySelector('.server-rail');
 const loginError = document.querySelector('#login-error');
 const discordLoginWrap = document.querySelector('#discord-login-wrap');
 const discordLoginButton = document.querySelector('#discord-login-button');
@@ -645,6 +648,9 @@ function bindEvents() {
   logoutButton.addEventListener('click', handleLogout);
   tabButtons.forEach((button) => button.addEventListener('click', () => handlePrimaryTabClick(button)));
   dashboardView.addEventListener('click', handleDashboardNavigationClick);
+  dashboardTopbar?.addEventListener('wheel', preventFixedDashboardScroll, { passive: false });
+  dashboardServerRail?.addEventListener('wheel', preventFixedDashboardScroll, { passive: false });
+  dashboardSidebar?.addEventListener('wheel', containDashboardSidebarScroll, { passive: false });
   window.addEventListener('popstate', handleDashboardPopState);
   notificationTrigger?.addEventListener('click', openNotificationCenter);
   notificationCloseButtons.forEach((button) => button.addEventListener('click', closeNotificationCenter));
@@ -852,6 +858,39 @@ function bindEvents() {
       loadSavedMessages({ silent: true }).catch(() => null);
     }
   });
+}
+
+function preventFixedDashboardScroll(event) {
+  if (
+    !window.matchMedia('(min-width: 1081px)').matches
+    || event.ctrlKey
+    || event.metaKey
+  ) {
+    return;
+  }
+
+  event.preventDefault();
+}
+
+function containDashboardSidebarScroll(event) {
+  if (
+    !window.matchMedia('(min-width: 1081px)').matches
+    || event.ctrlKey
+    || event.metaKey
+  ) {
+    return;
+  }
+
+  const sidebar = event.currentTarget;
+  const scrollingDown = event.deltaY > 0;
+  const scrollingUp = event.deltaY < 0;
+  const atTop = sidebar.scrollTop <= 0;
+  const atBottom = sidebar.scrollTop + sidebar.clientHeight >= sidebar.scrollHeight - 1;
+  const cannotScroll = sidebar.scrollHeight <= sidebar.clientHeight;
+
+  if (cannotScroll || (scrollingUp && atTop) || (scrollingDown && atBottom)) {
+    event.preventDefault();
+  }
 }
 
 async function checkApiStatus() {
