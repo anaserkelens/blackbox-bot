@@ -1712,7 +1712,6 @@ input[type='search'] {
     margin: 0;
     padding: 0.75rem 1.25rem;
     border: 0;
-    border-bottom: 1px solid var(--line);
     border-radius: 0;
     background: var(--well);
     box-shadow: none;
@@ -1738,6 +1737,10 @@ input[type='search'] {
     box-shadow: none;
   }
 
+  .dashboard-tabs .guild-switcher-art {
+    border-top-right-radius: 0;
+  }
+
   .server-rail {
     position: fixed;
     inset: 72px auto 0 0;
@@ -1750,7 +1753,7 @@ input[type='search'] {
     align-items: center;
     gap: 0.65rem;
     background: var(--well);
-    border-right: 1px solid var(--line);
+    border-right: 0;
   }
 
   .server-rail-home,
