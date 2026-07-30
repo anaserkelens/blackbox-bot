@@ -312,12 +312,15 @@ async function handleRequest(client, request, response) {
 
   if (request.method === 'GET' && url.pathname === '/api/ping') {
     const discordOauthStatus = getDiscordOauthStatus();
+    const guildSummary = getDashboardGuildSummary(client);
 
     sendJson(response, 200, {
       ok: true,
       botReady: client.isReady(),
       tag: client.user?.tag || null,
-      guildName: getDashboardGuildName(client),
+      guildName: guildSummary.name,
+      guildMemberCount: guildSummary.memberCount,
+      guildIconUrl: guildSummary.iconUrl,
       discordOauthEnabled: discordOauthStatus.enabled,
       discordOauthStatus,
     });
@@ -2967,6 +2970,15 @@ async function createBotState(client) {
 function getDashboardGuildName(client) {
   const guild = getDashboardGuild(client);
   return guild?.name || config.communityName;
+}
+
+function getDashboardGuildSummary(client) {
+  const guild = getDashboardGuild(client);
+  return {
+    name: guild?.name || config.communityName,
+    memberCount: typeof guild?.memberCount === 'number' ? guild.memberCount : null,
+    iconUrl: typeof guild?.iconURL === 'function' ? guild.iconURL({ size: 128 }) || null : null,
+  };
 }
 
 function getDashboardGuild(client) {

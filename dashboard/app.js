@@ -861,6 +861,7 @@ async function checkApiStatus() {
     const botText = ping.botReady || health.botReady ? `Bot online${ping.tag ? `: ${ping.tag}` : ''}` : 'Bot not ready';
 
     setGuildName(ping.guildName);
+    setGuildIdentity(ping);
     renderDiscordLoginAvailability(ping);
     setApiStatus(`API connected. ${botText}.`, 'success');
   } catch (error) {
@@ -5855,6 +5856,66 @@ function setGuildName(guildName) {
     element.textContent = name;
   });
 }
+
+function setGuildIdentity(ping) {
+  if (!ping) {
+    return;
+  }
+
+  const count = Number(ping.guildMemberCount);
+  if (Number.isFinite(count) && count > 0) {
+    const label = `Members: ${count.toLocaleString()}`;
+    document.querySelectorAll('[data-guild-members]').forEach((element) => {
+      element.textContent = label;
+    });
+  }
+
+  if (ping.guildIconUrl) {
+    document.querySelectorAll('[data-guild-icon]').forEach((image) => {
+      image.src = ping.guildIconUrl;
+    });
+  }
+}
+
+function initGuildSwitcher() {
+  const trigger = document.querySelector('#guild-switcher');
+  const menu = document.querySelector('#guild-switcher-menu');
+
+  if (!trigger || !menu) {
+    return;
+  }
+
+  const close = () => {
+    menu.hidden = true;
+    trigger.setAttribute('aria-expanded', 'false');
+  };
+
+  trigger.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const open = menu.hidden;
+    menu.hidden = !open;
+    trigger.setAttribute('aria-expanded', String(open));
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!menu.hidden && !menu.contains(event.target) && !trigger.contains(event.target)) {
+      close();
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !menu.hidden) {
+      close();
+      trigger.focus();
+    }
+  });
+
+  menu.querySelectorAll('.guild-switcher-option').forEach((option) => {
+    option.addEventListener('click', close);
+  });
+}
+
+initGuildSwitcher();
 
 function getActiveTab() {
   return getDashboardTabFromLocation()
