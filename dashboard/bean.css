@@ -1789,9 +1789,9 @@ input[type='search'] {
     pointer-events: none;
   }
 
+  /* Full bleed: the sidebar already frames the page, no centred column on top of it. */
   .dashboard-content {
-    width: min(1280px, 100%);
-    margin-inline: auto;
+    width: 100%;
   }
 
   .topbar {
@@ -2127,7 +2127,14 @@ input[type='search'] {
 
 /* ---------- 13. Overview ---------- */
 /* ---------- Overview: the cozy room ----------
-   Welcome band, glance tiles, then activity (lead) beside a calm system column. */
+   Stacks on narrow screens; on wide ones the hero shares a row with the glance
+   tiles and the lower half opens into three columns, so nothing is left stranded. */
+.cozy-top {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
 .cozy-welcome {
   position: relative;
   overflow: hidden;
@@ -2477,6 +2484,30 @@ input[type='search'] {
 .cozy-corner-links button:hover > i:last-child {
   opacity: 1;
   transform: translateX(2px);
+}
+
+/* Wide screens: hero shares a row with the tiles, lower half opens to three columns.
+   Must follow the base rules above — media queries carry no extra specificity. */
+@media (min-width: 1500px) {
+  .cozy-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr);
+    align-items: stretch;
+  }
+
+  .cozy-glance {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+  }
+
+  .cozy-main {
+    grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr) minmax(270px, 0.85fr);
+  }
+
+  /* Health and Quiet corners leave the wrapper and become columns of their own. */
+  .cozy-side {
+    display: contents;
+  }
 }
 
 /* Health */
