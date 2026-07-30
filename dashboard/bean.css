@@ -1693,18 +1693,29 @@ input[type='search'] {
     max-width: none;
     margin: 0;
     padding:
-      0 clamp(1rem, 2.4vw, 2rem) 2.5rem
+      calc(72px + 1.1rem) clamp(1rem, 2.4vw, 2rem) 2.5rem
       calc(348px + clamp(1rem, 2.4vw, 2rem));
   }
 
-  .topbar,
   .dashboard-content {
     width: min(1280px, 100%);
     margin-inline: auto;
   }
 
   .topbar {
-    margin-top: 1.1rem;
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 100;
+    width: 100%;
+    height: 72px;
+    max-width: none;
+    margin: 0;
+    padding: 0.75rem 1.25rem;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    border-radius: 0;
+    background: rgba(12, 15, 21, 0.92);
+    box-shadow: 0 8px 24px rgba(2, 4, 8, 0.22);
   }
 
   .dashboard-layout {
@@ -1713,21 +1724,21 @@ input[type='search'] {
 
   .dashboard-tabs {
     position: fixed;
-    inset: 0 auto 0 72px;
+    inset: 72px auto 0 72px;
     z-index: 80;
     width: 276px;
-    height: 100dvh;
+    height: calc(100dvh - 72px);
     max-height: none;
     border-radius: 22px;
   }
 
   .server-rail {
     position: fixed;
-    inset: 0 auto 0 0;
+    inset: 72px auto 0 0;
     z-index: 90;
     display: flex;
     width: 72px;
-    height: 100dvh;
+    height: calc(100dvh - 72px);
     padding: 1rem 0.65rem;
     flex-direction: column;
     align-items: center;
