@@ -1255,8 +1255,8 @@ input[type='search'] {
 /* ---------- 12. Layout & sidebar ---------- */
 .dashboard-layout {
   display: grid;
-  grid-template-columns: 252px minmax(0, 1fr);
-  gap: 1.3rem;
+  grid-template-columns: 276px minmax(0, 1fr);
+  gap: 1.4rem;
   align-items: start;
 }
 
@@ -1265,14 +1265,20 @@ input[type='search'] {
   top: 5.1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.28rem;
-  background: linear-gradient(178deg, rgba(255, 255, 255, 0.015), transparent 35%), var(--panel);
+  gap: 0.35rem;
+  height: calc(100dvh - 6.4rem);
+  background:
+    linear-gradient(178deg, rgba(255, 255, 255, 0.018), transparent 35%),
+    var(--panel);
   border: 1px solid var(--line);
-  border-radius: var(--r-xl);
-  padding: 1.15rem 0.85rem;
-  box-shadow: var(--shadow-sm);
-  max-height: calc(100dvh - 6.4rem);
+  border-radius: 22px;
+  padding: 1.1rem 0.75rem 0.9rem;
+  box-shadow:
+    inset -1px 0 rgba(255, 255, 255, 0.015),
+    var(--shadow-sm);
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(143, 161, 190, 0.2) transparent;
 }
 
 /* ---------- Server switcher ---------- */
@@ -1280,8 +1286,8 @@ input[type='search'] {
   position: relative;
   isolation: isolate;
   z-index: 10;
-  margin: -1.15rem -0.85rem 0.35rem;
-  padding: 1.15rem 0.85rem 0.6rem;
+  margin: -1.1rem -0.75rem 0.45rem;
+  padding: 1.1rem 0.75rem 0.65rem;
 }
 
 .guild-switcher-art {
@@ -1299,7 +1305,13 @@ input[type='search'] {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(12, 15, 21, 0.08), rgba(12, 15, 21, 0.22) 55%, rgba(12, 15, 21, 0.68) 100%),
+    linear-gradient(
+      180deg,
+      rgba(22, 26, 34, 0.06) 0%,
+      rgba(22, 26, 34, 0.2) 52%,
+      rgba(22, 26, 34, 0.72) 82%,
+      var(--panel) 100%
+    ),
     linear-gradient(90deg, rgba(12, 15, 21, 0.12), rgba(12, 15, 21, 0.36));
 }
 
@@ -1494,12 +1506,12 @@ input[type='search'] {
 }
 
 .nav-section-label {
-  margin: 0.85rem 0.6rem 0.35rem;
-  font-size: 0.64rem;
-  font-weight: 900;
-  letter-spacing: 0.24em;
+  margin: 1.25rem 0.75rem 0.45rem;
+  font-size: 0.65rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--text-faint);
+  color: var(--text);
   display: flex;
   align-items: center;
   gap: 0.55rem;
@@ -1507,9 +1519,13 @@ input[type='search'] {
 
 .nav-section-label::after {
   content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--line);
+  width: 6px;
+  height: 6px;
+  margin-left: auto;
+  border-top: 1.5px solid currentColor;
+  border-left: 1.5px solid currentColor;
+  transform: translateY(2px) rotate(45deg);
+  opacity: 0.85;
 }
 
 .dashboard-tabs .tab-button,
@@ -1517,34 +1533,38 @@ input[type='search'] {
 .nav-feature-list button {
   justify-content: flex-start;
   width: 100%;
-  min-height: 42px;
-  padding: 0.55rem 0.85rem;
-  border-radius: 13px;
+  min-height: 46px;
+  padding: 0.66rem 0.8rem;
+  border-radius: 10px;
   background: transparent;
   border: 1px solid transparent;
   box-shadow: none;
   color: var(--text-soft);
-  font-size: 0.87rem;
-  font-weight: 700;
-  gap: 0.7rem;
+  font-size: 0.88rem;
+  font-weight: 680;
+  gap: 0.8rem;
   position: relative;
-  transition: background-color var(--t-fast), color var(--t-fast), border-color var(--t-fast);
+  transition:
+    background-color var(--t-fast),
+    color var(--t-fast),
+    border-color var(--t-fast),
+    box-shadow var(--t-fast);
 }
 
 .dashboard-tabs .tab-button i,
 .nav-create-list button i,
 .nav-feature-list button i {
-  width: 18px;
+  width: 20px;
   text-align: center;
   color: var(--text-faint);
-  font-size: 0.82rem;
+  font-size: 0.9rem;
   transition: color var(--t-fast);
 }
 
 .dashboard-tabs .tab-button:hover,
 .nav-create-list button:hover,
 .nav-feature-list button:hover {
-  background: var(--bean-softer);
+  background: rgba(143, 161, 190, 0.09);
   color: var(--text);
   filter: none;
   transform: none;
@@ -1553,15 +1573,18 @@ input[type='search'] {
 .dashboard-tabs .tab-button[aria-selected='true'],
 .nav-create-list button.is-current,
 .nav-feature-list button.is-current {
-  background: var(--bean-soft);
-  border-color: rgba(143, 161, 190, 0.3);
+  background: linear-gradient(110deg, rgba(103, 121, 154, 0.9), rgba(75, 92, 121, 0.82));
+  border-color: rgba(174, 190, 216, 0.4);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.07),
+    0 6px 16px rgba(4, 7, 13, 0.18);
   color: var(--text);
 }
 
 .dashboard-tabs .tab-button[aria-selected='true'] i,
 .nav-create-list button.is-current i,
 .nav-feature-list button.is-current i {
-  color: var(--bean-bright);
+  color: #fff;
 }
 
 .dashboard-tabs .tab-button[aria-selected='true']::before,
@@ -1569,40 +1592,63 @@ input[type='search'] {
 .nav-feature-list button.is-current::before {
   content: '';
   position: absolute;
-  left: -0.55rem;
+  left: -0.76rem;
   top: 50%;
   transform: translateY(-50%);
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--lamp);
-  box-shadow: 0 0 9px rgba(220, 176, 120, 0.9);
+  width: 4px;
+  height: 24px;
+  border-radius: 0 999px 999px 0;
+  background: var(--bean-bright);
+  box-shadow: 0 0 12px rgba(143, 161, 190, 0.72);
 }
 
 .nav-create-list,
 .nav-feature-list {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.35rem;
+}
+
+.nav-feature-list button.is-feature-enabled::after {
+  content: '✓';
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  margin-left: auto;
+  border: 1.5px solid var(--sage);
+  border-radius: 50%;
+  color: var(--sage);
+  font-size: 0.68rem;
+  line-height: 1;
 }
 
 .nav-foot {
-  margin-top: 1.1rem;
-  padding: 0.8rem 0.6rem 0.2rem;
-  border-top: 1px dashed var(--line-strong);
+  position: sticky;
+  bottom: -0.9rem;
+  z-index: 5;
+  margin: 1.1rem -0.1rem -0.9rem;
+  padding: 0.85rem 0.9rem 1rem;
+  background:
+    linear-gradient(135deg, rgba(103, 121, 154, 0.22), rgba(29, 34, 45, 0.96)),
+    var(--raised);
+  border: 1px solid var(--line-strong);
+  border-bottom: 0;
+  border-radius: 13px 13px 0 0;
+  box-shadow: 0 -8px 24px rgba(4, 7, 13, 0.22);
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: 0.15rem;
 }
 
 .nav-foot span {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.62rem;
+  font-size: 0.64rem;
   font-weight: 900;
-  letter-spacing: 0.22em;
-  color: var(--text-faint);
+  letter-spacing: 0.14em;
+  color: var(--text-soft);
 }
 
 .nav-foot span i {
@@ -6761,6 +6807,7 @@ button.is-feature-disabled {
 
   .dashboard-tabs {
     position: static;
+    height: auto;
     max-height: none;
     flex-direction: row;
     flex-wrap: wrap;

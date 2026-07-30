@@ -2230,6 +2230,7 @@ function renderFeatureControls() {
     const enabled = Boolean(features[element.dataset.featureNav]);
 
     element.classList.toggle('is-feature-disabled', !enabled);
+    element.classList.toggle('is-feature-enabled', enabled);
     element.setAttribute('aria-description', enabled ? 'Feature enabled' : 'Feature disabled');
   });
 
@@ -2238,6 +2239,7 @@ function renderFeatureControls() {
     const enabled = keys.some((key) => Boolean(features[key]));
 
     element.classList.toggle('is-feature-disabled', !enabled);
+    element.classList.toggle('is-feature-enabled', enabled);
     element.setAttribute('aria-description', enabled ? 'At least one feature enabled' : 'Features disabled');
   });
 
