@@ -1352,8 +1352,38 @@ input[type='search'] {
 }
 
 .guild-current {
+  min-height: 52px;
+  padding: 0.35rem 0.4rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
   cursor: default;
   pointer-events: none;
+}
+
+.guild-current .guild-switcher-avatar {
+  width: 32px;
+  height: 32px;
+  border-width: 1px;
+  box-shadow:
+    0 0 0 2px rgba(143, 161, 190, 0.16),
+    0 4px 12px rgba(4, 7, 13, 0.3);
+}
+
+.guild-current .guild-switcher-meta {
+  gap: 0;
+}
+
+.guild-current .guild-switcher-meta strong {
+  font-size: 1rem;
+  font-weight: 760;
+}
+
+.guild-current .guild-switcher-meta small {
+  font-size: 0.68rem;
 }
 
 /* The live guild icon paints the full sidebar header, not only the button. */
@@ -1505,7 +1535,7 @@ input[type='search'] {
 .guild-switcher-hero > .nav-section-label {
   position: relative;
   z-index: 1;
-  margin-top: 3rem;
+  margin-top: 4rem;
   margin-bottom: 0;
   transform: translateY(1.35rem);
 }
@@ -1810,11 +1840,12 @@ input[type='search'] {
   .server-rail-server::before {
     content: '';
     left: calc(100% + 0.45rem);
+    z-index: 21;
     width: 9px;
     height: 9px;
     background: #242935;
     border-left: 1px solid var(--line);
-    border-bottom: 1px solid var(--line);
+    border-top: 1px solid var(--line);
     transform: translate(4px, -50%) rotate(45deg);
   }
 
