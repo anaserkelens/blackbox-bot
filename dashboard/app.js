@@ -5857,6 +5857,10 @@ function setGuildName(guildName) {
   guildNameElements.forEach((element) => {
     element.textContent = name;
   });
+
+  const guildSwitcher = document.querySelector('#guild-switcher');
+  guildSwitcher?.setAttribute('data-tooltip', name);
+  guildSwitcher?.setAttribute('aria-label', `Switch server: ${name}`);
 }
 
 function setGuildIdentity(ping) {
