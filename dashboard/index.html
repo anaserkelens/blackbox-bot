@@ -40,7 +40,7 @@
       <section id="dashboard-view" class="dashboard" hidden>
         <nav class="server-rail" aria-label="Servers">
           <button class="server-rail-home" type="button" data-tab-link="overview" aria-label="Home">
-            <img src="/assets/bean-icon.png" alt="" />
+            <i class="fa-solid fa-house" aria-hidden="true"></i>
             <span class="server-rail-tooltip" aria-hidden="true">Home</span>
           </button>
           <span class="server-rail-divider" aria-hidden="true"></span>
@@ -71,6 +71,12 @@
               <p class="guild-switcher-note">Managing 1 server · more coming soon</p>
             </div>
           </div>
+          <!-- ponytail: no bot-invite URL exists yet, so this is presentational.
+               Drop the OAuth invite link on it and remove aria-disabled when there is one. -->
+          <button class="server-rail-add" type="button" aria-disabled="true" aria-label="Add a server (coming soon)">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            <span class="server-rail-tooltip" aria-hidden="true">Add a server · coming soon</span>
+          </button>
         </nav>
 
         <header class="topbar">

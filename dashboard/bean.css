@@ -1286,8 +1286,7 @@ input[type='search'] {
   -ms-overflow-style: none;
 }
 
-.dashboard-tabs::-webkit-scrollbar,
-.server-rail::-webkit-scrollbar {
+.dashboard-tabs::-webkit-scrollbar {
   display: none;
 }
 
@@ -1848,12 +1847,13 @@ input[type='search'] {
     gap: 0.65rem;
     background: var(--well);
     border-right: 0;
-    overflow-y: auto;
-    scrollbar-width: none;
+    /* Must stay visible — any overflow value clips the tooltips out of the rail. */
+    overflow: visible;
   }
 
   .server-rail-home,
-  .server-rail-server {
+  .server-rail-server,
+  .server-rail-add {
     position: relative;
     display: grid;
     width: 48px;
@@ -1868,69 +1868,90 @@ input[type='search'] {
     transition:
       border-radius var(--t-fast),
       border-color var(--t-fast),
+      color var(--t-fast),
+      background var(--t-fast),
       transform var(--t-fast);
   }
 
+  .server-rail-home i {
+    color: var(--text-soft);
+    font-size: 1.05rem;
+    transition: color var(--t-fast);
+  }
+
+  .server-rail-home:hover i {
+    color: var(--bean-bright);
+  }
+
+  /* Discord's trailing "+" tile */
+  .server-rail-add {
+    flex: none;
+    color: var(--sage);
+    cursor: pointer;
+  }
+
+  .server-rail-add i {
+    font-size: 1rem;
+  }
+
+  .server-rail-add:hover {
+    color: var(--bean-ink);
+    background: var(--sage);
+    border-color: var(--sage);
+  }
+
+  /* Borderless so the arrow can just inherit the background — no seam to patch over. */
   .server-rail-tooltip {
     position: absolute;
     top: 50%;
-    left: calc(100% + 0.7rem);
+    left: calc(100% + 0.8rem);
     z-index: 20;
     min-width: max-content;
-    padding: 0.42rem 0.68rem;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    color: var(--text);
-    background: #242935;
-    box-shadow: var(--shadow-md);
-    font-size: 0.78rem;
-    font-weight: 750;
-    line-height: 1;
-    letter-spacing: 0.01em;
+    max-width: 210px;
+    padding: 0.5rem 0.72rem;
+    border-radius: 9px;
+    color: #f2f3f5;
+    background: #0a0b0e;
+    box-shadow:
+      0 10px 24px rgba(0, 0, 0, 0.55),
+      0 2px 6px rgba(0, 0, 0, 0.4);
+    font-size: 0.76rem;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: 0.005em;
     white-space: nowrap;
     pointer-events: none;
     opacity: 0;
     visibility: hidden;
-    transform: translate(4px, -50%);
+    transform: translate(-6px, -50%) scale(0.94);
+    transform-origin: left center;
     transition:
-      opacity var(--t-fast),
-      transform var(--t-fast),
-      visibility var(--t-fast);
+      opacity 130ms var(--ease),
+      transform 130ms var(--ease),
+      visibility 130ms var(--ease);
   }
 
   .server-rail-tooltip::before {
     content: '';
     position: absolute;
-    left: -5px;
+    left: -3px;
     top: 50%;
-    z-index: 1;
-    width: 9px;
-    height: 9px;
-    background: #242935;
-    border-left: 1px solid var(--line);
-    border-top: 1px solid var(--line);
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background: inherit;
     transform: translateY(-50%) rotate(45deg);
-  }
-
-  .server-rail-tooltip::after {
-    content: '';
-    position: absolute;
-    left: -1px;
-    top: 50%;
-    z-index: 2;
-    width: 2px;
-    height: 11px;
-    background: #242935;
-    transform: translateY(-50%);
   }
 
   .server-rail-home:hover .server-rail-tooltip,
   .server-rail-home:focus-visible .server-rail-tooltip,
   .server-rail-server:hover .server-rail-tooltip,
-  .server-rail-server:focus-visible .server-rail-tooltip {
+  .server-rail-server:focus-visible .server-rail-tooltip,
+  .server-rail-add:hover .server-rail-tooltip,
+  .server-rail-add:focus-visible .server-rail-tooltip {
     opacity: 1;
     visibility: visible;
-    transform: translate(0, -50%);
+    transform: translate(0, -50%) scale(1);
   }
 
   .server-rail-server[aria-expanded='true'] .server-rail-tooltip {
@@ -1940,17 +1961,16 @@ input[type='search'] {
 
   .server-rail-home:hover,
   .server-rail-server:hover,
+  .server-rail-add:hover,
   .server-rail-server[aria-expanded='true'] {
-    border-color: var(--bean);
     border-radius: 13px;
     transform: translateY(-1px);
   }
 
-  .server-rail-home img {
-    width: 32px;
-    height: 32px;
-    border-radius: inherit;
-    object-fit: contain;
+  .server-rail-home:hover,
+  .server-rail-server:hover,
+  .server-rail-server[aria-expanded='true'] {
+    border-color: var(--bean);
   }
 
   .server-rail-server img {
