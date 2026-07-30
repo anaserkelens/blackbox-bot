@@ -1357,8 +1357,8 @@ input[type='search'] {
 }
 
 .guild-current {
-  min-height: 52px;
-  padding: 0.35rem 0.4rem;
+  min-height: 64px;
+  padding: 0.55rem 0.65rem;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -1369,32 +1369,80 @@ input[type='search'] {
   pointer-events: none;
 }
 
+.guild-current::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 12px;
+  background: linear-gradient(90deg, rgba(12, 15, 21, 0.34), rgba(12, 15, 21, 0.08) 72%, transparent);
+}
+
 .guild-current .guild-switcher-avatar {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-width: 1px;
+  border-color: rgba(174, 190, 216, 0.78);
   box-shadow:
-    0 0 0 2px rgba(143, 161, 190, 0.16),
-    0 4px 12px rgba(4, 7, 13, 0.3);
+    0 0 0 3px rgba(12, 15, 21, 0.32),
+    0 5px 14px rgba(4, 7, 13, 0.34);
 }
 
 .guild-current .guild-switcher-meta {
-  gap: 0;
+  gap: 0.12rem;
 }
 
 .guild-current .guild-switcher-meta strong {
-  font-size: 1rem;
-  font-weight: 760;
+  font-size: 0.98rem;
+  font-weight: 740;
+  letter-spacing: -0.01em;
 }
 
 .guild-current .guild-switcher-meta small {
-  font-size: 0.68rem;
+  font-size: 0.66rem;
+}
+
+.current-server-members {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+}
+
+.current-server-members i {
+  color: rgba(236, 235, 228, 0.5);
+  font-size: 0.58rem;
+}
+
+.current-server-state {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.28rem 0.42rem;
+  border: 1px solid rgba(166, 180, 203, 0.14);
+  border-radius: 999px;
+  color: rgba(236, 235, 228, 0.72);
+  background: rgba(12, 15, 21, 0.5);
+  font-size: 0.54rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.current-server-state i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--sage);
+  box-shadow: 0 0 7px rgba(168, 199, 157, 0.7);
 }
 
 .current-server-readiness {
   position: relative;
   z-index: 2;
-  margin: 2.75rem -0.75rem 0;
+  margin: 2rem -0.75rem 0;
   padding: 0.72rem 1rem 0.82rem;
   border: 0;
   border-bottom: 1px solid rgba(166, 180, 203, 0.16);
