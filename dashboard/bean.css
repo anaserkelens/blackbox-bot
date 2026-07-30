@@ -1350,13 +1350,13 @@ input[type='search'] {
 /* The live guild icon paints the full sidebar header, not only the button. */
 .guild-switcher-backdrop {
   position: absolute;
-  left: 7%;
-  top: 62%;
-  width: 270px;
-  height: 270px;
+  left: 50%;
+  top: 52%;
+  width: 340px;
+  height: 340px;
   object-fit: cover;
   object-position: center;
-  transform: translateY(-50%) scale(1.08);
+  transform: translate(-50%, -50%) scale(1.08);
   filter: blur(7px) saturate(1.4) brightness(0.98);
   opacity: 0.82;
   pointer-events: none;
@@ -1496,8 +1496,9 @@ input[type='search'] {
 .guild-switcher-hero > .nav-section-label {
   position: relative;
   z-index: 1;
-  margin-top: 2.5rem;
+  margin-top: 3rem;
   margin-bottom: 0;
+  transform: translateY(1.35rem);
 }
 
 .nav-section-label {
