@@ -61,16 +61,6 @@
               <i class="fa-solid fa-bell" aria-hidden="true"></i>
               <span id="notification-badge" class="notification-badge" hidden>0</span>
             </button>
-            <div id="session-identity" class="session-identity">
-              <span id="session-avatar" class="session-avatar"><i class="fa-solid fa-user" aria-hidden="true"></i></span>
-              <span>
-                <strong id="session-name">Founder</strong>
-                <small id="session-role">Dashboard access</small>
-              </span>
-            </div>
-            <button id="logout" class="secondary topbar-logout" type="button" aria-label="Log out" title="Log out">
-              <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
-            </button>
           </div>
         </header>
 
@@ -188,9 +178,17 @@
               <i class="fa-solid fa-gear" aria-hidden="true"></i>
               <span class="tab-label">Settings</span>
             </button>
-            <div class="nav-foot" aria-hidden="true">
-              <span><i></i> SYSTEM LINK</span>
-              <small>Encrypted · Private</small>
+            <div class="nav-foot" aria-label="Account">
+              <div id="session-identity" class="session-identity">
+                <span id="session-avatar" class="session-avatar"><i class="fa-solid fa-user" aria-hidden="true"></i></span>
+                <span>
+                  <strong id="session-name">Founder</strong>
+                  <small id="session-role">Dashboard access</small>
+                </span>
+              </div>
+              <button id="logout" class="secondary nav-logout" type="button" aria-label="Log out" title="Log out">
+                <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
+              </button>
             </div>
           </nav>
           <div class="dashboard-content">
