@@ -136,6 +136,8 @@ const growthNewSeasonName = document.querySelector('#growth-new-season-name');
 const growthNewSeasonEnd = document.querySelector('#growth-new-season-end');
 const growthRecentActivity = document.querySelector('#growth-recent-activity');
 const guildNameElements = [...document.querySelectorAll('[data-guild-name]')];
+const currentServerReadinessLabel = document.querySelector('#current-server-readiness-label');
+const currentServerReadinessProgress = document.querySelector('#current-server-readiness-progress');
 const savedMessagesContainer = document.querySelector('#saved-messages');
 const savedMessageCount = document.querySelector('#saved-message-count');
 const caseStorageStatus = document.querySelector('#case-storage-status');
@@ -2201,6 +2203,8 @@ function renderFeatureControls() {
     return;
   }
 
+  renderCurrentServerReadiness(features);
+
   featureToggleInputs.forEach((input) => {
     const key = input.dataset.featureToggle;
     const enabled = Boolean(features[key]);
@@ -2264,6 +2268,26 @@ function renderFeatureControls() {
   renderFeatureChannelSettings();
   renderAuditLoggingChannels();
   renderFeaturePageAvailability();
+}
+
+function renderCurrentServerReadiness(features) {
+  if (!currentServerReadinessLabel || !currentServerReadinessProgress) {
+    return;
+  }
+
+  const featureKeys = Object.keys(dashboardConfigurationDefinitions.features);
+  const enabledCount = featureKeys.filter((key) => Boolean(features[key])).length;
+  const totalCount = featureKeys.length;
+  const percentage = totalCount ? Math.round((enabledCount / totalCount) * 100) : 0;
+
+  currentServerReadinessLabel.textContent = `${enabledCount}/${totalCount} active`;
+  currentServerReadinessProgress.style.setProperty('--server-readiness', `${percentage}%`);
+  currentServerReadinessProgress.setAttribute('aria-valuemax', String(totalCount));
+  currentServerReadinessProgress.setAttribute('aria-valuenow', String(enabledCount));
+  currentServerReadinessProgress.setAttribute(
+    'aria-valuetext',
+    `${enabledCount} of ${totalCount} Bean features active`,
+  );
 }
 
 function renderFeaturePageAvailability() {
@@ -5859,7 +5883,6 @@ function setGuildName(guildName) {
   });
 
   const guildSwitcher = document.querySelector('#guild-switcher');
-  guildSwitcher?.setAttribute('data-tooltip', name);
   guildSwitcher?.setAttribute('aria-label', `Switch server: ${name}`);
 }
 

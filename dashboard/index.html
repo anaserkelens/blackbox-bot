@@ -39,8 +39,9 @@
 
       <section id="dashboard-view" class="dashboard" hidden>
         <nav class="server-rail" aria-label="Servers">
-          <button class="server-rail-home" type="button" data-tab-link="overview" aria-label="Home" data-tooltip="Home">
+          <button class="server-rail-home" type="button" data-tab-link="overview" aria-label="Home">
             <img src="/assets/bean-icon.png" alt="" />
+            <span class="server-rail-tooltip" aria-hidden="true">Home</span>
           </button>
           <span class="server-rail-divider" aria-hidden="true"></span>
           <div class="server-rail-switcher-wrap">
@@ -52,9 +53,9 @@
               aria-expanded="false"
               aria-controls="guild-switcher-menu"
               aria-label="Switch server: UNDR CTRL"
-              data-tooltip="UNDR CTRL"
             >
               <img src="/assets/bean-icon.png" alt="" data-guild-icon />
+              <span class="server-rail-tooltip" aria-hidden="true" data-guild-name>UNDR CTRL</span>
             </button>
             <div class="guild-switcher-menu" id="guild-switcher-menu" role="listbox" aria-label="Your servers" hidden>
               <button type="button" class="guild-switcher-option is-active" role="option" aria-selected="true">
@@ -114,6 +115,21 @@
                     <small data-guild-members>Members: —</small>
                   </span>
                 </div>
+              </div>
+              <div class="current-server-readiness">
+                <div class="current-server-readiness-copy">
+                  <span><i class="fa-solid fa-seedling" aria-hidden="true"></i> Bean coverage</span>
+                  <strong id="current-server-readiness-label" aria-live="polite">Checking…</strong>
+                </div>
+                <span
+                  id="current-server-readiness-progress"
+                  class="current-server-readiness-progress"
+                  role="progressbar"
+                  aria-label="Enabled Bean features"
+                  aria-valuemin="0"
+                  aria-valuemax="9"
+                  aria-valuenow="0"
+                ><i aria-hidden="true"></i></span>
               </div>
               <p class="nav-section-label">General</p>
             </div>

@@ -1386,6 +1386,66 @@ input[type='search'] {
   font-size: 0.68rem;
 }
 
+.current-server-readiness {
+  position: relative;
+  z-index: 2;
+  margin: 2.75rem 0.15rem 0;
+  padding: 0.62rem 0.72rem 0.68rem;
+  border: 1px solid rgba(166, 180, 203, 0.17);
+  border-radius: 11px;
+  background: rgba(12, 15, 21, 0.58);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 6px 18px rgba(4, 7, 13, 0.18);
+}
+
+.current-server-readiness-copy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  color: var(--text-soft);
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
+.current-server-readiness-copy span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+}
+
+.current-server-readiness-copy i {
+  color: var(--sage);
+  font-size: 0.64rem;
+}
+
+.current-server-readiness-copy strong {
+  flex: none;
+  color: var(--text);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.current-server-readiness-progress {
+  display: block;
+  height: 5px;
+  margin-top: 0.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(143, 161, 190, 0.18);
+}
+
+.current-server-readiness-progress i {
+  display: block;
+  width: var(--server-readiness, 0%);
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--bean-dim), var(--sage));
+  box-shadow: 0 0 10px rgba(168, 199, 157, 0.4);
+  transition: width 320ms var(--ease);
+}
+
 /* The live guild icon paints the full sidebar header, not only the button. */
 .guild-switcher-backdrop {
   position: absolute;
@@ -1535,7 +1595,7 @@ input[type='search'] {
 .guild-switcher-hero > .nav-section-label {
   position: relative;
   z-index: 1;
-  margin-top: 4rem;
+  margin-top: 1.2rem;
   margin-bottom: 0;
   transform: translateY(1.35rem);
 }
@@ -1820,39 +1880,11 @@ input[type='search'] {
       transform var(--t-fast);
   }
 
-  .server-rail-home::before,
-  .server-rail-server::before,
-  .server-rail-home::after,
-  .server-rail-server::after {
+  .server-rail-tooltip {
     position: absolute;
     top: 50%;
-    z-index: 20;
-    pointer-events: none;
-    opacity: 0;
-    visibility: hidden;
-    transition:
-      opacity var(--t-fast),
-      transform var(--t-fast),
-      visibility var(--t-fast);
-  }
-
-  .server-rail-home::before,
-  .server-rail-server::before {
-    content: '';
-    left: calc(100% + 0.45rem);
-    z-index: 21;
-    width: 9px;
-    height: 9px;
-    background: #242935;
-    border-left: 1px solid var(--line);
-    border-top: 1px solid var(--line);
-    transform: translate(4px, -50%) rotate(45deg);
-  }
-
-  .server-rail-home::after,
-  .server-rail-server::after {
-    content: attr(data-tooltip);
     left: calc(100% + 0.7rem);
+    z-index: 20;
     min-width: max-content;
     padding: 0.42rem 0.68rem;
     border: 1px solid var(--line);
@@ -1865,37 +1897,52 @@ input[type='search'] {
     line-height: 1;
     letter-spacing: 0.01em;
     white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
     transform: translate(4px, -50%);
+    transition:
+      opacity var(--t-fast),
+      transform var(--t-fast),
+      visibility var(--t-fast);
   }
 
-  .server-rail-home:hover::before,
-  .server-rail-home:hover::after,
-  .server-rail-home:focus-visible::before,
-  .server-rail-home:focus-visible::after,
-  .server-rail-server:hover::before,
-  .server-rail-server:hover::after,
-  .server-rail-server:focus-visible::before,
-  .server-rail-server:focus-visible::after {
+  .server-rail-tooltip::before {
+    content: '';
+    position: absolute;
+    left: -5px;
+    top: 50%;
+    z-index: 1;
+    width: 9px;
+    height: 9px;
+    background: #242935;
+    border-left: 1px solid var(--line);
+    border-top: 1px solid var(--line);
+    transform: translateY(-50%) rotate(45deg);
+  }
+
+  .server-rail-tooltip::after {
+    content: '';
+    position: absolute;
+    left: -1px;
+    top: 50%;
+    z-index: 2;
+    width: 2px;
+    height: 11px;
+    background: #242935;
+    transform: translateY(-50%);
+  }
+
+  .server-rail-home:hover .server-rail-tooltip,
+  .server-rail-home:focus-visible .server-rail-tooltip,
+  .server-rail-server:hover .server-rail-tooltip,
+  .server-rail-server:focus-visible .server-rail-tooltip {
     opacity: 1;
     visibility: visible;
-  }
-
-  .server-rail-home:hover::before,
-  .server-rail-home:focus-visible::before,
-  .server-rail-server:hover::before,
-  .server-rail-server:focus-visible::before {
-    transform: translate(0, -50%) rotate(45deg);
-  }
-
-  .server-rail-home:hover::after,
-  .server-rail-home:focus-visible::after,
-  .server-rail-server:hover::after,
-  .server-rail-server:focus-visible::after {
     transform: translate(0, -50%);
   }
 
-  .server-rail-server[aria-expanded='true']::before,
-  .server-rail-server[aria-expanded='true']::after {
+  .server-rail-server[aria-expanded='true'] .server-rail-tooltip {
     opacity: 0;
     visibility: hidden;
   }
