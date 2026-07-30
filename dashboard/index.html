@@ -101,26 +101,14 @@
 
         <div class="dashboard-layout">
           <nav class="dashboard-tabs" aria-label="Dashboard spaces">
-            <div class="guild-switcher-hero">
-              <span class="guild-switcher-art" aria-hidden="true">
-                <img class="guild-switcher-backdrop" src="/assets/bean-icon.png" alt="" data-guild-icon />
-              </span>
-              <div class="guild-switcher-wrap">
-                <div class="guild-switcher guild-current" aria-label="Current server">
-                  <span class="guild-switcher-avatar">
-                    <img src="/assets/bean-icon.png" alt="" data-guild-icon />
-                  </span>
-                  <span class="guild-switcher-meta">
-                    <strong data-guild-name>UNDR CTRL</strong>
-                    <small class="current-server-members">
-                      <i class="fa-solid fa-user-group" aria-hidden="true"></i>
-                      <span data-guild-members>Members: —</span>
-                    </small>
-                  </span>
-                  <span class="current-server-state" aria-hidden="true"><i></i> Current</span>
-                </div>
-              </div>
-              <div class="current-server-readiness">
+            <div class="guild-header">
+              <strong class="guild-header-name" data-guild-name>UNDR CTRL</strong>
+              <small class="guild-header-members">
+                <i class="fa-solid fa-user-group" aria-hidden="true"></i>
+                <span data-guild-members>Members: —</span>
+              </small>
+            </div>
+            <div class="current-server-readiness">
                 <div class="current-server-readiness-copy">
                   <span><i class="fa-solid fa-seedling" aria-hidden="true"></i> Bean coverage</span>
                   <strong id="current-server-readiness-label" aria-live="polite">Checking…</strong>
