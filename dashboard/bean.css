@@ -1290,13 +1290,13 @@ input[type='search'] {
   position: relative;
   isolation: isolate;
   z-index: 10;
-  margin: -1.1rem -0.75rem 1.2rem;
-  padding: 1.1rem 0.75rem 0.65rem;
+  margin: -1.1rem -0.75rem 0;
+  padding: 1.1rem 0.75rem 0;
 }
 
 .guild-switcher-art {
   position: absolute;
-  inset: 0 0 -0.6rem;
+  inset: 0;
   z-index: -1;
   overflow: hidden;
   border-radius: calc(var(--r-xl) - 1px) calc(var(--r-xl) - 1px) 0 0;
@@ -1389,14 +1389,13 @@ input[type='search'] {
 .current-server-readiness {
   position: relative;
   z-index: 2;
-  margin: 2.75rem 0.15rem 0;
-  padding: 0.62rem 0.72rem 0.68rem;
-  border: 1px solid rgba(166, 180, 203, 0.17);
-  border-radius: 11px;
-  background: rgba(12, 15, 21, 0.58);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 6px 18px rgba(4, 7, 13, 0.18);
+  margin: 2.75rem -0.75rem 0;
+  padding: 0.72rem 1rem 0.82rem;
+  border: 0;
+  border-bottom: 1px solid rgba(166, 180, 203, 0.16);
+  border-radius: 12px 12px 0 0;
+  background: var(--well);
+  box-shadow: none;
 }
 
 .current-server-readiness-copy {
@@ -1590,14 +1589,6 @@ input[type='search'] {
   font-size: 0.68rem;
   color: var(--text-faint);
   text-align: center;
-}
-
-.guild-switcher-hero > .nav-section-label {
-  position: relative;
-  z-index: 1;
-  margin-top: 1.2rem;
-  margin-bottom: 0;
-  transform: translateY(1.35rem);
 }
 
 .nav-section-label {
@@ -7150,6 +7141,10 @@ button.is-feature-disabled {
   }
 
   .guild-switcher-art {
+    display: none;
+  }
+
+  .current-server-readiness {
     display: none;
   }
 
