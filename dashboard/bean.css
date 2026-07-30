@@ -6,6 +6,7 @@
 
 /* ---------- 1. Tokens ---------- */
 :root {
+  --userbar-h: 62px;                 /* pinned account bar, spans rail + sidebar */
   --bean: #8fa1be;
   --bean-bright: #aebed8;
   --bean-dim: #67799a;
@@ -1282,7 +1283,8 @@ input[type='search'] {
   -ms-overflow-style: none;
 }
 
-.dashboard-tabs::-webkit-scrollbar {
+.dashboard-tabs::-webkit-scrollbar,
+.server-rail::-webkit-scrollbar {
   display: none;
 }
 
@@ -1300,11 +1302,11 @@ input[type='search'] {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-end;
   gap: 0.08rem;
-  min-height: 60px;
+  min-height: 96px;
   margin: 0 -0.75rem 0.3rem;
-  padding: 0.6rem 1rem;
+  padding: 0.6rem 1rem 0.7rem;
   border-radius: 21px 21px 0 0;
   background: var(--well);
   border-bottom: 1px solid var(--line);
@@ -1326,8 +1328,14 @@ input[type='search'] {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(12, 15, 21, 0.72), rgba(12, 15, 21, 0.42) 70%, rgba(12, 15, 21, 0.34)),
-    linear-gradient(180deg, rgba(22, 26, 34, 0.24), rgba(22, 26, 34, 0.52));
+    linear-gradient(
+      180deg,
+      rgba(22, 26, 34, 0.06) 0%,
+      rgba(22, 26, 34, 0.2) 52%,
+      rgba(22, 26, 34, 0.48) 82%,
+      rgba(22, 26, 34, 0.66) 100%
+    ),
+    linear-gradient(90deg, rgba(12, 15, 21, 0.12), rgba(12, 15, 21, 0.36));
 }
 
 .guild-header-name {
@@ -1806,19 +1814,21 @@ input[type='search'] {
     border-radius: calc(var(--r-xl) - 1px) 0 0 0;
   }
 
+  /* Rail stops above the user bar so the bar reads as one strip across the column */
   .server-rail {
     position: fixed;
-    inset: 72px auto 0 0;
+    inset: 72px auto var(--userbar-h) 0;
     z-index: 90;
     display: flex;
     width: 72px;
-    height: calc(100dvh - 72px);
     padding: 1rem 0.65rem;
     flex-direction: column;
     align-items: center;
     gap: 0.65rem;
     background: var(--well);
     border-right: 0;
+    overflow-y: auto;
+    scrollbar-width: none;
   }
 
   .server-rail-home,
@@ -1965,7 +1975,9 @@ input[type='search'] {
     position: fixed;
     inset: auto auto 0 0;
     z-index: 95;
+    box-sizing: border-box;
     width: 348px;
+    height: var(--userbar-h);
     margin: 0;
     padding: 0.7rem 0.9rem;
     border: 0;
@@ -1974,10 +1986,9 @@ input[type='search'] {
     box-shadow: 0 -12px 24px rgba(4, 7, 13, 0.35);
   }
 
-  /* Keep rail/sidebar content clear of the pinned bar */
-  .server-rail,
+  /* Keep the channel list clear of the pinned bar */
   .dashboard-tabs {
-    padding-bottom: 76px;
+    padding-bottom: calc(var(--userbar-h) + 0.6rem);
   }
 }
 
