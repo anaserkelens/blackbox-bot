@@ -139,6 +139,23 @@ const growthNewSeasonName = document.querySelector('#growth-new-season-name');
 const growthNewSeasonEnd = document.querySelector('#growth-new-season-end');
 const growthRecentActivity = document.querySelector('#growth-recent-activity');
 const guildNameElements = [...document.querySelectorAll('[data-guild-name]')];
+
+// The server name row is transparent while the banner art sits behind it, and gains a
+// solid background once that art scrolls away. Measured from the CSS var rather than
+// offsetHeight, because the dashboard is still hidden when this runs.
+{
+  const header = document.querySelector('.guild-header');
+  const banner = document.querySelector('.guild-banner');
+  const sidebar = document.querySelector('.dashboard-tabs');
+  if (header && banner && sidebar) {
+    const headerHeight =
+      parseInt(getComputedStyle(document.documentElement).getPropertyValue('--guild-header-h'), 10) || 52;
+    new IntersectionObserver(
+      ([entry]) => header.classList.toggle('is-stuck', !entry.isIntersecting),
+      { root: sidebar, rootMargin: `-${headerHeight}px 0px 0px 0px` },
+    ).observe(banner);
+  }
+}
 const currentServerReadinessLabel = document.querySelector('#current-server-readiness-label');
 const currentServerReadinessProgress = document.querySelector('#current-server-readiness-progress');
 const savedMessagesContainer = document.querySelector('#saved-messages');

@@ -6,6 +6,8 @@
 
 /* ---------- 1. Tokens ---------- */
 :root {
+  --nav-gap: 0.35rem;                /* sidebar column gap; banner offset depends on it */
+  --guild-header-h: 52px;            /* sticky server name row */
   --userbar-h: 62px;                 /* floating account bar, spans rail + sidebar */
   --userbar-gap: 10px;               /* how far it floats off the bottom-left */
   --bean: #8fa1be;
@@ -1267,7 +1269,7 @@ input[type='search'] {
   top: 5.1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: var(--nav-gap);
   height: calc(100dvh - 6.4rem);
   background:
     linear-gradient(178deg, rgba(255, 255, 255, 0.018), transparent 35%),
@@ -1294,25 +1296,39 @@ input[type='search'] {
 }
 
 /* ---------- Server switcher ---------- */
-/* Discord-style: compact name row pins to the top, banner below scrolls away */
+/* Discord-style: name row pins to the top, sitting on the banner art at rest.
+   Its background fades in only once the art has scrolled out from behind it. */
 .guild-header {
   position: sticky;
   top: 0;
   z-index: 12;
+  flex: none;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 0.08rem;
-  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  height: var(--guild-header-h);
   margin: 0 -0.75rem;
-  padding: 0.5rem 1rem;
+  padding: 0 1rem;
   border-radius: 21px 21px 0 0;
-  background: var(--well);
-  border-bottom: 1px solid var(--line);
+  background-color: transparent;
+  border-bottom: 1px solid transparent;
+  transition:
+    background-color var(--t-fast),
+    border-bottom-color var(--t-fast),
+    box-shadow var(--t-fast);
+}
+
+/* Toggled from app.js once the banner art has scrolled out from behind the row */
+.guild-header.is-stuck {
+  background-color: var(--well);
+  border-bottom-color: var(--line);
   box-shadow: 0 6px 14px rgba(4, 7, 13, 0.34);
 }
 
 .guild-header-name {
+  flex: 1;
+  min-width: 0;
   font-family: var(--font-display);
   font-size: 1rem;
   font-weight: 760;
@@ -1321,35 +1337,40 @@ input[type='search'] {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
 }
 
 .guild-header-members {
+  flex: none;
   display: inline-flex;
   align-items: center;
   gap: 0.34rem;
-  font-size: 0.66rem;
-  color: var(--text-faint);
+  font-size: 0.68rem;
+  color: rgba(236, 235, 228, 0.74);
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
 }
 
 .guild-header-members i {
-  font-size: 0.56rem;
-  color: rgba(236, 235, 228, 0.42);
+  font-size: 0.58rem;
+  color: rgba(236, 235, 228, 0.55);
 }
 
-/* Blurred live guild icon — scrolls up behind the pinned name row */
+/* Blurred live guild icon — pulled up so its top sits behind the name row */
 .guild-banner {
   position: relative;
   z-index: 1;
   flex: none;
   overflow: hidden;
   height: 132px;
-  margin: 0 -0.75rem;
+  margin: calc((var(--guild-header-h) + var(--nav-gap)) * -1) -0.75rem 0;
   background: #171d2c;
   pointer-events: none;
   -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 66%, transparent 100%);
   mask-image: linear-gradient(to bottom, #000 0%, #000 66%, transparent 100%);
 }
 
+/* Darker at the top so the name stays legible over the art */
 .guild-banner::after {
   content: '';
   position: absolute;
@@ -1357,12 +1378,12 @@ input[type='search'] {
   background:
     linear-gradient(
       180deg,
-      rgba(22, 26, 34, 0.04) 0%,
-      rgba(22, 26, 34, 0.18) 52%,
-      rgba(22, 26, 34, 0.44) 82%,
-      rgba(22, 26, 34, 0.62) 100%
+      rgba(12, 15, 21, 0.52) 0%,
+      rgba(12, 15, 21, 0.24) 38%,
+      rgba(22, 26, 34, 0.34) 78%,
+      rgba(22, 26, 34, 0.6) 100%
     ),
-    linear-gradient(90deg, rgba(12, 15, 21, 0.12), rgba(12, 15, 21, 0.36));
+    linear-gradient(90deg, rgba(12, 15, 21, 0.14), rgba(12, 15, 21, 0.34));
 }
 
 .current-server-readiness {
