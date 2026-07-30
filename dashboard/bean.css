@@ -2126,279 +2126,357 @@ input[type='search'] {
 }
 
 /* ---------- 13. Overview ---------- */
-.overview-desk {
-  display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(280px, 1fr);
-  gap: 1.2rem;
-  align-items: stretch;
-}
-
-.overview-lead {
+/* ---------- Overview: the cozy room ----------
+   Welcome band, glance tiles, then activity (lead) beside a calm system column. */
+.cozy-welcome {
   position: relative;
   overflow: hidden;
-  border-radius: var(--r-xl);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: clamp(1rem, 3vw, 2rem);
+  align-items: center;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
   border: 1px solid var(--line);
+  border-radius: var(--r-xl);
   background:
-    radial-gradient(720px 300px at 85% -20%, rgba(143, 161, 190, 0.16), transparent 60%),
-    radial-gradient(420px 260px at -5% 110%, rgba(220, 176, 120, 0.08), transparent 55%),
+    radial-gradient(680px 320px at 88% -30%, rgba(220, 176, 120, 0.13), transparent 62%),
+    radial-gradient(520px 300px at -8% 125%, rgba(143, 161, 190, 0.12), transparent 58%),
     var(--panel);
-  padding: clamp(1.5rem, 3vw, 2.4rem);
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
   box-shadow: var(--shadow-md);
 }
 
-.overview-lead-meta {
+.cozy-welcome-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+  min-width: 0;
+}
+
+.cozy-welcome-meta {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-  font-size: 0.76rem;
+  gap: 0.6rem;
+  margin: 0;
+  font-size: 0.74rem;
   font-weight: 700;
   color: var(--text-faint);
-  letter-spacing: 0.05em;
 }
 
-.overview-lead-meta span {
+.cozy-meta-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.55;
+}
+
+.cozy-welcome-open {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.4rem;
+  color: var(--lamp);
 }
 
-.overview-lead-meta i {
-  font-size: 0.42rem;
-  color: var(--sage);
+.cozy-welcome h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.65rem, 3.2vw, 2.4rem);
+  font-weight: 560;
+  line-height: 1.14;
+  letter-spacing: -0.022em;
 }
 
-.overview-lead-copy h1 span {
-  font-weight: 480;
-  color: var(--bean-bright);
+.cozy-welcome h1 span {
+  display: block;
+  color: var(--text-faint);
 }
 
-.overview-lead-copy > p:last-child {
-  margin-top: 0.75rem;
+.cozy-welcome-lead {
+  margin: 0;
+  max-width: 48ch;
   color: var(--text-soft);
-  max-width: 46ch;
+  font-size: 0.93rem;
+  line-height: 1.62;
 }
 
-.overview-primary-actions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+.cozy-welcome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-top: 0.15rem;
+}
+
+.cozy-welcome-actions button {
+  flex: 1 1 236px;
+  display: flex;
+  align-items: center;
   gap: 0.8rem;
-}
-
-.overview-primary-actions button {
-  justify-content: flex-start;
-  gap: 0.9rem;
-  padding: 1rem 1.15rem;
+  padding: 0.8rem 0.95rem;
   border-radius: var(--r-lg);
-  background: var(--raised);
   border: 1px solid var(--line);
-  box-shadow: none;
+  background: var(--raised);
+  box-shadow: var(--shadow-sm);
   color: var(--text);
   text-align: left;
-  transition: border-color var(--t-fast), background-color var(--t-fast), transform var(--t-fast);
+  transition:
+    border-color var(--t-fast),
+    transform var(--t-fast),
+    background var(--t-fast);
 }
 
-.overview-primary-actions button:hover {
-  border-color: rgba(143, 161, 190, 0.45);
-  background: #222835;
-  filter: none;
+.cozy-welcome-actions button:hover {
+  border-color: var(--bean-dim);
+  background: #212736;
   transform: translateY(-2px);
 }
 
-.overview-primary-actions button > span:first-child {
-  width: 44px;
-  height: 44px;
-  border-radius: 15px;
+.cozy-action-icon {
+  flex: none;
   display: grid;
   place-items: center;
-  background: var(--bean-soft);
-  color: var(--bean-bright);
-  font-size: 1rem;
-  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  color: var(--lamp);
+  background: var(--lamp-soft);
+  font-size: 0.9rem;
 }
 
-.overview-primary-actions button > span:nth-child(2) {
+.cozy-welcome-actions button:nth-child(2) .cozy-action-icon {
+  color: var(--bean-bright);
+  background: var(--bean-soft);
+}
+
+.cozy-action-copy {
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: 0.08rem;
+  min-width: 0;
+}
+
+.cozy-action-copy small {
+  font-size: 0.69rem;
+  font-weight: 700;
+  color: var(--text-faint);
+}
+
+.cozy-action-copy strong {
+  font-family: var(--font-display);
+  font-size: 0.97rem;
+  font-weight: 560;
+}
+
+.cozy-action-arrow {
+  margin-left: auto;
+  color: var(--text-faint);
+  font-size: 0.76rem;
+  transition:
+    transform var(--t-fast),
+    color var(--t-fast);
+}
+
+.cozy-welcome-actions button:hover .cozy-action-arrow {
+  color: var(--bean-bright);
+  transform: translateX(3px);
+}
+
+/* Lamplight behind the bean */
+.cozy-welcome-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: clamp(116px, 13vw, 158px);
+  aspect-ratio: 1;
+}
+
+.cozy-lamp {
+  position: absolute;
+  inset: 6%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(220, 176, 120, 0.32), rgba(220, 176, 120, 0.07) 58%, transparent 72%);
+  filter: blur(7px);
+}
+
+.cozy-welcome-art img {
+  position: relative;
+  width: 66%;
+  height: 66%;
+  object-fit: contain;
+  opacity: 0.96;
+}
+
+/* Glance tiles */
+.cozy-glance {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(196px, 1fr));
+  gap: 0.9rem;
+}
+
+.cozy-tile {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--panel);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color var(--t-fast),
+    transform var(--t-fast);
+}
+
+.cozy-tile:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-2px);
+}
+
+.cozy-tile-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  color: var(--bean-bright);
+  background: var(--bean-soft);
+  font-size: 0.88rem;
+}
+
+.cozy-tile > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.08rem;
+  min-width: 0;
+}
+
+.cozy-tile small {
+  font-size: 0.69rem;
+  font-weight: 700;
+  color: var(--text-faint);
+}
+
+.cozy-tile strong {
+  font-family: var(--font-display);
+  font-size: 0.97rem;
+  font-weight: 620;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Activity leads, system sits quietly beside it */
+.cozy-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
+  gap: 1.2rem;
+  align-items: start;
+}
+
+.cozy-side {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  min-width: 0;
+}
+
+.cozy-health-rows {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.1rem;
+}
+
+.cozy-health-rows > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.62rem 0;
+  font-size: 0.85rem;
+}
+
+.cozy-health-rows > div + div {
+  border-top: 1px solid var(--line);
+}
+
+.cozy-health-rows span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--text-soft);
+}
+
+.cozy-health-rows span i {
+  width: 1rem;
+  color: var(--text-faint);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.cozy-health-rows strong {
+  font-variant-numeric: tabular-nums;
+  font-weight: 640;
+}
+
+.cozy-health-block + .cozy-health-block {
+  margin-top: 1.1rem;
+}
+
+/* Quiet corners */
+.cozy-corner-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.cozy-corner-links button {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.68rem 0.8rem;
+  border-radius: var(--r-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-soft);
+  text-align: left;
+  font-size: 0.88rem;
+  transition:
+    background var(--t-fast),
+    border-color var(--t-fast),
+    color var(--t-fast);
+}
+
+.cozy-corner-links button:hover {
+  border-color: var(--line);
+  background: var(--bean-softer);
+  color: var(--text);
+}
+
+.cozy-corner-links button > i:first-child {
+  width: 1.1rem;
+  color: var(--text-faint);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.cozy-corner-links button span {
   flex: 1;
   min-width: 0;
 }
 
-.overview-primary-actions button small {
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+.cozy-corner-links button > i:last-child {
   color: var(--text-faint);
-}
-
-.overview-primary-actions button strong {
-  font-family: var(--font-display);
-  font-size: 1.06rem;
-  font-weight: 560;
-}
-
-.overview-primary-actions button > i {
-  color: var(--text-faint);
-  transition: transform var(--t-fast), color var(--t-fast);
-}
-
-.overview-primary-actions button:hover > i {
-  transform: translateX(4px);
-  color: var(--bean-bright);
-}
-
-.overview-quiet-links {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.overview-quiet-links button {
-  background: transparent;
-  border: 1px dashed var(--line-strong);
-  box-shadow: none;
-  color: var(--text-faint);
-  font-size: 0.8rem;
-  min-height: 38px;
-  padding: 0.35rem 1rem;
-}
-
-.overview-quiet-links button:hover {
-  color: var(--bean-bright);
-  border-color: rgba(143, 161, 190, 0.5);
-  border-style: solid;
-  filter: none;
-}
-
-.overview-pulse {
-  border-radius: var(--r-xl);
-  border: 1px solid var(--line);
-  background: linear-gradient(178deg, rgba(255, 255, 255, 0.015), transparent 35%), var(--panel);
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.1rem;
-  box-shadow: var(--shadow-sm);
-}
-
-.overview-pulse-head {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-}
-
-.overview-pulse-head h2 {
-  font-size: 1.15rem;
-}
-
-.overview-bean-mark {
-  width: 46px;
-  height: 46px;
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid var(--line-strong);
-  flex: none;
-  background: var(--raised);
-}
-
-.overview-bean-mark img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.overview-pulse-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.overview-pulse-list > div {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  padding: 0.8rem 0.2rem;
-}
-
-.overview-pulse-list > div + div {
-  border-top: 1px dashed var(--line);
-}
-
-.overview-pulse-list span {
-  width: 38px;
-  height: 38px;
-  border-radius: 13px;
-  display: grid;
-  place-items: center;
-  background: var(--bean-softer);
-  color: var(--bean);
-  font-size: 0.85rem;
-  flex: none;
-}
-
-.overview-pulse-list p {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.overview-pulse-list small {
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-}
-
-.overview-pulse-list strong {
-  font-size: 0.95rem;
-}
-
-.overview-member-link {
-  margin-top: auto;
-  justify-content: space-between;
-  width: 100%;
-  padding: 0.95rem 1.1rem;
-  border-radius: var(--r-lg);
-  background: var(--bean-softer);
-  border: 1px solid rgba(143, 161, 190, 0.25);
-  box-shadow: none;
-  color: var(--text);
-  text-align: left;
-}
-
-.overview-member-link:hover {
-  background: var(--bean-soft);
-  filter: none;
-}
-
-.overview-member-link span {
-  display: flex;
-  flex-direction: column;
-  gap: 0.05rem;
-}
-
-.overview-member-link small {
   font-size: 0.7rem;
-  color: var(--text-faint);
-  font-weight: 700;
+  opacity: 0;
+  transition:
+    opacity var(--t-fast),
+    transform var(--t-fast);
 }
 
-.overview-member-link strong {
-  font-family: var(--font-display);
-  font-weight: 560;
-  font-size: 0.98rem;
-}
-
-.overview-insight-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-  gap: 1.2rem;
-  align-items: start;
+.cozy-corner-links button:hover > i:last-child {
+  opacity: 1;
+  transform: translateX(2px);
 }
 
 /* Health */
@@ -7116,7 +7194,7 @@ button.is-feature-disabled {
 
 /* ---------- 31. Responsive ---------- */
 @media (max-width: 1280px) {
-  .overview-insight-grid,
+  .cozy-main,
   .analytics-grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -7223,7 +7301,11 @@ button.is-feature-disabled {
     box-shadow: none;
   }
 
-  .overview-desk,
+  .cozy-welcome-art {
+    justify-self: center;
+  }
+
+  .cozy-welcome,
   .member-search-hero,
   .member-profile-workspace,
   .case-workspace {

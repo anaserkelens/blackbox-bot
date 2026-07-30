@@ -247,123 +247,55 @@
           </div>
           <div class="dashboard-content">
             <section class="tab-panel" data-panel="overview">
-          <section class="overview-desk" aria-labelledby="room-heading">
-            <article class="overview-lead">
-              <div class="overview-lead-meta">
+          <section class="cozy-welcome" aria-labelledby="room-heading">
+            <div class="cozy-welcome-copy">
+              <p class="cozy-welcome-meta">
                 <span id="journal-date">Today</span>
-                <span><i class="fa-solid fa-circle" aria-hidden="true"></i> Room online</span>
-              </div>
-
-              <div class="overview-lead-copy">
-                <p class="eyebrow">Your evening desk</p>
-                <h1 id="room-heading">Welcome back.<br /><span>The room is ready.</span></h1>
-                <p>Start with what matters, or take a quiet look around. Bean has everything else close by.</p>
-              </div>
-
-              <div class="overview-primary-actions">
+                <span class="cozy-meta-dot" aria-hidden="true"></span>
+                <span class="cozy-welcome-open"><i class="fa-solid fa-mug-hot" aria-hidden="true"></i> The room is open</span>
+              </p>
+              <h1 id="room-heading">Welcome back.<span>Everything is calm.</span></h1>
+              <p class="cozy-welcome-lead">Bean has been keeping an eye on things while you were away. Pick something up, or just have a quiet look around.</p>
+              <div class="cozy-welcome-actions">
                 <button type="button" data-tab-link="messages">
-                  <span><i class="fa-solid fa-pen-nib" aria-hidden="true"></i></span>
-                  <span><small>Start here</small><strong>Write a message</strong></span>
-                  <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                  <span class="cozy-action-icon"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i></span>
+                  <span class="cozy-action-copy"><small>Start here</small><strong>Write a message</strong></span>
+                  <i class="fa-solid fa-arrow-right cozy-action-arrow" aria-hidden="true"></i>
                 </button>
                 <button type="button" data-create-launcher>
-                  <span><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i></span>
-                  <span><small>Choose a format</small><strong>Create something</strong></span>
-                  <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                  <span class="cozy-action-icon"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i></span>
+                  <span class="cozy-action-copy"><small>Choose a format</small><strong>Create something</strong></span>
+                  <i class="fa-solid fa-arrow-right cozy-action-arrow" aria-hidden="true"></i>
                 </button>
               </div>
-
-              <nav class="overview-quiet-links" aria-label="Useful rooms">
-                <button type="button" data-tab-link="members"><i class="fa-solid fa-address-card" aria-hidden="true"></i> Members</button>
-                <button type="button" data-tab-link="cases"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Moderation</button>
-                <button type="button" data-tab-link="voice-rooms"><i class="fa-solid fa-headphones" aria-hidden="true"></i> Voice rooms</button>
-              </nav>
-            </article>
-
-            <aside class="overview-pulse">
-              <header class="overview-pulse-head">
-                <span class="overview-bean-mark"><img src="/assets/bean-icon.png" alt="" /></span>
-                <div>
-                  <p class="eyebrow">Room pulse</p>
-                  <h2>Quiet and ready.</h2>
-                </div>
-              </header>
-
-              <div class="overview-pulse-list">
-                <div>
-                  <span><i class="fa-solid fa-robot" aria-hidden="true"></i></span>
-                  <p><small>Bean</small><strong id="overview-bot-status">Checking</strong></p>
-                </div>
-                <div>
-                  <span><i class="fa-solid fa-people-group" aria-hidden="true"></i></span>
-                  <p><small>Community</small><strong data-guild-name>UNDR CTRL</strong></p>
-                </div>
-                <div>
-                  <span><i class="fa-solid fa-folder-open" aria-hidden="true"></i></span>
-                  <p><small>Open cases</small><strong id="overview-open-cases">Checking</strong></p>
-                </div>
-              </div>
-
-              <button class="overview-member-link" type="button" data-tab-link="members">
-                <span><small>Need some context?</small><strong>Find a community member</strong></span>
-                <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-              </button>
-            </aside>
+            </div>
+            <div class="cozy-welcome-art" aria-hidden="true">
+              <span class="cozy-lamp"></span>
+              <img src="/assets/bean-icon.png" alt="" />
+            </div>
           </section>
 
-          <section class="overview-insight-grid">
-            <section class="dashboard-panel health-panel">
-              <div class="section-heading">
-                <div>
-                  <p class="eyebrow">System</p>
-                  <h2>Bean health</h2>
-                </div>
-                <div class="toolbar-actions">
-                  <span id="health-status" class="status-pill">Checking health</span>
-                  <button id="refresh-health" class="secondary icon-button" type="button" aria-label="Refresh bot health" title="Refresh bot health">
-                    <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
-                  </button>
-                </div>
-              </div>
+          <section class="cozy-glance" aria-label="At a glance">
+            <article class="cozy-tile">
+              <span class="cozy-tile-icon"><i class="fa-solid fa-mug-hot" aria-hidden="true"></i></span>
+              <div><small>Bean</small><strong id="overview-bot-status">Checking</strong></div>
+            </article>
+            <article class="cozy-tile">
+              <span class="cozy-tile-icon"><i class="fa-solid fa-people-group" aria-hidden="true"></i></span>
+              <div><small>Community</small><strong data-guild-name>UNDR CTRL</strong></div>
+            </article>
+            <article class="cozy-tile">
+              <span class="cozy-tile-icon"><i class="fa-solid fa-folder-open" aria-hidden="true"></i></span>
+              <div><small>Open cases</small><strong id="overview-open-cases">Checking</strong></div>
+            </article>
+            <article class="cozy-tile">
+              <span class="cozy-tile-icon"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i></span>
+              <div><small>Uptime</small><strong id="health-uptime">—</strong></div>
+            </article>
+          </section>
 
-              <div class="health-metric-grid">
-                <article class="health-metric">
-                  <span><i class="fa-solid fa-train" aria-hidden="true"></i></span>
-                  <div><small>Railway uptime</small><strong id="health-uptime">—</strong></div>
-                </article>
-                <article class="health-metric">
-                  <span><i class="fa-brands fa-discord" aria-hidden="true"></i></span>
-                  <div><small>Discord latency</small><strong id="health-latency">—</strong></div>
-                </article>
-                <article class="health-metric">
-                  <span><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i></span>
-                  <div><small>Dashboard API</small><strong id="health-api">—</strong></div>
-                </article>
-                <article class="health-metric">
-                  <span><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span>
-                  <div><small>Recent errors</small><strong id="health-error-count">0</strong></div>
-                </article>
-              </div>
-
-              <div class="health-details-grid">
-                <div>
-                  <div class="mini-heading">
-                    <strong>Storage</strong>
-                    <span id="health-storage-summary" class="muted">Checking</span>
-                  </div>
-                  <div id="health-storage-list" class="health-storage-list"></div>
-                </div>
-                <div>
-                  <div class="mini-heading">
-                    <strong>Recent errors</strong>
-                    <span class="muted">Since this deployment started</span>
-                  </div>
-                  <div id="health-error-list" class="health-error-list"></div>
-                </div>
-              </div>
-            </section>
-
-            <section class="dashboard-panel activity-panel">
+          <div class="cozy-main">
+            <section class="dashboard-panel cozy-activity">
               <div class="section-heading">
                 <div>
                   <p class="eyebrow">Community</p>
@@ -385,7 +317,86 @@
               </div>
               <div id="activity-feed" class="activity-feed"></div>
             </section>
-          </section>
+
+            <div class="cozy-side">
+              <section class="dashboard-panel cozy-health">
+                <div class="section-heading">
+                  <div>
+                    <p class="eyebrow">System</p>
+                    <h2>Bean health</h2>
+                  </div>
+                  <div class="toolbar-actions">
+                    <span id="health-status" class="status-pill">Checking health</span>
+                    <button id="refresh-health" class="secondary icon-button" type="button" aria-label="Refresh bot health" title="Refresh bot health">
+                      <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="cozy-health-rows">
+                  <div>
+                    <span><i class="fa-brands fa-discord" aria-hidden="true"></i> Discord latency</span>
+                    <strong id="health-latency">—</strong>
+                  </div>
+                  <div>
+                    <span><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i> Dashboard API</span>
+                    <strong id="health-api">—</strong>
+                  </div>
+                  <div>
+                    <span><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Recent errors</span>
+                    <strong id="health-error-count">0</strong>
+                  </div>
+                </div>
+
+                <div class="cozy-health-block">
+                  <div class="mini-heading">
+                    <strong>Storage</strong>
+                    <span id="health-storage-summary" class="muted">Checking</span>
+                  </div>
+                  <div id="health-storage-list" class="health-storage-list"></div>
+                </div>
+
+                <div class="cozy-health-block">
+                  <div class="mini-heading">
+                    <strong>Recent errors</strong>
+                    <span class="muted">This deployment</span>
+                  </div>
+                  <div id="health-error-list" class="health-error-list"></div>
+                </div>
+              </section>
+
+              <section class="dashboard-panel cozy-corners">
+                <div class="section-heading">
+                  <div>
+                    <p class="eyebrow">Quiet corners</p>
+                    <h2>Where to next</h2>
+                  </div>
+                </div>
+                <nav class="cozy-corner-links" aria-label="Shortcuts">
+                  <button type="button" data-tab-link="members">
+                    <i class="fa-solid fa-address-card" aria-hidden="true"></i>
+                    <span>Members</span>
+                    <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                  </button>
+                  <button type="button" data-tab-link="cases">
+                    <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                    <span>Moderation</span>
+                    <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                  </button>
+                  <button type="button" data-tab-link="mailbox">
+                    <i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i>
+                    <span>Mailbox</span>
+                    <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                  </button>
+                  <button type="button" data-tab-link="voice-rooms">
+                    <i class="fa-solid fa-headphones" aria-hidden="true"></i>
+                    <span>Voice rooms</span>
+                    <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                  </button>
+                </nav>
+              </section>
+            </div>
+          </div>
         </section>
 
         <section class="tab-panel" data-panel="mailbox" hidden>
