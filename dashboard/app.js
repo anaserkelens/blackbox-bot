@@ -4460,14 +4460,57 @@ function renderHealthErrors(errors) {
     const title = document.createElement('strong');
     const message = document.createElement('p');
     const time = document.createElement('p');
+    const hint = getErrorRemedy(error.message);
 
     item.className = 'health-error-item';
     title.textContent = error.source;
     message.textContent = error.message;
     time.textContent = formatDashboardCaseDateTime(error.createdAt);
     item.append(title, message, time);
+
+    if (hint) {
+      const remedy = document.createElement('p');
+
+      remedy.className = 'health-error-remedy';
+      remedy.innerHTML = `<i class="fa-solid fa-lightbulb" aria-hidden="true"></i><span>${escapeHtml(hint)}</span>`;
+      item.append(remedy);
+    }
+
     healthErrorList.append(item);
   }
+}
+
+// A raw stack line tells you what broke, never what to do about it. These cover the failures
+// that actually recur here; anything unmatched simply shows no hint rather than a guess.
+const errorRemedies = [
+  {
+    test: /YouTube feed request failed with HTTP 404/i,
+    hint: 'That YouTube channel ID does not exist. Set YOUTUBE_CHANNEL_ID to the real UC… id, or turn the monitor off with YOUTUBE_UPLOAD_MONITOR_ENABLED=false. Until then this repeats every poll.',
+  },
+  {
+    test: /YouTube feed request failed with HTTP 5\d\d/i,
+    hint: 'YouTube had a server-side blip. This one clears itself on the next poll — no action needed unless it keeps up.',
+  },
+  {
+    test: /YouTube channel ID is missing or invalid/i,
+    hint: 'YOUTUBE_CHANNEL_ID must look like UC followed by 22 characters. Copy it from the channel\'s About page, not the @handle.',
+  },
+  {
+    test: /Missing (Access|Permissions)|Missing Permissions/i,
+    hint: 'Bean lacks a permission in that channel. Check its role has View Channel, Send Messages, and Embed Links there.',
+  },
+  {
+    test: /Unknown Channel/i,
+    hint: 'The configured channel was deleted or Bean cannot see it. Re-pick the channel in Settings.',
+  },
+  {
+    test: /rate limit|429/i,
+    hint: 'Discord rate-limited Bean. It backs off on its own; if it persists, widen the poll interval.',
+  },
+];
+
+function getErrorRemedy(message) {
+  return errorRemedies.find((remedy) => remedy.test.test(String(message || '')))?.hint || '';
 }
 
 function formatHealthUptime(seconds) {
@@ -5808,6 +5851,10 @@ function showDashboardNotification(notification) {
   open.addEventListener('click', () => {
     setActiveTab(notification.tab || 'overview');
     dismissToast(toast);
+
+    if (notification.type === 'error') {
+      revealHealthErrors();
+    }
   });
   close.type = 'button';
   close.className = 'toast-close';
@@ -5869,6 +5916,22 @@ function handleNotificationCenterClick(event) {
   renderNotificationCenter();
   setActiveTab(notification.tab || 'overview');
   closeNotificationCenter();
+
+  // Errors live inside the collapsed health panel, so landing on the tab is not enough —
+  // open it and take the reader to the entry, otherwise the click looks like it did nothing.
+  if (notification.type === 'error') {
+    revealHealthErrors();
+  }
+}
+
+function revealHealthErrors() {
+  // Opening <details> exposes the list to layout immediately, so the scroll can follow
+  // straight away — no rAF, which would never fire if the tab were backgrounded.
+  overviewHealth.open = true;
+  overviewHealth.dataset.alerted = 'true';
+  healthErrorList.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  healthErrorList.classList.add('is-flagged');
+  window.setTimeout(() => healthErrorList.classList.remove('is-flagged'), 1800);
 }
 
 function markAllNotificationsRead() {
