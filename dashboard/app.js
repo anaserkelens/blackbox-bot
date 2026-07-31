@@ -26,6 +26,9 @@ const overviewScheduledPosts = document.querySelector('#overview-scheduled-posts
 const overviewNewMembers = document.querySelector('#overview-new-members');
 const overviewStateLine = document.querySelector('#overview-state-line');
 const overviewHealth = document.querySelector('#overview-health');
+const overviewJoinsList = document.querySelector('#ov-joins-list');
+const overviewJoinsCount = document.querySelector('#ov-joins-count');
+const overviewPulse = document.querySelector('#ov-pulse');
 const healthStatus = document.querySelector('#health-status');
 const refreshHealthButton = document.querySelector('#refresh-health');
 const healthUptime = document.querySelector('#health-uptime');
@@ -574,6 +577,7 @@ const state = {
   activityStorage: null,
   activitySummary: null,
   activityType: '',
+  recentJoins: [],
   // Loaders resolve in whatever order the network returns them; without this an empty
   // array reads as a confident "0 open cases" before the real count has arrived.
   overviewLoaded: { cases: false, scheduled: false },
@@ -4485,7 +4489,15 @@ async function loadActivityFeed(showNotification = false) {
   state.activityItems = Array.isArray(result.items) ? result.items : [];
   state.activityStorage = result.storage || null;
   state.activitySummary = result.summary || null;
+
+  // The feed narrows when a filter is on; the rail should keep showing arrivals regardless,
+  // so it only refreshes from responses that actually contain join events.
+  if (!state.activityType || state.activityType === 'join') {
+    state.recentJoins = state.activityItems.filter((item) => item.type === 'join').slice(0, 8);
+  }
+
   renderActivityFeed();
+  renderOverviewRail();
   renderOverviewSummary();
 
   if (showNotification) {
@@ -4513,21 +4525,97 @@ function renderActivityFeed() {
     const item = document.createElement('article');
     const icon = document.createElement('span');
     const copy = document.createElement('div');
+    const head = document.createElement('div');
     const title = document.createElement('strong');
     const summary = document.createElement('p');
     const time = document.createElement('time');
 
-    item.className = 'activity-item';
+    item.className = `activity-item ${activity.type}`;
     icon.className = `activity-icon ${activity.type}`;
     icon.innerHTML = `<i class="fa-solid ${getActivityIcon(activity.type)}" aria-hidden="true"></i>`;
     copy.className = 'activity-copy';
+    head.className = 'activity-head';
     title.textContent = activity.title;
     summary.textContent = activity.summary || activity.details?.[0] || 'Bean recorded this action.';
     time.dateTime = activity.createdAt;
     time.textContent = formatDashboardCaseDateTime(activity.createdAt);
-    copy.append(title, summary, time);
+    head.append(title, time);
+    copy.append(head, summary);
     item.append(icon, copy);
     activityFeed.append(item);
+  }
+}
+
+// The rail reads the feed that is already loaded rather than asking the server for more:
+// recent joins come from the join events, the pulse from the 7-day summary.
+function renderOverviewRail() {
+  if (!overviewJoinsList) {
+    return;
+  }
+
+  const joins = state.recentJoins;
+
+  overviewJoinsCount.textContent = String(joins.length);
+  overviewJoinsList.replaceChildren();
+
+  if (joins.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'ov-rail-empty';
+    empty.textContent = 'No one new has arrived yet.';
+    overviewJoinsList.append(empty);
+  }
+
+  joins.forEach((join, index) => {
+    const row = document.createElement('div');
+    const avatar = document.createElement('span');
+    const copy = document.createElement('span');
+    const name = document.createElement('strong');
+    const when = document.createElement('span');
+    const label = join.memberName || join.title || 'Someone';
+
+    row.className = 'ov-person';
+    avatar.className = `ov-avatar tone-${(index % 4) + 1}`;
+    avatar.textContent = [...label][0] || '?';
+    copy.className = 'ov-person-copy';
+    name.textContent = label;
+    when.textContent = formatDashboardCaseDateTime(join.createdAt);
+    copy.append(name, when);
+    row.append(avatar, copy);
+    overviewJoinsList.append(row);
+  });
+
+  renderOverviewPulse();
+}
+
+function renderOverviewPulse() {
+  const summary = state.activitySummary;
+
+  overviewPulse.replaceChildren();
+
+  if (!summary) {
+    return;
+  }
+
+  const rows = [
+    { key: 'join', label: 'Members joined' },
+    { key: 'moderation', label: 'Cases opened' },
+    { key: 'mailbox', label: 'Mailbox posts' },
+    { key: 'voice', label: 'Voice sessions' },
+  ];
+  // Bars are relative to the busiest row, so the shape stays readable at any scale.
+  const peak = Math.max(1, ...rows.map((row) => summary[row.key] || 0));
+
+  for (const { key, label } of rows) {
+    const value = summary[key] || 0;
+    const row = document.createElement('div');
+
+    row.className = `ov-pulse-row ${key}`;
+    row.innerHTML = `
+      <span>${label}</span>
+      <strong>${value.toLocaleString()}</strong>
+      <span class="ov-pulse-bar"><i style="width: ${Math.round((value / peak) * 100)}%"></i></span>
+    `;
+    overviewPulse.append(row);
   }
 }
 
@@ -5675,10 +5763,15 @@ async function pollDashboardNotifications() {
       continue;
     }
 
+    // A stuck source repeats every poll; toast the first occurrence only, the inbox keeps the rest.
+    const isRepeat = state.notifications.some(
+      (item) => getNotificationKey(item) === getNotificationKey(notification),
+    );
+
     state.seenNotifications.add(notification.id);
     state.notifications.unshift(notification);
 
-    if (!state.notificationInitialLoad) {
+    if (!state.notificationInitialLoad && !isRepeat) {
       showDashboardNotification(notification);
     }
   }
@@ -5767,7 +5860,11 @@ function handleNotificationCenterClick(event) {
     return;
   }
 
-  state.readNotifications.add(notification.id);
+  // Reading a collapsed row clears every repeat behind it, not just the newest.
+  for (const id of (action.dataset.notificationIds || notification.id).split(' ')) {
+    state.readNotifications.add(id);
+  }
+
   persistNotificationCenter();
   renderNotificationCenter();
   setActiveTab(notification.tab || 'overview');
@@ -5780,12 +5877,46 @@ function markAllNotificationsRead() {
   renderNotificationCenter();
 }
 
+// A stuck error source (a dead YouTube feed, a failing webhook) re-reports on every poll, so
+// the inbox fills with the same line dozens of times. Identical notifications collapse into
+// one row carrying a repeat count and the most recent timestamp.
+function getNotificationKey(notification) {
+  return `${notification.type || 'info'}|${notification.title}|${notification.message}`;
+}
+
+function groupNotifications(notifications) {
+  const groups = new Map();
+
+  for (const notification of notifications) {
+    const key = getNotificationKey(notification);
+    const existing = groups.get(key);
+
+    if (existing) {
+      existing.count += 1;
+      existing.ids.push(notification.id);
+      existing.firstAt = notification.createdAt;
+    } else {
+      groups.set(key, {
+        ...notification,
+        count: 1,
+        ids: [notification.id],
+        firstAt: notification.createdAt,
+      });
+    }
+  }
+
+  return [...groups.values()];
+}
+
 function renderNotificationCenter() {
   if (!notificationCenterList) {
     return;
   }
 
-  const unread = state.notifications.filter((item) => !state.readNotifications.has(item.id));
+  // Counted by group, so the badge matches the number of rows actually shown.
+  const groups = groupNotifications(state.notifications);
+  const unread = groups.filter((group) => group.ids.some((id) => !state.readNotifications.has(id)));
+
   notificationBadge.hidden = unread.length === 0;
   notificationBadge.textContent = unread.length > 99 ? '99+' : String(unread.length);
   notificationCenterSummary.textContent = unread.length
@@ -5805,19 +5936,26 @@ function renderNotificationCenter() {
     return;
   }
 
-  for (const notification of state.notifications) {
+  for (const group of groups) {
     const button = document.createElement('button');
-    const unreadClass = state.readNotifications.has(notification.id) ? '' : ' unread';
+    const isUnread = group.ids.some((id) => !state.readNotifications.has(id));
+    const repeat = group.count > 1
+      ? `<span class="notification-repeat">×${group.count}</span>`
+      : '';
+    const meta = group.count > 1
+      ? `Latest ${formatDateTime(group.createdAt)} · since ${formatDateTime(group.firstAt)}`
+      : formatDateTime(group.createdAt);
 
     button.type = 'button';
-    button.className = `notification-center-item ${notification.type || 'info'}${unreadClass}`;
-    button.dataset.notificationId = notification.id;
+    button.className = `notification-center-item ${group.type || 'info'}${isUnread ? ' unread' : ''}`;
+    button.dataset.notificationId = group.id;
+    button.dataset.notificationIds = group.ids.join(' ');
     button.innerHTML = `
-      <span class="notification-center-icon"><i class="fa-solid ${getNotificationIcon(notification.type)}" aria-hidden="true"></i></span>
+      <span class="notification-center-icon"><i class="fa-solid ${getNotificationIcon(group.type)}" aria-hidden="true"></i></span>
       <span class="notification-center-copy">
-        <strong>${escapeHtml(notification.title)}</strong>
-        <span>${escapeHtml(notification.message)}</span>
-        <small>${escapeHtml(formatDateTime(notification.createdAt))}</small>
+        <strong>${escapeHtml(group.title)}${repeat}</strong>
+        <span>${escapeHtml(group.message)}</span>
+        <small>${escapeHtml(meta)}</small>
       </span>
       <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
     `;

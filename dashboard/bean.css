@@ -2126,25 +2126,27 @@ input[type='search'] {
 }
 
 /* ---------- 13. Overview ---------- */
-/* ---------- Overview: the cozy room ----------
-   Stacks on narrow screens; on wide ones the hero shares a row with the glance
-   tiles and the lower half opens into three columns, so nothing is left stranded. */
-.cozy-top {
+/* ---------- Overview: the server floor ----------
+   Discord's structure — a banner, embed cards with colored spines, a message-style
+   feed, and a member rail — rendered in Bean's dusk palette rather than blurple.
+   Three columns collapse to one; nothing is stranded at any width. */
+.overview-page {
   display: flex;
   flex-direction: column;
-  gap: 1.2rem;
+  gap: 1rem;
 }
 
-.cozy-welcome {
+/* --- Banner: Discord's channel header, given some depth --- */
+.ov-banner {
   position: relative;
   overflow: hidden;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: clamp(1rem, 3vw, 2rem);
   align-items: center;
-  padding: clamp(1.15rem, 2.2vw, 1.75rem);
+  padding: clamp(1.15rem, 2.2vw, 1.6rem) clamp(1.15rem, 2.2vw, 1.75rem);
   border: 1px solid var(--line);
-  border-radius: var(--r-xl);
+  border-radius: var(--r-lg);
   background:
     radial-gradient(680px 320px at 88% -30%, rgba(220, 176, 120, 0.13), transparent 62%),
     radial-gradient(520px 300px at -8% 125%, rgba(143, 161, 190, 0.12), transparent 58%),
@@ -2152,21 +2154,46 @@ input[type='search'] {
   box-shadow: var(--shadow-md);
 }
 
-.cozy-welcome-copy {
+/* Hairline of brand colour along the top, the way Discord banners bleed into the header. */
+.ov-banner::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--bean), var(--lamp), transparent);
+  opacity: 0.55;
+}
+
+.ov-banner-copy {
   display: flex;
   flex-direction: column;
-  gap: 0.95rem;
+  gap: 0.7rem;
   min-width: 0;
 }
 
-.cozy-welcome-meta {
+.ov-banner-meta {
   display: flex;
   align-items: center;
   gap: 0.6rem;
   margin: 0;
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--text-faint);
+}
+
+/* Discord's presence dot: a filled ring with a punched-out centre. */
+.ov-presence {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--sage);
+  box-shadow: 0 0 10px rgba(168, 199, 157, 0.55);
+}
+
+.cozy-welcome-open {
+  color: var(--lamp);
 }
 
 .cozy-meta-dot {
@@ -2177,125 +2204,7 @@ input[type='search'] {
   opacity: 0.55;
 }
 
-.cozy-welcome-open {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  color: var(--lamp);
-}
-
-.cozy-welcome h1 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(1.4rem, 2.5vw, 1.85rem);
-  font-weight: 560;
-  line-height: 1.14;
-  letter-spacing: -0.022em;
-}
-
-.cozy-welcome h1 span {
-  display: block;
-  color: var(--text-faint);
-}
-
-.cozy-welcome-lead {
-  margin: 0;
-  max-width: 48ch;
-  color: var(--text-soft);
-  font-size: 0.93rem;
-  line-height: 1.62;
-}
-
-.cozy-welcome-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.7rem;
-  margin-top: 0.15rem;
-}
-
-.cozy-welcome-actions button {
-  flex: 1 1 236px;
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  padding: 0.8rem 0.95rem;
-  border-radius: var(--r-lg);
-  border: 1px solid var(--line);
-  background: var(--raised);
-  box-shadow: var(--shadow-sm);
-  color: var(--text);
-  text-align: left;
-  transition:
-    border-color var(--t-fast),
-    transform var(--t-fast),
-    background var(--t-fast);
-}
-
-.cozy-welcome-actions button:hover {
-  border-color: var(--bean-dim);
-  background: #212736;
-  transform: translateY(-2px);
-}
-
-.cozy-action-icon {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  color: var(--lamp);
-  background: var(--lamp-soft);
-  font-size: 0.9rem;
-}
-
-.cozy-welcome-actions button:nth-child(2) .cozy-action-icon {
-  color: var(--bean-bright);
-  background: var(--bean-soft);
-}
-
-.cozy-action-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 0.08rem;
-  min-width: 0;
-}
-
-.cozy-action-copy small {
-  font-size: 0.69rem;
-  font-weight: 700;
-  color: var(--text-faint);
-}
-
-.cozy-action-copy strong {
-  font-family: var(--font-display);
-  font-size: 0.97rem;
-  font-weight: 560;
-}
-
-.cozy-action-arrow {
-  margin-left: auto;
-  color: var(--text-faint);
-  font-size: 0.76rem;
-  transition:
-    transform var(--t-fast),
-    color var(--t-fast);
-}
-
-.cozy-welcome-actions button:hover .cozy-action-arrow {
-  color: var(--bean-bright);
-  transform: translateX(3px);
-}
-
-/* Lamplight behind the bean */
-.cozy-welcome-art {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: clamp(116px, 13vw, 158px);
-  aspect-ratio: 1;
-}
-
+/* Lamplight behind the bean. */
 .cozy-lamp {
   position: absolute;
   inset: 6%;
@@ -2304,7 +2213,46 @@ input[type='search'] {
   filter: blur(7px);
 }
 
-.cozy-welcome-art img {
+.ov-banner h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 2.5vw, 1.85rem);
+  font-weight: 560;
+  line-height: 1.14;
+  letter-spacing: -0.022em;
+}
+
+.ov-banner-lead {
+  margin: 0;
+  max-width: 52ch;
+  color: var(--text-soft);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.ov-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.2rem;
+}
+
+.ov-banner-actions button {
+  min-height: 38px;
+  padding: 0.4rem 1.05rem;
+  border-radius: var(--r-sm);
+  font-size: 0.83rem;
+}
+
+.ov-banner-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: clamp(96px, 11vw, 132px);
+  aspect-ratio: 1;
+}
+
+.ov-banner-art img {
   position: relative;
   width: 66%;
   height: 66%;
@@ -2312,89 +2260,264 @@ input[type='search'] {
   opacity: 0.96;
 }
 
-/* Glance tiles */
-.cozy-glance {
+/* --- Stat cards: Discord embeds, with the spine that makes them read as embeds --- */
+.ov-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(196px, 1fr));
-  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.75rem;
 }
 
-.cozy-tile {
-  display: flex;
+.ov-stat {
+  position: relative;
+  overflow: hidden;
+  /* Number parked in its own column so it never competes with the label for space and
+     can never be clipped by the card height, whatever width the track resolves to. */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'head value'
+    'foot value';
   align-items: center;
-  gap: 0.75rem;
-  width: 100%;
-  padding: 0.9rem 1rem;
+  column-gap: 1.25rem;
+  row-gap: 0.2rem;
+  min-height: 0;
+  padding: 0.9rem 1.15rem 0.9rem 1.3rem;
   border: 1px solid var(--line);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-md);
   background: var(--panel);
   box-shadow: var(--shadow-sm);
   text-align: left;
   cursor: pointer;
   transition:
     border-color var(--t-fast),
+    background var(--t-fast),
     transform var(--t-fast);
 }
 
-.cozy-tile:hover {
-  border-color: var(--bean-dim);
+.ov-stat:hover {
   transform: translateY(-2px);
+  border-color: var(--line-strong);
+  background: var(--raised);
+  filter: none;
 }
 
-.cozy-tile-arrow {
-  margin-left: auto;
+.ov-stat-spine {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 0 3px 3px 0;
+  background: var(--bean);
+}
+
+.ov-stat.cases .ov-stat-spine { background: var(--clay); }
+.ov-stat.mailbox .ov-stat-spine { background: var(--lamp); }
+.ov-stat.joins .ov-stat-spine { background: var(--sage); }
+
+.ov-stat-head {
+  grid-area: head;
+  align-self: end;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
   color: var(--text-faint);
-  font-size: 0.75rem;
-  transition:
-    color var(--t-fast),
-    transform var(--t-fast);
 }
 
-.cozy-tile:hover .cozy-tile-arrow {
-  color: var(--bean-bright);
-  transform: translateX(3px);
+.ov-stat.cases .ov-stat-head i { color: var(--clay); }
+.ov-stat.mailbox .ov-stat-head i { color: var(--lamp); }
+.ov-stat.joins .ov-stat-head i { color: var(--sage); }
+
+.ov-stat strong {
+  grid-area: value;
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 3.4vw, 2.6rem);
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  color: var(--text);
 }
 
-.cozy-tile-icon {
-  flex: none;
+.ov-stat-foot {
+  grid-area: foot;
+  align-self: start;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: var(--text-faint);
+}
+
+.ov-stat-foot i {
+  font-size: 0.66rem;
+  opacity: 0;
+  transform: translateX(-3px);
+  transition: opacity var(--t-fast), transform var(--t-fast);
+}
+
+.ov-stat:hover .ov-stat-foot {
+  color: var(--text-soft);
+}
+
+.ov-stat:hover .ov-stat-foot i {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* --- Main split: feed carries the page, rail keeps it company --- */
+.ov-main {
   display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  color: var(--bean-bright);
-  background: var(--bean-soft);
-  font-size: 0.88rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
 }
 
-.cozy-tile > div {
+.ov-rail {
   display: flex;
   flex-direction: column;
-  gap: 0.08rem;
+  gap: 1rem;
   min-width: 0;
 }
 
-.cozy-tile small {
-  font-size: 0.69rem;
+.ov-rail-panel {
+  padding: 1rem 1.1rem 1.1rem;
+}
+
+.ov-rail-heading {
+  margin: 0 0 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--text-faint);
 }
 
-.cozy-tile strong {
-  font-family: var(--font-display);
-  font-size: 1.45rem;
-  font-weight: 620;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.15;
-}
-
-/* Activity leads; health is a footnote below it */
-.cozy-main {
+/* --- People rows: avatar, name, meta. Discord's member list cadence. --- */
+.ov-people {
   display: flex;
   flex-direction: column;
-  gap: 1.2rem;
+  gap: 0.1rem;
 }
 
+.ov-person {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.4rem 0.5rem;
+  margin: 0 -0.5rem;
+  border-radius: var(--r-sm);
+  min-width: 0;
+  transition: background var(--t-fast);
+}
+
+.ov-person:hover {
+  background: var(--bean-softer);
+}
+
+.ov-avatar {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--bean-ink);
+  background: linear-gradient(150deg, var(--bean-bright), var(--bean-dim));
+  text-transform: uppercase;
+  user-select: none;
+}
+
+/* Rotate the avatar tint by index so a list of strangers still reads as individuals. */
+.ov-avatar.tone-1 { background: linear-gradient(150deg, #b6cbb0, var(--sage)); }
+.ov-avatar.tone-2 { background: linear-gradient(150deg, #e8b7a8, var(--clay)); }
+.ov-avatar.tone-3 { background: linear-gradient(150deg, #e6c795, var(--lamp)); }
+.ov-avatar.tone-4 { background: linear-gradient(150deg, var(--bean-bright), var(--bean-dim)); }
+
+.ov-person-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 0.05rem;
+}
+
+.ov-person-copy strong {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov-person-copy span {
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Pulse: this week's counts, as compact meter rows --- */
+.ov-pulse {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.ov-pulse-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.25rem 0.6rem;
+  align-items: baseline;
+  font-size: 0.79rem;
+}
+
+.ov-pulse-row span {
+  color: var(--text-soft);
+}
+
+.ov-pulse-row strong {
+  font-variant-numeric: tabular-nums;
+  font-weight: 640;
+  color: var(--text);
+}
+
+.ov-pulse-bar {
+  grid-column: 1 / -1;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--well);
+  overflow: hidden;
+}
+
+.ov-pulse-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--bean);
+  transition: width var(--t-med);
+}
+
+.ov-pulse-row.join .ov-pulse-bar i { background: var(--sage); }
+.ov-pulse-row.moderation .ov-pulse-bar i { background: var(--clay); }
+.ov-pulse-row.mailbox .ov-pulse-bar i { background: var(--lamp); }
+.ov-pulse-row.voice .ov-pulse-bar i { background: var(--bean); }
+
+.ov-rail-empty {
+  padding: 0.9rem 0;
+  color: var(--text-faint);
+  font-size: 0.8rem;
+}
+
+/* --- Health: collapsed until it matters --- */
 .cozy-health summary {
   display: flex;
   align-items: center;
@@ -2471,16 +2594,10 @@ input[type='search'] {
   margin-top: 1.1rem;
 }
 
-/* Wide screens: the hero shares a row with the tiles instead of stacking above them. */
-@media (min-width: 1500px) {
-  .cozy-top {
-    display: grid;
-    grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr);
-    align-items: stretch;
-  }
-
-  .cozy-glance {
-    align-content: start;
+/* The rail only earns its column once there is room for it beside the feed. */
+@media (min-width: 1280px) {
+  .ov-main {
+    grid-template-columns: minmax(0, 1fr) 306px;
   }
 }
 
@@ -2609,32 +2726,59 @@ input[type='search'] {
   color: var(--bean-bright);
 }
 
+/* Discord message cadence: avatar, then name and timestamp on one line, body beneath.
+   Rows bleed past the panel padding on hover, the way a chat line highlights full-width. */
 .activity-feed {
   display: flex;
   flex-direction: column;
-  max-height: 460px;
+  max-height: 520px;
   overflow-y: auto;
   padding-right: 0.3rem;
 }
 
 .activity-item {
-  display: flex;
-  gap: 0.85rem;
-  padding: 0.75rem 0.15rem;
   position: relative;
+  display: flex;
+  gap: 0.8rem;
+  padding: 0.5rem 0.6rem;
+  margin: 0 -0.6rem;
+  border-radius: var(--r-sm);
+  transition: background var(--t-fast);
 }
 
-.activity-item + .activity-item {
-  border-top: 1px dashed var(--line);
+.activity-item:hover {
+  background: var(--bean-softer);
 }
+
+/* Spine on hover only, so a quiet feed stays quiet. */
+.activity-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.35rem;
+  bottom: 0.35rem;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--bean);
+  opacity: 0;
+  transition: opacity var(--t-fast);
+}
+
+.activity-item:hover::before {
+  opacity: 0.75;
+}
+
+.activity-item.join:hover::before { background: var(--sage); }
+.activity-item.moderation:hover::before { background: var(--clay); }
+.activity-item.mailbox:hover::before { background: var(--lamp); }
 
 .activity-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
   display: grid;
   place-items: center;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   flex: none;
   background: var(--bean-softer);
   color: var(--bean);
@@ -2665,23 +2809,37 @@ input[type='search'] {
   flex-direction: column;
   gap: 0.1rem;
   min-width: 0;
+  flex: 1;
+}
+
+/* Title and time share a baseline, Discord-style, instead of stacking into a third line. */
+.activity-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-width: 0;
 }
 
 .activity-copy strong {
-  font-size: 0.88rem;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text);
 }
 
-.activity-copy span {
-  font-size: 0.8rem;
+.activity-copy p {
+  margin: 0;
+  font-size: 0.81rem;
+  line-height: 1.5;
   color: var(--text-soft);
 }
 
 .activity-copy time {
-  font-size: 0.7rem;
+  font-size: 0.69rem;
   color: var(--text-faint);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
-
 .activity-empty {
   padding: 1.4rem 0.5rem;
   text-align: center;
@@ -2858,6 +3016,18 @@ input[type='search'] {
   gap: 0.4rem;
 }
 
+/* Rows in a scrolling flex column inherit flex-shrink: 1, so once the list overflows every
+   row is squashed to its min-height and multi-line content spills over the row below it.
+   These lists scroll instead — nothing in them should ever compress. */
+.notification-center-list > *,
+.activity-feed > *,
+.case-list > *,
+.member-search-results > *,
+.member-history-list > *,
+.config-audit-list > * {
+  flex-shrink: 0;
+}
+
 .notification-center-item {
   width: 100%;
   justify-content: flex-start;
@@ -2929,12 +3099,33 @@ input[type='search'] {
 }
 
 .notification-center-copy strong {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
   font-size: 0.88rem;
   color: var(--text);
 }
 
-.notification-center-copy span {
+.notification-repeat {
+  flex: none;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.notification-center-item.error .notification-repeat {
+  background: var(--clay-soft);
+  border-color: transparent;
+  color: var(--clay);
+}
+
+.notification-center-copy > span {
   font-size: 0.8rem;
+  line-height: 1.45;
 }
 
 .notification-center-copy small {
@@ -7199,7 +7390,6 @@ button.is-feature-disabled {
 
 /* ---------- 31. Responsive ---------- */
 @media (max-width: 1280px) {
-  .cozy-main,
   .analytics-grid {
     grid-template-columns: minmax(0, 1fr);
   }
