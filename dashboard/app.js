@@ -4430,6 +4430,8 @@ function renderHealthStorage(stores) {
 
     item.className = 'health-storage-item';
     name.textContent = store.name;
+    // Cells ellipsis rather than wrap, so the full name stays reachable on hover.
+    name.title = store.name;
     stateBadge.className = `storage-state ${store.persistent ? 'persistent' : 'ephemeral'}`;
     stateBadge.textContent = store.available
       ? (store.persistent ? 'Persistent' : 'Temporary')

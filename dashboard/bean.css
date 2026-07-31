@@ -1791,6 +1791,13 @@ input[type='search'] {
     max-height: calc(100dvh - var(--topbar-h) - 1.1rem - var(--dashboard-pad-b));
   }
 
+  /* Expanded health is diagnostic reading, and it is taller than one screen once errors
+     and thirteen stores are listed. Release the cap so the page scrolls to it normally
+     rather than letting the panel spill outside the page box. */
+  .overview-page:has(#overview-health[open]) {
+    max-height: none;
+  }
+
   .dashboard::before {
     content: '';
     position: fixed;
@@ -2668,21 +2675,26 @@ input[type='search'] {
   margin-top: 1.1rem;
 }
 
+/* Fixed-width tracks rather than 1fr: stretched columns pushed each value hundreds of
+   pixels from its own label on a wide screen. */
 .ov-health-rows {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 0.2rem 1.5rem;
-  margin-bottom: 1.1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.4rem;
 }
 
 .ov-health-rows > div {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.8rem;
-  padding: 0.55rem 0;
+  gap: 1.5rem;
+  flex: 0 1 240px;
+  padding: 0.6rem 0.85rem;
   font-size: 14px;
-  border-bottom: 1px solid var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--well);
 }
 
 .ov-health-rows span {
@@ -2705,7 +2717,175 @@ input[type='search'] {
 }
 
 .ov-health-block + .ov-health-block {
-  margin-top: 1.1rem;
+  margin-top: 1.4rem;
+}
+
+.ov-health .mini-heading {
+  margin-bottom: 0.6rem;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.ov-health .mini-heading strong {
+  font-weight: 700;
+}
+
+.ov-health .mini-heading .muted {
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Storage: thirteen stores stacked in one column was a wall of ragged rows. A responsive
+   grid keeps each name and its badge paired inside a bounded cell. */
+.health-storage-list {
+  display: grid;
+  /* 260px fits the longest store name beside its badge without ellipsis. */
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.3rem;
+}
+
+.health-storage-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.45rem 0.7rem;
+  border-radius: var(--r-sm);
+  background: var(--well);
+  font-size: 13px;
+  color: var(--text-soft);
+}
+
+.health-storage-item > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.storage-state {
+  flex: none;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  background: var(--raised);
+  color: var(--text-faint);
+}
+
+.storage-state.persistent {
+  background: var(--sage-soft);
+  color: var(--sage);
+}
+
+.storage-state.ephemeral {
+  background: var(--lamp-soft);
+  color: var(--lamp);
+}
+
+/* The icon and its sentence had no gap, so they collided. */
+.health-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem 0.75rem;
+  border-radius: var(--r-sm);
+  background: var(--well);
+  color: var(--text-faint);
+  font-size: 13px;
+}
+
+.health-empty i {
+  color: var(--sage);
+  font-size: 13px;
+}
+
+.health-error-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-radius: var(--r-sm);
+}
+
+.health-error-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--r-sm);
+  border-left: 3px solid var(--clay);
+  background: var(--clay-soft);
+  font-size: 13px;
+}
+
+.health-error-item strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.health-error-item p {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+
+/* The timestamp is always the second paragraph; the remedy may follow it, so :last-of-type
+   would style the remedy instead — and would outrank .health-error-remedy on specificity. */
+.health-error-item p:nth-of-type(2) {
+  color: var(--text-faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* What to actually do about it, set apart from the raw message above. */
+.health-error-remedy {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid rgba(221, 146, 137, 0.24);
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.health-error-remedy i {
+  margin-top: 0.15rem;
+  color: var(--lamp);
+  font-size: 12px;
+}
+
+/* Brief pulse when a notification click drops you here, so the jump is legible. */
+.health-error-list.is-flagged {
+  animation: health-flag 1.8s var(--ease);
+}
+
+@keyframes health-flag {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 176, 120, 0); }
+  18% { box-shadow: 0 0 0 3px rgba(220, 176, 120, 0.34); }
+  70% { box-shadow: 0 0 0 3px rgba(220, 176, 120, 0.22); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .health-error-list.is-flagged {
+    animation: none;
+    box-shadow: 0 0 0 3px rgba(220, 176, 120, 0.3);
+  }
+}
+
+/* Solid, matching every other divider on the page — the shared rule uses a dashed line. */
+.ov-health .action-row {
+  border-top-style: solid;
+  border-top-color: var(--line);
 }
 
 /* Compact chips are fine under a mouse, but a finger needs the full 44px target. */
