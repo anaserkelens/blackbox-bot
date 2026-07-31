@@ -271,7 +271,6 @@
                   </button>
                 </div>
                 <div class="ov-banner-art" aria-hidden="true">
-                  <span class="ov-lamp"></span>
                   <img src="/assets/bean-icon.png" alt="" />
                 </div>
               </section>
@@ -338,13 +337,15 @@
                 <div id="activity-feed" class="activity-feed"></div>
               </section>
 
-              <aside class="ov-rail" aria-label="Community at a glance">
-                <section class="dashboard-panel ov-rail-panel">
+              <!-- One surface, two sections: two stacked cards left the rail misaligned with
+                   the feed whenever either section was short. -->
+              <aside class="dashboard-panel ov-rail" aria-label="Community at a glance">
+                <section class="ov-rail-section ov-rail-joins">
                   <p class="ov-rail-heading">Recent joins <span id="ov-joins-count" class="ov-rail-count">0</span></p>
                   <div id="ov-joins-list" class="ov-people"></div>
                 </section>
 
-                <section class="dashboard-panel ov-rail-panel ov-rail-pulse">
+                <section class="ov-rail-section ov-rail-week">
                   <p class="ov-rail-heading">This week</p>
                   <div id="ov-pulse" class="ov-pulse"></div>
                 </section>

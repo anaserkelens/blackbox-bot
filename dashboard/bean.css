@@ -2163,31 +2163,21 @@ input[type='search'] {
   min-width: 0;
 }
 
-/* Staggered entrance: the page assembles top-down rather than snapping in at once. */
-@media (prefers-reduced-motion: no-preference) {
-  .overview-page > * {
-    animation: ov-rise 320ms var(--ease) backwards;
-  }
-
-  .overview-page > :nth-child(2) { animation-delay: 40ms; }
-  .overview-page > :nth-child(3) { animation-delay: 80ms; }
-  .overview-page > :nth-child(4) { animation-delay: 120ms; }
-  .overview-page > :nth-child(5) { animation-delay: 160ms; }
-  .overview-page > :nth-child(6) { animation-delay: 200ms; }
-  .overview-page > :nth-child(7) { animation-delay: 240ms; }
+/* The chrome at this width is flat: var(--well), no gradient, no shadow. Content surfaces
+   sit one step lighter for depth but drop the sheen and the drop shadow, otherwise the
+   cards read as floating on top of the page instead of being part of it. */
+.overview-page :is(.ov-banner, .ov-stat, .ov-activity, .ov-rail, .ov-health) {
+  background-image: none;
+  background-color: var(--panel);
+  box-shadow: none;
+  border-radius: var(--r-lg);
 }
 
-@keyframes ov-rise {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
-
-/* --- Banner --- */
+/* --- Banner ---
+   Same surface recipe as .dashboard-panel and the sidebar: flat --panel with a barely-there
+   top sheen. No radial glows — the chrome around this page does not use them. */
 .ov-banner {
   position: relative;
-  overflow: hidden;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
@@ -2198,20 +2188,8 @@ input[type='search'] {
   padding: clamp(1.1rem, 2vw, 1.5rem) clamp(1.15rem, 2.2vw, 1.6rem);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
-  background:
-    radial-gradient(680px 320px at 88% -30%, rgba(220, 176, 120, 0.13), transparent 62%),
-    radial-gradient(520px 300px at -8% 125%, rgba(143, 161, 190, 0.12), transparent 58%),
-    var(--panel);
-  box-shadow: var(--shadow-md);
-}
-
-.ov-banner::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--bean), var(--lamp), transparent);
-  opacity: 0.55;
+  background: linear-gradient(178deg, rgba(255, 255, 255, 0.014), transparent 30%), var(--panel);
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .ov-banner-copy {
@@ -2287,69 +2265,66 @@ input[type='search'] {
 
 .ov-banner-art {
   grid-area: art;
-  position: relative;
   display: grid;
   place-items: center;
-  width: clamp(88px, 9vw, 116px);
+  width: clamp(72px, 7vw, 92px);
   aspect-ratio: 1;
-}
-
-.ov-lamp {
-  position: absolute;
-  inset: 6%;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(220, 176, 120, 0.32), rgba(220, 176, 120, 0.07) 58%, transparent 72%);
-  filter: blur(7px);
+  opacity: 0.9;
 }
 
 .ov-banner-art img {
-  position: relative;
-  width: 66%;
-  height: 66%;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
 }
 
 /* --- Stat cards: label and number stay clustered, never split across the card --- */
 .ov-stat {
   position: relative;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
   min-height: 0;
-  padding: 0.85rem 1rem 0.85rem 1.15rem;
+  padding: 0.9rem 1.1rem;
   border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: var(--panel);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--r-lg);
+  background: linear-gradient(178deg, rgba(255, 255, 255, 0.014), transparent 30%), var(--panel);
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.03);
   text-align: left;
   cursor: pointer;
+  /* Flat tint on hover, no lift — the sidebar items behave the same way. */
   transition:
-    border-color var(--t-fast),
-    background var(--t-fast),
-    transform var(--t-fast);
+    background-color var(--t-fast),
+    border-color var(--t-fast);
 }
 
 .ov-stat:hover {
-  transform: translateY(-2px);
+  background-color: rgba(143, 161, 190, 0.09);
   border-color: var(--line-strong);
-  background: var(--raised);
   filter: none;
+  transform: none;
 }
 
-.ov-stat:active {
-  transform: translateY(0);
-}
-
+/* The left indicator mirrors the sidebar's selected-item bar: same 4px, same cap radius,
+   and it only appears on hover so a resting page stays quiet. */
 .ov-stat-spine {
   position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--bean);
+  left: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 26px;
+  border-radius: 0 999px 999px 0;
+  background: var(--bean-bright);
+  opacity: 0;
+  transition: opacity var(--t-fast);
+}
+
+.ov-stat:hover .ov-stat-spine,
+.ov-stat:focus-visible .ov-stat-spine {
+  opacity: 1;
 }
 
 .ov-stat.cases .ov-stat-spine { background: var(--clay); }
@@ -2437,26 +2412,31 @@ input[type='search'] {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  padding: 1.2rem 1.3rem;
 }
 
 .ov-rail {
   display: flex;
   flex-direction: column;
-  gap: var(--ov-gap);
   min-height: 0;
+  padding: 0;
 }
 
-.ov-rail-panel {
+.ov-rail-section {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: 0.95rem 1rem 1rem;
+  padding: 1.1rem 1.2rem;
 }
 
-/* The joins list absorbs the rail's spare height so the two panels end flush with the feed. */
-.ov-rail-panel:first-child {
+/* Joins take the spare height so the week block sits flush at the bottom of the rail. */
+.ov-rail-joins {
   flex: 1;
   min-height: 0;
+}
+
+.ov-rail-week {
+  border-top: 1px solid var(--line);
 }
 
 .ov-rail-heading {
@@ -2585,10 +2565,10 @@ input[type='search'] {
   overflow: hidden;
 }
 
+/* No min-width: a zero must render as bare track, not a stray dot. */
 .ov-pulse-bar i {
   display: block;
   height: 100%;
-  min-width: 3px;
   border-radius: 999px;
   background: var(--bean);
   transition: width var(--t-med);
@@ -2642,6 +2622,10 @@ input[type='search'] {
 }
 
 /* --- Health: a single quiet strip until something is wrong --- */
+.ov-health {
+  padding: 0.85rem 1.3rem;
+}
+
 .ov-health summary {
   display: flex;
   align-items: center;
@@ -2747,12 +2731,14 @@ input[type='search'] {
     grid-column: span 4;
   }
 
+  /* 9/3 rather than 8/4: at wide viewports a 4-column rail stretches its rows until the
+     label and its number sit at opposite ends. 3 columns keeps member-list proportions. */
   .ov-activity {
-    grid-column: span 8;
+    grid-column: span 9;
   }
 
   .ov-rail {
-    grid-column: span 4;
+    grid-column: span 3;
   }
 }
 /* Activity feed */
