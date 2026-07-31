@@ -2142,7 +2142,7 @@ input[type='search'] {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: clamp(1rem, 3vw, 2rem);
   align-items: center;
-  padding: clamp(1.5rem, 3vw, 2.5rem);
+  padding: clamp(1.15rem, 2.2vw, 1.75rem);
   border: 1px solid var(--line);
   border-radius: var(--r-xl);
   background:
@@ -2187,7 +2187,7 @@ input[type='search'] {
 .cozy-welcome h1 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(1.65rem, 3.2vw, 2.4rem);
+  font-size: clamp(1.4rem, 2.5vw, 1.85rem);
   font-weight: 560;
   line-height: 1.14;
   letter-spacing: -0.022em;
@@ -2323,19 +2323,36 @@ input[type='search'] {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  width: 100%;
   padding: 0.9rem 1rem;
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   background: var(--panel);
   box-shadow: var(--shadow-sm);
+  text-align: left;
+  cursor: pointer;
   transition:
     border-color var(--t-fast),
     transform var(--t-fast);
 }
 
 .cozy-tile:hover {
-  border-color: var(--line-strong);
+  border-color: var(--bean-dim);
   transform: translateY(-2px);
+}
+
+.cozy-tile-arrow {
+  margin-left: auto;
+  color: var(--text-faint);
+  font-size: 0.75rem;
+  transition:
+    color var(--t-fast),
+    transform var(--t-fast);
+}
+
+.cozy-tile:hover .cozy-tile-arrow {
+  color: var(--bean-bright);
+  transform: translateX(3px);
 }
 
 .cozy-tile-icon {
@@ -2365,26 +2382,51 @@ input[type='search'] {
 
 .cozy-tile strong {
   font-family: var(--font-display);
-  font-size: 0.97rem;
+  font-size: 1.45rem;
   font-weight: 620;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
 }
 
-/* Activity leads, system sits quietly beside it */
+/* Activity leads; health is a footnote below it */
 .cozy-main {
-  display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
-  gap: 1.2rem;
-  align-items: start;
-}
-
-.cozy-side {
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
-  min-width: 0;
+}
+
+.cozy-health summary {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.cozy-health summary::-webkit-details-marker {
+  display: none;
+}
+
+.cozy-health-title {
+  margin-right: auto;
+}
+
+.cozy-health-title h2 {
+  margin: 0;
+}
+
+.cozy-health-chevron {
+  color: var(--text-faint);
+  font-size: 0.78rem;
+  transition: transform var(--t-fast);
+}
+
+.cozy-health[open] .cozy-health-chevron {
+  transform: rotate(180deg);
+}
+
+.cozy-health-body {
+  margin-top: 1.2rem;
 }
 
 .cozy-health-rows {
@@ -2429,65 +2471,7 @@ input[type='search'] {
   margin-top: 1.1rem;
 }
 
-/* Quiet corners */
-.cozy-corner-links {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.cozy-corner-links button {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  width: 100%;
-  padding: 0.68rem 0.8rem;
-  border-radius: var(--r-md);
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--text-soft);
-  text-align: left;
-  font-size: 0.88rem;
-  transition:
-    background var(--t-fast),
-    border-color var(--t-fast),
-    color var(--t-fast);
-}
-
-.cozy-corner-links button:hover {
-  border-color: var(--line);
-  background: var(--bean-softer);
-  color: var(--text);
-}
-
-.cozy-corner-links button > i:first-child {
-  width: 1.1rem;
-  color: var(--text-faint);
-  font-size: 0.85rem;
-  text-align: center;
-}
-
-.cozy-corner-links button span {
-  flex: 1;
-  min-width: 0;
-}
-
-.cozy-corner-links button > i:last-child {
-  color: var(--text-faint);
-  font-size: 0.7rem;
-  opacity: 0;
-  transition:
-    opacity var(--t-fast),
-    transform var(--t-fast);
-}
-
-.cozy-corner-links button:hover > i:last-child {
-  opacity: 1;
-  transform: translateX(2px);
-}
-
-/* Wide screens: hero shares a row with the tiles, lower half opens to three columns.
-   Must follow the base rules above — media queries carry no extra specificity. */
+/* Wide screens: the hero shares a row with the tiles instead of stacking above them. */
 @media (min-width: 1500px) {
   .cozy-top {
     display: grid;
@@ -2496,17 +2480,7 @@ input[type='search'] {
   }
 
   .cozy-glance {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-content: start;
-  }
-
-  .cozy-main {
-    grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr) minmax(270px, 0.85fr);
-  }
-
-  /* Health and Quiet corners leave the wrapper and become columns of their own. */
-  .cozy-side {
-    display: contents;
   }
 }
 

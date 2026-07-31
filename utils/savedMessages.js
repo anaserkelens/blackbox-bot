@@ -4,8 +4,8 @@ const path = require('node:path');
 const defaultSavedMessagesPath = path.join(__dirname, '..', 'data', 'saved-messages.json');
 const welcomeMessageId = 'welcome-message';
 
-const welcomeStarter = `# WELCOME TO UNDR CTRL
-> A community for UNDR CTRL members to connect, create, and build together.
+const welcomeStarter = `# WELCOME TO THE CORNER
+> A community for The Corner members to connect, create, and build together.
 > Get involved, meet the community, and help shape what comes next.`;
 
 const seededWelcomeMessage = {

@@ -5,7 +5,7 @@ const path = require('node:path');
 
 const { ChannelType, PermissionFlagsBits } = require('discord.js');
 
-const { getActivityFeed, getActivityFeedStorageInfo } = require('./activityFeed');
+const { getActivityFeed, getActivityFeedStorageInfo, getActivityFeedSummary } = require('./activityFeed');
 const {
   activateEmergencySafetyProfile,
   addQuarantineReviewNote,
@@ -1756,11 +1756,15 @@ async function handleGetDashboardHealth(client, response) {
 async function handleGetActivityFeed(url, response) {
   const type = String(url.searchParams.get('type') || '').trim();
   const limit = Number.parseInt(url.searchParams.get('limit'), 10) || 100;
-  const items = await getActivityFeed(config, { type, limit });
+  const [items, summary] = await Promise.all([
+    getActivityFeed(config, { type, limit }),
+    getActivityFeedSummary(config, { days: 7 }),
+  ]);
 
   sendJson(response, 200, {
     ok: true,
     items,
+    summary,
     storage: getActivityFeedStorageInfo(config),
   });
 }

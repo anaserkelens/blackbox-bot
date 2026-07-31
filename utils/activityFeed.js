@@ -80,6 +80,27 @@ async function getActivityFeed(config, options = {}) {
   return items.slice(0, limit);
 }
 
+// Counts per type over a trailing window, ignoring the caller's active filter so the
+// overview tiles stay stable while someone flips the feed between categories.
+async function getActivityFeedSummary(config, options = {}) {
+  const store = await readActivityFeed(config);
+  const days = clampInteger(options.days, 1, 365, 7);
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+  const counts = { days, join: 0, leave: 0, moderation: 0, mailbox: 0, voice: 0 };
+
+  for (const item of store.items) {
+    if (counts[item.type] === undefined) {
+      continue;
+    }
+
+    if (Date.parse(item.createdAt) >= cutoff) {
+      counts[item.type] += 1;
+    }
+  }
+
+  return counts;
+}
+
 async function mutateActivityFeed(config, mutator) {
   const task = mutationQueue.then(async () => {
     const store = await readActivityFeed(config);
@@ -280,6 +301,7 @@ module.exports = {
   activityFromStructuredLog,
   getActivityFeed,
   getActivityFeedStorageInfo,
+  getActivityFeedSummary,
   inferActivityType,
   recordActivity,
 };

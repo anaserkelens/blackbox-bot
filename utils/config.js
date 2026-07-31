@@ -44,7 +44,7 @@ function readCsv(name, fallback = []) {
     .filter(Boolean);
 }
 
-const presenceText = readEnv('PRESENCE_TEXT') || 'Keeping UNDR CTRL connected.';
+const presenceText = readEnv('PRESENCE_TEXT') || 'Keeping The Corner connected.';
 const loggingChannels = {
   caseFiles: readEnv('CASE_FILES_CHANNEL_ID') || '1520858981227172000',
   entryLog: readEnv('ENTRY_LOG_CHANNEL_ID') || '1520858940617785565',
@@ -62,10 +62,10 @@ const config = {
   presenceText,
   presenceTexts: readCsv('PRESENCE_TEXTS', [presenceText]),
   presenceRotationSeconds: Math.min(86400, Math.max(5, readInteger('PRESENCE_ROTATION_SECONDS', 30))),
-  communityName: readEnv('COMMUNITY_NAME') || 'UNDR CTRL',
+  communityName: readEnv('COMMUNITY_NAME') || 'The Corner',
   communityDescription:
     readEnv('COMMUNITY_DESCRIPTION') ||
-    'A community for UNDR CTRL members to connect, create, and build together.',
+    'A community for The Corner members to connect, create, and build together.',
   ownerUserId: readEnv('BOT_OWNER_USER_ID') || '185282790969835520',
   channels: {
     welcome: readEnv('WELCOME_CHANNEL_ID') || '1520407983354544171',

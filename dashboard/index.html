@@ -20,7 +20,7 @@
           <div class="brand-lockup">
             <img class="bean-mark" src="/assets/bean-icon.png" alt="" />
             <div>
-              <p class="eyebrow" data-guild-name>UNDR CTRL</p>
+              <p class="eyebrow" data-guild-name>The Corner</p>
               <h1>Bean Dashboard</h1>
             </div>
           </div>
@@ -52,10 +52,10 @@
               aria-haspopup="listbox"
               aria-expanded="false"
               aria-controls="guild-switcher-menu"
-              aria-label="Switch server: UNDR CTRL"
+              aria-label="Switch server: The Corner"
             >
               <img src="/assets/bean-icon.png" alt="" data-guild-icon />
-              <span class="server-rail-tooltip" aria-hidden="true" data-guild-name>UNDR CTRL</span>
+              <span class="server-rail-tooltip" aria-hidden="true" data-guild-name>The Corner</span>
             </button>
             <div class="guild-switcher-menu" id="guild-switcher-menu" role="listbox" aria-label="Your servers" hidden>
               <button type="button" class="guild-switcher-option is-active" role="option" aria-selected="true">
@@ -63,7 +63,7 @@
                   <img src="/assets/bean-icon.png" alt="" data-guild-icon />
                 </span>
                 <span class="guild-switcher-meta">
-                  <strong data-guild-name>UNDR CTRL</strong>
+                  <strong data-guild-name>The Corner</strong>
                   <small data-guild-members>Members: —</small>
                 </span>
                 <i class="fa-solid fa-check guild-switcher-check" aria-hidden="true"></i>
@@ -108,7 +108,7 @@
         <div class="dashboard-layout">
           <nav class="dashboard-tabs" aria-label="Dashboard spaces">
             <div class="guild-header">
-              <strong class="guild-header-name" data-guild-name>UNDR CTRL</strong>
+              <strong class="guild-header-name" data-guild-name>The Corner</strong>
               <small class="guild-header-members">
                 <i class="fa-solid fa-user-group" aria-hidden="true"></i>
                 <span data-guild-members>Members: —</span>
@@ -255,8 +255,8 @@
                 <span class="cozy-meta-dot" aria-hidden="true"></span>
                 <span class="cozy-welcome-open"><i class="fa-solid fa-mug-hot" aria-hidden="true"></i> The room is open</span>
               </p>
-              <h1 id="room-heading">Welcome back.<span>Everything is calm.</span></h1>
-              <p class="cozy-welcome-lead">Bean has been keeping an eye on things while you were away. Pick something up, or just have a quiet look around.</p>
+              <h1 id="room-heading">Welcome back.</h1>
+              <p class="cozy-welcome-lead" id="overview-state-line">Bean is having a look around…</p>
               <div class="cozy-welcome-actions">
                 <button type="button" data-tab-link="messages">
                   <span class="cozy-action-icon"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i></span>
@@ -276,23 +276,22 @@
             </div>
           </section>
 
-          <section class="cozy-glance" aria-label="At a glance">
-            <article class="cozy-tile">
-              <span class="cozy-tile-icon"><i class="fa-solid fa-mug-hot" aria-hidden="true"></i></span>
-              <div><small>Bean</small><strong id="overview-bot-status">Checking</strong></div>
-            </article>
-            <article class="cozy-tile">
-              <span class="cozy-tile-icon"><i class="fa-solid fa-people-group" aria-hidden="true"></i></span>
-              <div><small>Community</small><strong data-guild-name>UNDR CTRL</strong></div>
-            </article>
-            <article class="cozy-tile">
+          <section class="cozy-glance" aria-label="What needs you">
+            <button class="cozy-tile" type="button" data-tab-link="cases">
               <span class="cozy-tile-icon"><i class="fa-solid fa-folder-open" aria-hidden="true"></i></span>
-              <div><small>Open cases</small><strong id="overview-open-cases">Checking</strong></div>
-            </article>
-            <article class="cozy-tile">
-              <span class="cozy-tile-icon"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i></span>
-              <div><small>Uptime</small><strong id="health-uptime">—</strong></div>
-            </article>
+              <div><small>Open cases</small><strong id="overview-open-cases">—</strong></div>
+              <i class="fa-solid fa-arrow-right cozy-tile-arrow" aria-hidden="true"></i>
+            </button>
+            <button class="cozy-tile" type="button" data-tab-link="mailbox">
+              <span class="cozy-tile-icon"><i class="fa-solid fa-clock" aria-hidden="true"></i></span>
+              <div><small>Posts scheduled</small><strong id="overview-scheduled-posts">—</strong></div>
+              <i class="fa-solid fa-arrow-right cozy-tile-arrow" aria-hidden="true"></i>
+            </button>
+            <button class="cozy-tile" type="button" data-tab-link="members">
+              <span class="cozy-tile-icon"><i class="fa-solid fa-user-plus" aria-hidden="true"></i></span>
+              <div><small>New members · 7 days</small><strong id="overview-new-members">—</strong></div>
+              <i class="fa-solid fa-arrow-right cozy-tile-arrow" aria-hidden="true"></i>
+            </button>
           </section>
           </div>
 
@@ -320,22 +319,24 @@
               <div id="activity-feed" class="activity-feed"></div>
             </section>
 
-            <div class="cozy-side">
-              <section class="dashboard-panel cozy-health">
-                <div class="section-heading">
-                  <div>
-                    <p class="eyebrow">System</p>
-                    <h2>Bean health</h2>
-                  </div>
-                  <div class="toolbar-actions">
-                    <span id="health-status" class="status-pill">Checking health</span>
-                    <button id="refresh-health" class="secondary icon-button" type="button" aria-label="Refresh bot health" title="Refresh bot health">
-                      <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
-                    </button>
-                  </div>
-                </div>
+            <!-- Health is infra detail, not community work: the topbar presence pill already
+                 says whether Bean is up, so this stays shut until something is actually wrong. -->
+            <details id="overview-health" class="dashboard-panel cozy-health">
+              <summary>
+                <span class="cozy-health-title">
+                  <p class="eyebrow">System</p>
+                  <h2>Bean health</h2>
+                </span>
+                <span id="health-status" class="status-pill">Checking health</span>
+                <i class="fa-solid fa-chevron-down cozy-health-chevron" aria-hidden="true"></i>
+              </summary>
 
+              <div class="cozy-health-body">
                 <div class="cozy-health-rows">
+                  <div>
+                    <span><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> Uptime</span>
+                    <strong id="health-uptime">—</strong>
+                  </div>
                   <div>
                     <span><i class="fa-brands fa-discord" aria-hidden="true"></i> Discord latency</span>
                     <strong id="health-latency">—</strong>
@@ -343,10 +344,6 @@
                   <div>
                     <span><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i> Dashboard API</span>
                     <strong id="health-api">—</strong>
-                  </div>
-                  <div>
-                    <span><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Recent errors</span>
-                    <strong id="health-error-count">0</strong>
                   </div>
                 </div>
 
@@ -365,39 +362,15 @@
                   </div>
                   <div id="health-error-list" class="health-error-list"></div>
                 </div>
-              </section>
 
-              <section class="dashboard-panel cozy-corners">
-                <div class="section-heading">
-                  <div>
-                    <p class="eyebrow">Quiet corners</p>
-                    <h2>Where to next</h2>
-                  </div>
+                <div class="action-row">
+                  <button id="refresh-health" class="secondary" type="button">
+                    <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+                    Refresh health
+                  </button>
                 </div>
-                <nav class="cozy-corner-links" aria-label="Shortcuts">
-                  <button type="button" data-tab-link="members">
-                    <i class="fa-solid fa-address-card" aria-hidden="true"></i>
-                    <span>Members</span>
-                    <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-                  </button>
-                  <button type="button" data-tab-link="cases">
-                    <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
-                    <span>Moderation</span>
-                    <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-                  </button>
-                  <button type="button" data-tab-link="mailbox">
-                    <i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i>
-                    <span>Mailbox</span>
-                    <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-                  </button>
-                  <button type="button" data-tab-link="voice-rooms">
-                    <i class="fa-solid fa-headphones" aria-hidden="true"></i>
-                    <span>Voice rooms</span>
-                    <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-                  </button>
-                </nav>
-              </section>
-            </div>
+              </div>
+            </details>
           </div>
         </section>
 
@@ -2305,7 +2278,7 @@
                 <div class="form-grid">
                   <label class="field">
                     Footer text
-                    <input id="live-footer-text" maxlength="2048" placeholder="UNDR CTRL" />
+                    <input id="live-footer-text" maxlength="2048" placeholder="The Corner" />
                   </label>
 
                   <label class="field">

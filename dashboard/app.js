@@ -21,14 +21,16 @@ const notificationCenterList = document.querySelector('#notification-center-list
 const notificationCenterSummary = document.querySelector('#notification-center-summary');
 const notificationCloseButtons = [...document.querySelectorAll('[data-notification-close]')];
 const markNotificationsReadButton = document.querySelector('#mark-notifications-read');
-const overviewBotStatus = document.querySelector('#overview-bot-status');
 const overviewOpenCases = document.querySelector('#overview-open-cases');
+const overviewScheduledPosts = document.querySelector('#overview-scheduled-posts');
+const overviewNewMembers = document.querySelector('#overview-new-members');
+const overviewStateLine = document.querySelector('#overview-state-line');
+const overviewHealth = document.querySelector('#overview-health');
 const healthStatus = document.querySelector('#health-status');
 const refreshHealthButton = document.querySelector('#refresh-health');
 const healthUptime = document.querySelector('#health-uptime');
 const healthLatency = document.querySelector('#health-latency');
 const healthApi = document.querySelector('#health-api');
-const healthErrorCount = document.querySelector('#health-error-count');
 const healthStorageSummary = document.querySelector('#health-storage-summary');
 const healthStorageList = document.querySelector('#health-storage-list');
 const healthErrorList = document.querySelector('#health-error-list');
@@ -554,7 +556,7 @@ const embedBuilderDefinitions = {
 };
 
 const state = {
-  guildName: 'UNDR CTRL',
+  guildName: 'The Corner',
   currentMessageId: null,
   image: null,
   mailboxImage: null,
@@ -570,7 +572,11 @@ const state = {
   health: null,
   activityItems: [],
   activityStorage: null,
+  activitySummary: null,
   activityType: '',
+  // Loaders resolve in whatever order the network returns them; without this an empty
+  // array reads as a confident "0 open cases" before the real count has arrived.
+  overviewLoaded: { cases: false, scheduled: false },
   overviewRefreshTimer: null,
   memberSearchResults: [],
   selectedMemberId: null,
@@ -628,8 +634,10 @@ const state = {
   liveFeaturedUserRequest: 0,
 };
 
-const welcomeStarter = `# WELCOME TO UNDR CTRL
-> A community for UNDR CTRL members to connect, create, and build together.
+// Built per read rather than frozen at load: state.guildName starts as a placeholder and is
+// replaced by the live guild once the session responds.
+const welcomeStarter = () => `# WELCOME TO ${state.guildName.toUpperCase()}
+> A community for ${state.guildName} members to connect, create, and build together.
 > Get involved, meet the community, and help shape what comes next.`;
 
 const seededWelcomeMessage = {
@@ -638,7 +646,9 @@ const seededWelcomeMessage = {
   channelId: '',
   color: null,
   image: null,
-  blocks: [{ type: 'text', content: welcomeStarter, accessory: null }],
+  get blocks() {
+    return [{ type: 'text', content: welcomeStarter(), accessory: null }];
+  },
   buttons: [],
   allowMentions: false,
   updatedAt: '2026-06-05T00:00:00.000Z',
@@ -1109,7 +1119,9 @@ async function loadScheduledMailboxPosts(showNotification = false) {
 
   state.scheduledMailboxPosts = Array.isArray(result.jobs) ? result.jobs : [];
   state.mailboxScheduleStorage = result.storage || null;
+  state.overviewLoaded.scheduled = true;
   renderScheduledMailboxPosts();
+  renderOverviewSummary();
 
   if (showNotification) {
     setSendStatus('Scheduled Mailbox queue refreshed.', 'success');
@@ -4187,6 +4199,9 @@ function showDashboard(session) {
   loadModerationCases(false).catch(() => {
     overviewOpenCases.textContent = 'Unavailable';
   });
+  loadScheduledMailboxPosts(false).catch(() => {
+    overviewScheduledPosts.textContent = 'Unavailable';
+  });
   loadDashboardHealth(false).catch(() => null);
   loadActivityFeed(false).catch(() => null);
   startDashboardNotifications();
@@ -4199,10 +4214,8 @@ function showDashboard(session) {
 }
 
 function setBotStatus(isReady, tag) {
-  const overviewText = isReady ? `Online${tag ? `: ${tag}` : ''}` : 'Bot not ready';
-
   botStatus.textContent = isReady ? 'Bean online' : 'Bean offline';
-  overviewBotStatus.textContent = overviewText;
+  botStatus.title = isReady && tag ? `Signed in as ${tag}` : '';
   botStatus.classList.toggle('ready', isReady);
   botStatus.classList.toggle('offline', !isReady);
 }
@@ -4322,6 +4335,48 @@ function updateInterfaceClock() {
   }).format(now);
 }
 
+// The three overview tiles plus the welcome subline all describe the same thing — what is
+// waiting for you — so they are filled from one place as each loader reports back.
+function renderOverviewSummary() {
+  const openCases = state.overviewLoaded.cases
+    ? state.moderationCases.filter(
+      (moderationCase) => getModerationCaseEffectiveStatus(moderationCase) === 'active',
+    ).length
+    : null;
+  const scheduledPosts = state.overviewLoaded.scheduled
+    ? state.scheduledMailboxPosts.filter((job) =>
+      ['scheduled', 'publishing', 'failed'].includes(job.status)).length
+    : null;
+  const newMembers = state.activitySummary?.join ?? null;
+
+  for (const [element, value] of [
+    [overviewOpenCases, openCases],
+    [overviewScheduledPosts, scheduledPosts],
+    [overviewNewMembers, newMembers],
+  ]) {
+    element.textContent = value === null ? '—' : value.toLocaleString();
+  }
+
+  const waiting = [
+    openCases && `${openCases} open ${openCases === 1 ? 'case' : 'cases'}`,
+    scheduledPosts && `${scheduledPosts} ${scheduledPosts === 1 ? 'post' : 'posts'} scheduled`,
+  ].filter(Boolean);
+
+  if (waiting.length) {
+    overviewStateLine.textContent = `${joinWithAnd(waiting)} waiting on you.`;
+  } else if (state.overviewLoaded.cases && state.overviewLoaded.scheduled) {
+    overviewStateLine.textContent = 'Nothing is waiting on you. Bean has the room.';
+  }
+}
+
+function joinWithAnd(parts) {
+  if (parts.length <= 1) {
+    return parts[0] || '';
+  }
+
+  return `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`;
+}
+
 async function loadDashboardHealth(showNotification = false) {
   const result = await api('/api/dashboard-health');
 
@@ -4349,9 +4404,16 @@ function renderDashboardHealth() {
     ? `${health.discord.latencyMs} ms`
     : 'Unavailable';
   healthApi.textContent = health.api?.healthy ? 'Healthy' : 'Unavailable';
-  healthErrorCount.textContent = Number(health.summary?.recentErrors || 0).toLocaleString();
   renderHealthStorage(health.storage || []);
   renderHealthErrors(health.errors || []);
+
+  // Only pop the panel open on the first bad reading, so a manual toggle survives polling.
+  if (!healthy && !overviewHealth.dataset.alerted) {
+    overviewHealth.open = true;
+    overviewHealth.dataset.alerted = 'true';
+  } else if (healthy) {
+    delete overviewHealth.dataset.alerted;
+  }
 }
 
 function renderHealthStorage(stores) {
@@ -4422,7 +4484,9 @@ async function loadActivityFeed(showNotification = false) {
 
   state.activityItems = Array.isArray(result.items) ? result.items : [];
   state.activityStorage = result.storage || null;
+  state.activitySummary = result.summary || null;
   renderActivityFeed();
+  renderOverviewSummary();
 
   if (showNotification) {
     setSendStatus('Activity feed refreshed.', 'success');
@@ -6099,6 +6163,7 @@ function setActiveTab(tab, options = {}) {
     Promise.all([
       loadDashboardHealth(false),
       loadActivityFeed(false),
+      loadScheduledMailboxPosts(false),
     ]).catch((error) => setSendStatus(error.message, 'error'));
   } else {
     stopOverviewSync();
@@ -6444,6 +6509,7 @@ async function loadModerationCases(showNotification = false) {
     state.moderationCases = Array.isArray(result.cases)
       ? result.cases.map(sanitizeModerationCase).filter(Boolean)
       : [];
+    state.overviewLoaded.cases = true;
     state.moderationCaseStorage = result.storage || null;
     renderModerationCaseStorage();
     renderModerationCases();
@@ -6564,7 +6630,7 @@ function renderModerationCaseMetrics() {
   const commonAction = Object.entries(actionCounts).sort((left, right) => right[1] - left[1])[0];
 
   caseTotalCount.textContent = cases.length.toLocaleString();
-  overviewOpenCases.textContent = openCases.length.toLocaleString();
+  renderOverviewSummary();
   caseRecentCount.textContent = cases
     .filter((moderationCase) => Date.parse(moderationCase.createdAt) >= recentCutoff)
     .length
