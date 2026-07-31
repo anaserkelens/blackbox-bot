@@ -7,6 +7,8 @@
 /* ---------- 1. Tokens ---------- */
 :root {
   --nav-gap: 0.35rem;                /* sidebar column gap; banner offset depends on it */
+  --topbar-h: 72px;                  /* fixed topbar; content offset and full-height panels use it */
+  --dashboard-pad-b: 2.5rem;         /* bottom breathing room under the content column */
   --guild-header-h: 52px;            /* sticky server name row */
   --userbar-h: 62px;                 /* floating account bar, spans rail + sidebar */
   --userbar-gap: 10px;               /* how far it floats off the bottom-left */
@@ -1257,11 +1259,15 @@ input[type='search'] {
 }
 
 /* ---------- 12. Layout & sidebar ---------- */
+/* Grows to fill the dashboard so a panel can opt into full height (see .overview-page).
+   Panels that do not set flex-grow keep their natural height, as before. */
 .dashboard-layout {
   display: grid;
   grid-template-columns: 276px minmax(0, 1fr);
   gap: 1.4rem;
   align-items: start;
+  flex: 1;
+  min-height: 0;
 }
 
 .dashboard-tabs {
@@ -1766,6 +1772,8 @@ input[type='search'] {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 @media (min-width: 1081px) {
@@ -1773,8 +1781,14 @@ input[type='search'] {
     max-width: none;
     margin: 0;
     padding:
-      calc(72px + 1.1rem) clamp(1rem, 2.4vw, 2rem) 2.5rem
+      calc(var(--topbar-h) + 1.1rem) clamp(1rem, 2.4vw, 2rem) var(--dashboard-pad-b)
       calc(348px + clamp(1rem, 2.4vw, 2rem));
+  }
+
+  /* Hold the overview to a single screen so the feed scrolls inside its panel instead of
+     pushing health below the fold. Derived from the same tokens as the padding above. */
+  .overview-page {
+    max-height: calc(100dvh - var(--topbar-h) - 1.1rem - var(--dashboard-pad-b));
   }
 
   .dashboard::before {
@@ -1811,8 +1825,11 @@ input[type='search'] {
     -webkit-backdrop-filter: none;
   }
 
+  /* The sidebar is fixed at this width, so the layout carries only the content column —
+     a flex column rather than a block, so full-height panels can inherit the height. */
   .dashboard-layout {
-    display: block;
+    display: flex;
+    flex-direction: column;
   }
 
   .dashboard-tabs {
@@ -2126,25 +2143,59 @@ input[type='search'] {
 }
 
 /* ---------- 13. Overview ---------- */
-/* ---------- Overview: the server floor ----------
-   Discord's structure — a banner, embed cards with colored spines, a message-style
-   feed, and a member rail — rendered in Bean's dusk palette rather than blurple.
-   Three columns collapse to one; nothing is stranded at any width. */
+/* ---------- Overview: one 12-column grid ----------
+   Data-dense dashboard rules: every block snaps to the same twelve column lines, so the
+   banner, the three stat cards and the feed/rail split all share vertical seams. The
+   activity row is the only flexible track, so the page fills the viewport instead of
+   trailing off into dead space. */
 .overview-page {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  --ov-gap: 12px;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--ov-gap);
+  align-content: start;
 }
 
-/* --- Banner: Discord's channel header, given some depth --- */
+.overview-page > * {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+/* Staggered entrance: the page assembles top-down rather than snapping in at once. */
+@media (prefers-reduced-motion: no-preference) {
+  .overview-page > * {
+    animation: ov-rise 320ms var(--ease) backwards;
+  }
+
+  .overview-page > :nth-child(2) { animation-delay: 40ms; }
+  .overview-page > :nth-child(3) { animation-delay: 80ms; }
+  .overview-page > :nth-child(4) { animation-delay: 120ms; }
+  .overview-page > :nth-child(5) { animation-delay: 160ms; }
+  .overview-page > :nth-child(6) { animation-delay: 200ms; }
+  .overview-page > :nth-child(7) { animation-delay: 240ms; }
+}
+
+@keyframes ov-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* --- Banner --- */
 .ov-banner {
   position: relative;
   overflow: hidden;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: clamp(1rem, 3vw, 2rem);
+  grid-template-areas:
+    'copy art'
+    'actions art';
   align-items: center;
-  padding: clamp(1.15rem, 2.2vw, 1.6rem) clamp(1.15rem, 2.2vw, 1.75rem);
+  gap: 0.9rem clamp(1rem, 3vw, 2rem);
+  padding: clamp(1.1rem, 2vw, 1.5rem) clamp(1.15rem, 2.2vw, 1.6rem);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   background:
@@ -2154,7 +2205,6 @@ input[type='search'] {
   box-shadow: var(--shadow-md);
 }
 
-/* Hairline of brand colour along the top, the way Discord banners bleed into the header. */
 .ov-banner::before {
   content: '';
   position: absolute;
@@ -2165,38 +2215,34 @@ input[type='search'] {
 }
 
 .ov-banner-copy {
+  grid-area: copy;
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
+  gap: 0.5rem;
   min-width: 0;
 }
 
 .ov-banner-meta {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.55rem;
   margin: 0;
-  font-size: 0.72rem;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-faint);
 }
 
-/* Discord's presence dot: a filled ring with a punched-out centre. */
 .ov-presence {
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: var(--sage);
-  box-shadow: 0 0 10px rgba(168, 199, 157, 0.55);
+  box-shadow: 0 0 9px rgba(168, 199, 157, 0.55);
 }
 
-.cozy-welcome-open {
-  color: var(--lamp);
-}
-
-.cozy-meta-dot {
+.ov-meta-dot {
   width: 3px;
   height: 3px;
   border-radius: 50%;
@@ -2204,8 +2250,51 @@ input[type='search'] {
   opacity: 0.55;
 }
 
-/* Lamplight behind the bean. */
-.cozy-lamp {
+.ov-banner-open {
+  color: var(--lamp);
+}
+
+.ov-banner h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  font-weight: 560;
+  line-height: 1.12;
+  letter-spacing: -0.024em;
+}
+
+.ov-banner-lead {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--text-soft);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.ov-banner-actions {
+  grid-area: actions;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ov-banner-actions button {
+  min-height: 40px;
+  padding: 0.4rem 1.05rem;
+  border-radius: var(--r-sm);
+  font-size: 14px;
+}
+
+.ov-banner-art {
+  grid-area: art;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: clamp(88px, 9vw, 116px);
+  aspect-ratio: 1;
+}
+
+.ov-lamp {
   position: absolute;
   inset: 6%;
   border-radius: 50%;
@@ -2213,75 +2302,24 @@ input[type='search'] {
   filter: blur(7px);
 }
 
-.ov-banner h1 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(1.4rem, 2.5vw, 1.85rem);
-  font-weight: 560;
-  line-height: 1.14;
-  letter-spacing: -0.022em;
-}
-
-.ov-banner-lead {
-  margin: 0;
-  max-width: 52ch;
-  color: var(--text-soft);
-  font-size: 0.92rem;
-  line-height: 1.6;
-}
-
-.ov-banner-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-  margin-top: 0.2rem;
-}
-
-.ov-banner-actions button {
-  min-height: 38px;
-  padding: 0.4rem 1.05rem;
-  border-radius: var(--r-sm);
-  font-size: 0.83rem;
-}
-
-.ov-banner-art {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: clamp(96px, 11vw, 132px);
-  aspect-ratio: 1;
-}
-
 .ov-banner-art img {
   position: relative;
   width: 66%;
   height: 66%;
   object-fit: contain;
-  opacity: 0.96;
 }
 
-/* --- Stat cards: Discord embeds, with the spine that makes them read as embeds --- */
-.ov-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 0.75rem;
-}
-
+/* --- Stat cards: label and number stay clustered, never split across the card --- */
 .ov-stat {
   position: relative;
   overflow: hidden;
-  /* Number parked in its own column so it never competes with the label for space and
-     can never be clipped by the card height, whatever width the track resolves to. */
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas:
-    'head value'
-    'foot value';
-  align-items: center;
-  column-gap: 1.25rem;
-  row-gap: 0.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.5rem;
   min-height: 0;
-  padding: 0.9rem 1.15rem 0.9rem 1.3rem;
+  padding: 0.85rem 1rem 0.85rem 1.15rem;
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: var(--panel);
@@ -2301,13 +2339,16 @@ input[type='search'] {
   filter: none;
 }
 
+.ov-stat:active {
+  transform: translateY(0);
+}
+
 .ov-stat-spine {
   position: absolute;
   left: 0;
   top: 0;
   bottom: 0;
-  width: 4px;
-  border-radius: 0 3px 3px 0;
+  width: 3px;
   background: var(--bean);
 }
 
@@ -2315,27 +2356,32 @@ input[type='search'] {
 .ov-stat.mailbox .ov-stat-spine { background: var(--lamp); }
 .ov-stat.joins .ov-stat-spine { background: var(--sage); }
 
-.ov-stat-head {
-  grid-area: head;
-  align-self: end;
+.ov-stat-label {
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  font-size: 0.72rem;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.055em;
   text-transform: uppercase;
   color: var(--text-faint);
 }
 
-.ov-stat.cases .ov-stat-head i { color: var(--clay); }
-.ov-stat.mailbox .ov-stat-head i { color: var(--lamp); }
-.ov-stat.joins .ov-stat-head i { color: var(--sage); }
+.ov-stat.cases .ov-stat-label i { color: var(--clay); }
+.ov-stat.mailbox .ov-stat-label i { color: var(--lamp); }
+.ov-stat.joins .ov-stat-label i { color: var(--sage); }
+
+/* Number and its caption sit on one baseline so they read as a single fact. */
+.ov-stat-value {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  min-width: 0;
+}
 
 .ov-stat strong {
-  grid-area: value;
   font-family: var(--font-display);
-  font-size: clamp(1.9rem, 3.4vw, 2.6rem);
+  font-size: 32px;
   font-weight: 600;
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -2343,63 +2389,103 @@ input[type='search'] {
   color: var(--text);
 }
 
-.ov-stat-foot {
-  grid-area: foot;
-  align-self: start;
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.74rem;
-  font-weight: 500;
+/* A zero is calm, not an alarm — dim it so a real count carries the eye instead. */
+.ov-stat.is-zero strong {
   color: var(--text-faint);
 }
 
-.ov-stat-foot i {
-  font-size: 0.66rem;
+.ov-stat-note {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov-stat-go {
+  position: absolute;
+  top: 50%;
+  right: 0.9rem;
+  transform: translateY(-50%);
+  color: var(--text-faint);
+  font-size: 12px;
   opacity: 0;
-  transform: translateX(-3px);
   transition: opacity var(--t-fast), transform var(--t-fast);
 }
 
-.ov-stat:hover .ov-stat-foot {
-  color: var(--text-soft);
-}
-
-.ov-stat:hover .ov-stat-foot i {
+.ov-stat:hover .ov-stat-go {
   opacity: 1;
-  transform: translateX(0);
+  transform: translateY(-50%) translateX(2px);
 }
 
-/* --- Main split: feed carries the page, rail keeps it company --- */
-.ov-main {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
+/* --- Panels --- */
+.ov-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 1rem;
-  align-items: start;
+  margin-bottom: 0.9rem;
+}
+
+.ov-panel-head h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.ov-activity {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .ov-rail {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  min-width: 0;
+  gap: var(--ov-gap);
+  min-height: 0;
 }
 
 .ov-rail-panel {
-  padding: 1rem 1.1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0.95rem 1rem 1rem;
+}
+
+/* The joins list absorbs the rail's spare height so the two panels end flush with the feed. */
+.ov-rail-panel:first-child {
+  flex: 1;
+  min-height: 0;
 }
 
 .ov-rail-heading {
-  margin: 0 0 0.75rem;
-  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.7rem;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-faint);
 }
 
-/* --- People rows: avatar, name, meta. Discord's member list cadence. --- */
+.ov-rail-count {
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--raised);
+  color: var(--text-soft);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+/* --- People rows --- */
 .ov-people {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
@@ -2408,11 +2494,11 @@ input[type='search'] {
 .ov-person {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  padding: 0.4rem 0.5rem;
-  margin: 0 -0.5rem;
+  gap: 0.6rem;
+  padding: 0.4rem 0.45rem;
   border-radius: var(--r-sm);
   min-width: 0;
+  flex-shrink: 0;
   transition: background var(--t-fast);
 }
 
@@ -2421,15 +2507,14 @@ input[type='search'] {
 }
 
 .ov-avatar {
-  position: relative;
   flex: none;
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   font-family: var(--font-display);
-  font-size: 0.82rem;
+  font-size: 13px;
   font-weight: 600;
   color: var(--bean-ink);
   background: linear-gradient(150deg, var(--bean-bright), var(--bean-dim));
@@ -2437,7 +2522,6 @@ input[type='search'] {
   user-select: none;
 }
 
-/* Rotate the avatar tint by index so a list of strangers still reads as individuals. */
 .ov-avatar.tone-1 { background: linear-gradient(150deg, #b6cbb0, var(--sage)); }
 .ov-avatar.tone-2 { background: linear-gradient(150deg, #e8b7a8, var(--clay)); }
 .ov-avatar.tone-3 { background: linear-gradient(150deg, #e6c795, var(--lamp)); }
@@ -2447,11 +2531,10 @@ input[type='search'] {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  gap: 0.05rem;
 }
 
 .ov-person-copy strong {
-  font-size: 0.84rem;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text);
   overflow: hidden;
@@ -2460,27 +2543,27 @@ input[type='search'] {
 }
 
 .ov-person-copy span {
-  font-size: 0.72rem;
+  font-size: 12px;
   color: var(--text-faint);
   font-variant-numeric: tabular-nums;
 }
 
-/* --- Pulse: this week's counts, as compact meter rows --- */
+/* --- Pulse meters --- */
 .ov-pulse {
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
+  gap: 0.65rem;
 }
 
 .ov-pulse-row {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 0.25rem 0.6rem;
+  gap: 0.3rem 0.6rem;
   align-items: baseline;
-  font-size: 0.79rem;
+  font-size: 13px;
 }
 
-.ov-pulse-row span {
+.ov-pulse-row > span:first-child {
   color: var(--text-soft);
 }
 
@@ -2488,6 +2571,10 @@ input[type='search'] {
   font-variant-numeric: tabular-nums;
   font-weight: 640;
   color: var(--text);
+}
+
+.ov-pulse-row.is-zero strong {
+  color: var(--text-faint);
 }
 
 .ov-pulse-bar {
@@ -2501,6 +2588,7 @@ input[type='search'] {
 .ov-pulse-bar i {
   display: block;
   height: 100%;
+  min-width: 3px;
   border-radius: 999px;
   background: var(--bean);
   transition: width var(--t-med);
@@ -2511,230 +2599,162 @@ input[type='search'] {
 .ov-pulse-row.mailbox .ov-pulse-bar i { background: var(--lamp); }
 .ov-pulse-row.voice .ov-pulse-bar i { background: var(--bean); }
 
-.ov-rail-empty {
-  padding: 0.9rem 0;
-  color: var(--text-faint);
-  font-size: 0.8rem;
+/* --- Empty states: a message and a way out, never blank space --- */
+.ov-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  flex: 1;
+  min-height: 128px;
+  padding: 1.2rem 1rem;
+  text-align: center;
 }
 
-/* --- Health: collapsed until it matters --- */
-.cozy-health summary {
+.ov-empty i {
+  font-size: 18px;
+  color: var(--text-faint);
+  opacity: 0.75;
+}
+
+.ov-empty strong {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 560;
+  color: var(--text-soft);
+}
+
+.ov-empty p {
+  margin: 0;
+  max-width: 34ch;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-faint);
+}
+
+.ov-empty button {
+  margin-top: 0.15rem;
+  min-height: 34px;
+  padding: 0.3rem 0.9rem;
+  font-size: 13px;
+  border-radius: var(--r-sm);
+}
+
+/* --- Health: a single quiet strip until something is wrong --- */
+.ov-health summary {
   display: flex;
   align-items: center;
-  gap: 0.9rem;
+  gap: 0.75rem;
   cursor: pointer;
   list-style: none;
 }
 
-.cozy-health summary::-webkit-details-marker {
+.ov-health summary::-webkit-details-marker {
   display: none;
 }
 
-.cozy-health-title {
+.ov-health-title {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
   margin-right: auto;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 560;
+  color: var(--text-soft);
 }
 
-.cozy-health-title h2 {
-  margin: 0;
-}
-
-.cozy-health-chevron {
+.ov-health-title i {
   color: var(--text-faint);
-  font-size: 0.78rem;
+  font-size: 13px;
+}
+
+.ov-health-chevron {
+  color: var(--text-faint);
+  font-size: 12px;
   transition: transform var(--t-fast);
 }
 
-.cozy-health[open] .cozy-health-chevron {
+.ov-health[open] .ov-health-chevron {
   transform: rotate(180deg);
 }
 
-.cozy-health-body {
-  margin-top: 1.2rem;
+.ov-health-body {
+  margin-top: 1.1rem;
 }
 
-.cozy-health-rows {
-  display: flex;
-  flex-direction: column;
+.ov-health-rows {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.2rem 1.5rem;
   margin-bottom: 1.1rem;
 }
 
-.cozy-health-rows > div {
+.ov-health-rows > div {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.8rem;
-  padding: 0.62rem 0;
-  font-size: 0.85rem;
+  padding: 0.55rem 0;
+  font-size: 14px;
+  border-bottom: 1px solid var(--line);
 }
 
-.cozy-health-rows > div + div {
-  border-top: 1px solid var(--line);
-}
-
-.cozy-health-rows span {
+.ov-health-rows span {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
   color: var(--text-soft);
 }
 
-.cozy-health-rows span i {
+.ov-health-rows span i {
   width: 1rem;
   color: var(--text-faint);
-  font-size: 0.8rem;
+  font-size: 13px;
   text-align: center;
 }
 
-.cozy-health-rows strong {
+.ov-health-rows strong {
   font-variant-numeric: tabular-nums;
   font-weight: 640;
 }
 
-.cozy-health-block + .cozy-health-block {
+.ov-health-block + .ov-health-block {
   margin-top: 1.1rem;
 }
 
-/* The rail only earns its column once there is room for it beside the feed. */
-@media (min-width: 1280px) {
-  .ov-main {
-    grid-template-columns: minmax(0, 1fr) 306px;
+/* Compact chips are fine under a mouse, but a finger needs the full 44px target. */
+@media (pointer: coarse) {
+  .activity-filter,
+  .ov-empty button {
+    min-height: 44px;
+  }
+
+  .ov-person {
+    padding-block: 0.55rem;
   }
 }
 
-/* Health */
-.health-metric-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.8rem;
-  margin-bottom: 1.1rem;
-}
+/* --- Column spans. Below 1100px every block is full width and rows size to content;
+       the named row track only exists once the feed and rail actually share a row. --- */
+@media (min-width: 1100px) {
+  .overview-page {
+    grid-template-rows: auto auto minmax(320px, 1fr) auto;
+  }
 
-.health-metric {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  padding: 0.9rem 1rem;
-  border-radius: var(--r-md);
-  background: var(--raised);
-  border: 1px solid var(--line);
-}
+  .ov-stat {
+    grid-column: span 4;
+  }
 
-.health-metric span {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  background: var(--bean-soft);
-  color: var(--bean-bright);
-  font-size: 0.85rem;
-  flex: none;
-}
+  .ov-activity {
+    grid-column: span 8;
+  }
 
-.health-metric div {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.health-metric small {
-  font-size: 0.66rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-}
-
-.health-metric strong {
-  font-family: var(--font-display);
-  font-size: 1.08rem;
-  font-weight: 580;
-  font-variant-numeric: tabular-nums;
-}
-
-.health-details-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1.1rem;
-}
-
-.health-storage-list,
-.health-error-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.health-storage-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  padding: 0.55rem 0.15rem;
-  font-size: 0.85rem;
-  color: var(--text-soft);
-}
-
-.health-storage-item + .health-storage-item {
-  border-top: 1px dashed var(--line);
-}
-
-.health-error-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  padding: 0.6rem 0.75rem;
-  border-radius: var(--r-sm);
-  border-left: 3px solid var(--clay);
-  background: var(--clay-soft);
-  margin-bottom: 0.5rem;
-  font-size: 0.82rem;
-}
-
-/* What to actually do about it, set apart from the raw message above. */
-.health-error-remedy {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  margin: 0.4rem 0 0;
-  padding-top: 0.45rem;
-  border-top: 1px solid rgba(221, 146, 137, 0.24);
-  color: var(--text-soft);
-  font-size: 0.79rem;
-  line-height: 1.5;
-}
-
-.health-error-remedy i {
-  margin-top: 0.18rem;
-  color: var(--lamp);
-  font-size: 0.76rem;
-}
-
-/* Brief pulse when a notification click drops you here, so the jump is legible. */
-.health-error-list.is-flagged {
-  border-radius: var(--r-sm);
-  animation: health-flag 1.8s var(--ease);
-}
-
-@keyframes health-flag {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 176, 120, 0); }
-  18% { box-shadow: 0 0 0 3px rgba(220, 176, 120, 0.34); }
-  70% { box-shadow: 0 0 0 3px rgba(220, 176, 120, 0.22); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .health-error-list.is-flagged {
-    animation: none;
-    box-shadow: 0 0 0 3px rgba(220, 176, 120, 0.3);
+  .ov-rail {
+    grid-column: span 4;
   }
 }
-
-.health-empty {
-  padding: 0.7rem 0.15rem;
-  color: var(--text-faint);
-  font-size: 0.82rem;
-  font-family: var(--font-display);
-}
-
 /* Activity feed */
 .activity-filter-row {
   display: flex;
@@ -2767,19 +2787,22 @@ input[type='search'] {
 /* Discord message cadence: avatar, then name and timestamp on one line, body beneath.
    Rows bleed past the panel padding on hover, the way a chat line highlights full-width. */
 .activity-feed {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  max-height: 520px;
   overflow-y: auto;
-  padding-right: 0.3rem;
+  /* overflow-x hidden, not auto: the rows are inset rather than negatively margined now,
+     but a long unbroken token in a summary must never add a horizontal scrollbar. */
+  overflow-x: hidden;
+  padding-right: 0.25rem;
 }
 
 .activity-item {
   position: relative;
   display: flex;
   gap: 0.8rem;
-  padding: 0.5rem 0.6rem;
-  margin: 0 -0.6rem;
+  padding: 0.5rem 0.55rem;
   border-radius: var(--r-sm);
   transition: background var(--t-fast);
 }
@@ -2793,8 +2816,8 @@ input[type='search'] {
   content: '';
   position: absolute;
   left: 0;
-  top: 0.35rem;
-  bottom: 0.35rem;
+  top: 0.3rem;
+  bottom: 0.3rem;
   width: 2px;
   border-radius: 999px;
   background: var(--bean);
@@ -2878,13 +2901,6 @@ input[type='search'] {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.activity-empty {
-  padding: 1.4rem 0.5rem;
-  text-align: center;
-  color: var(--text-faint);
-  font-family: var(--font-display);
-}
-
 /* ---------- 14. Hub pages ---------- */
 .hub-hero {
   display: flex;

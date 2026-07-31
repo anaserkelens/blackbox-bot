@@ -702,12 +702,7 @@ function bindEvents() {
     loadActivityFeed(true).catch((error) => setSendStatus(error.message, 'error'));
   });
   activityFilterButtons.forEach((button) => {
-    button.addEventListener('click', () => {
-      state.activityType = button.dataset.activityType;
-      writeInterfacePreferences({ activityType: state.activityType });
-      activityFilterButtons.forEach((item) => item.classList.toggle('active', item === button));
-      loadActivityFeed(false).catch((error) => setSendStatus(error.message, 'error'));
-    });
+    button.addEventListener('click', () => selectActivityFilter(button.dataset.activityType));
   });
   memberSearchForm.addEventListener('submit', handleMemberSearch);
   memberSearchResults.addEventListener('click', handleMemberResultClick);
@@ -4359,6 +4354,7 @@ function renderOverviewSummary() {
     [overviewNewMembers, newMembers],
   ]) {
     element.textContent = value === null ? '—' : value.toLocaleString();
+    element.closest('.ov-stat')?.classList.toggle('is-zero', value === 0);
   }
 
   const waiting = [
@@ -4557,10 +4553,16 @@ function renderActivityFeed() {
   activityFeed.replaceChildren();
 
   if (state.activityItems.length === 0) {
-    const empty = document.createElement('div');
-    empty.className = 'activity-empty';
-    empty.innerHTML = '<i class="fa-solid fa-seedling" aria-hidden="true"></i><span>No activity in this category yet.</span>';
-    activityFeed.append(empty);
+    const filtered = Boolean(state.activityType);
+
+    activityFeed.append(buildEmptyState({
+      icon: 'fa-seedling',
+      title: filtered ? 'Nothing in this filter' : 'No activity recorded yet',
+      body: filtered
+        ? 'Bean has not logged anything of this kind. Try another filter.'
+        : 'Joins, cases, mailbox posts and voice rooms will collect here as they happen.',
+      action: filtered ? { label: 'Show everything', onClick: () => selectActivityFilter('') } : null,
+    }));
     return;
   }
 
@@ -4589,6 +4591,42 @@ function renderActivityFeed() {
   }
 }
 
+// An empty panel should still tell you what belongs there and give you a way forward,
+// rather than leaving a blank rectangle the size of the content that is missing.
+function buildEmptyState({ icon, title, body, action }) {
+  const wrap = document.createElement('div');
+  const heading = document.createElement('strong');
+  const copy = document.createElement('p');
+
+  wrap.className = 'ov-empty';
+  wrap.innerHTML = `<i class="fa-solid ${icon}" aria-hidden="true"></i>`;
+  heading.textContent = title;
+  copy.textContent = body;
+  wrap.append(heading, copy);
+
+  if (action) {
+    const button = document.createElement('button');
+
+    button.type = 'button';
+    button.className = 'secondary';
+    button.textContent = action.label;
+    button.addEventListener('click', action.onClick);
+    wrap.append(button);
+  }
+
+  return wrap;
+}
+
+// Shared by the filter buttons and the empty-state reset so both stay in step.
+function selectActivityFilter(type) {
+  state.activityType = type;
+  writeInterfacePreferences({ activityType: type });
+  activityFilterButtons.forEach((button) => {
+    button.classList.toggle('active', button.dataset.activityType === type);
+  });
+  loadActivityFeed(false).catch((error) => setSendStatus(error.message, 'error'));
+}
+
 // The rail reads the feed that is already loaded rather than asking the server for more:
 // recent joins come from the join events, the pulse from the 7-day summary.
 function renderOverviewRail() {
@@ -4602,10 +4640,12 @@ function renderOverviewRail() {
   overviewJoinsList.replaceChildren();
 
   if (joins.length === 0) {
-    const empty = document.createElement('p');
-    empty.className = 'ov-rail-empty';
-    empty.textContent = 'No one new has arrived yet.';
-    overviewJoinsList.append(empty);
+    overviewJoinsList.append(buildEmptyState({
+      icon: 'fa-user-plus',
+      title: 'No arrivals yet',
+      body: 'New members show up here the moment they join.',
+      action: { label: 'Browse members', onClick: () => setActiveTab('members') },
+    }));
   }
 
   joins.forEach((join, index) => {
@@ -4648,15 +4688,24 @@ function renderOverviewPulse() {
   // Bars are relative to the busiest row, so the shape stays readable at any scale.
   const peak = Math.max(1, ...rows.map((row) => summary[row.key] || 0));
 
+  if (peak === 1 && rows.every((row) => !summary[row.key])) {
+    overviewPulse.append(buildEmptyState({
+      icon: 'fa-wave-square',
+      title: 'A quiet week',
+      body: 'Nothing has happened in the last seven days.',
+    }));
+    return;
+  }
+
   for (const { key, label } of rows) {
     const value = summary[key] || 0;
     const row = document.createElement('div');
 
-    row.className = `ov-pulse-row ${key}`;
+    row.className = `ov-pulse-row ${key}${value === 0 ? ' is-zero' : ''}`;
     row.innerHTML = `
       <span>${label}</span>
       <strong>${value.toLocaleString()}</strong>
-      <span class="ov-pulse-bar"><i style="width: ${Math.round((value / peak) * 100)}%"></i></span>
+      <span class="ov-pulse-bar"><i style="width: ${value === 0 ? 0 : Math.round((value / peak) * 100)}%"></i></span>
     `;
     overviewPulse.append(row);
   }
