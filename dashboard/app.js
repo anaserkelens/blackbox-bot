@@ -6349,6 +6349,7 @@ function setActiveTab(tab, options = {}) {
   }
 
   document.title = `${getDashboardTabLabel(nextTab)} · Bean Dashboard`;
+  renderChannelHeader(nextTab);
 
   for (const button of tabButtons) {
     const isSelected = button.dataset.tab === primaryTab;
@@ -6501,6 +6502,51 @@ function getDashboardTabLabel(tab) {
     || featureNavList?.querySelector(`[data-tab-link="${tab}"] span`)?.textContent?.trim()
     || contextWorkspaceDefinitions.config.items.find((item) => item.tab === tab)?.label
     || 'Dashboard';
+}
+
+/* Channel topics, in Bean's voice. Label and icon come from the nav item that owns the
+   tab, so only the topic line lives here — renaming a nav entry renames the header too. */
+const dashboardTabTopics = {
+  overview: 'The room at a glance. What happened, who arrived, what still needs you.',
+  members: 'Look someone up. History, cases, and notes, all on one card.',
+  'community-growth': 'How the room is filling up, and what Bean can do to help it along.',
+  analytics: 'The slower numbers. Trends worth watching over weeks, not minutes.',
+  config: 'Channels, roles, and the wiring behind everything Bean does here.',
+  bot: 'Bean itself. Presence, status, and the knobs that change how it shows up.',
+  messages: 'Write something and send it as Bean. Embeds, plain text, whatever fits.',
+  mailbox: 'Updates, news, notices, and everything worth opening.',
+  'live-embed': 'Tell the room when you go live. Twitch and YouTube, announced automatically.',
+  'welcome-embed': 'The first thing a new member sees. Make it feel like the door was held open.',
+  'auto-responder': 'Canned replies for the questions that get asked every single week.',
+  cases: 'Warnings, timeouts, and bans. Every call logged, every call reversible.',
+  'bean-protection': 'Raid defence and quarantine. Bean watches the door so you do not have to.',
+  'invite-moderation': 'Stop other servers advertising in yours. Allow the ones you trust.',
+  'audit-logging': 'The paper trail. Who changed what, when, and in which channel.',
+  'report-system': 'Let members flag trouble quietly, without a public callout.',
+  tickets: 'Private threads for the conversations that should not happen in the open.',
+  'reaction-roles': 'Members pick their own roles from a message. No mod needed.',
+  'voice-rooms': 'Rooms that appear when someone needs one and vanish when they leave.',
+  automations: 'If this happens, do that. The rules that run while you are asleep.',
+  backup: 'Snapshots of the server setup, so a bad day is only ever a restore away.',
+  giveaways: 'Run a draw, pick a winner, keep it fair.',
+  boosts: 'Say thank you to the people keeping the lights on.',
+};
+
+function renderChannelHeader(tab) {
+  const header = document.querySelector('#channel-header');
+
+  if (!header) {
+    return;
+  }
+
+  const navIcon = dashboardView
+    .querySelector(`.tab-button[data-tab="${tab}"] i, [data-tab-link="${tab}"] i`)
+    ?.className;
+
+  header.querySelector('#channel-header-icon').className =
+    `channel-header-icon ${navIcon || 'fa-solid fa-hashtag'}`;
+  header.querySelector('#channel-header-name').textContent = getDashboardTabLabel(tab);
+  header.querySelector('#channel-header-topic').textContent = dashboardTabTopics[tab] || '';
 }
 
 function handleGlobalKeydown(event) {

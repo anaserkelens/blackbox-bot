@@ -246,6 +246,14 @@
             </button>
           </div>
           <div class="dashboard-content">
+            <!-- Discord's channel header: one element for all panels, filled by
+                 renderChannelHeader() from the nav item that owns the active tab. -->
+            <header class="channel-header" id="channel-header">
+              <i id="channel-header-icon" class="channel-header-icon fa-solid fa-house" aria-hidden="true"></i>
+              <h1 id="channel-header-name" class="channel-header-name">Overview</h1>
+              <span class="channel-header-rule" aria-hidden="true"></span>
+              <p id="channel-header-topic" class="channel-header-topic"></p>
+            </header>
             <section class="tab-panel overview-page" data-panel="overview">
               <!-- One 12-column grid for the whole page: every edge below lands on the same
                    column lines, so the banner, the stat row and the feed/rail share one seam. -->
