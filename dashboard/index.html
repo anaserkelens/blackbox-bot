@@ -383,17 +383,14 @@
                 </section>
               </aside>
 
-              <!-- Health is infra detail, not community work: the topbar presence pill already
-                   says whether Bean is up, so this stays shut until something is actually wrong. -->
-              <details id="overview-health" class="dashboard-panel ov-health">
-                <summary>
+              <section id="overview-health" class="dashboard-panel ov-health">
+                <div class="ov-health-header">
                   <span class="ov-health-title">
                     <i class="fa-solid fa-heart-pulse" aria-hidden="true"></i>
                     Bean health
                   </span>
                   <span id="health-status" class="status-pill">Checking health</span>
-                  <i class="fa-solid fa-chevron-down ov-health-chevron" aria-hidden="true"></i>
-                </summary>
+                </div>
 
                 <div class="ov-health-body">
                   <div class="ov-health-rows">
@@ -434,7 +431,7 @@
                     </button>
                   </div>
                 </div>
-              </details>
+              </section>
             </section>
 
         <section class="tab-panel" data-panel="mailbox" hidden>

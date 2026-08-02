@@ -25,7 +25,6 @@ const overviewOpenCases = document.querySelector('#overview-open-cases');
 const overviewScheduledPosts = document.querySelector('#overview-scheduled-posts');
 const overviewNewMembers = document.querySelector('#overview-new-members');
 const overviewStateLine = document.querySelector('#overview-state-line');
-const overviewHealth = document.querySelector('#overview-health');
 const overviewJoinsList = document.querySelector('#ov-joins-list');
 const overviewJoinsCount = document.querySelector('#ov-joins-count');
 const overviewPulse = document.querySelector('#ov-pulse');
@@ -4408,14 +4407,6 @@ function renderDashboardHealth() {
   healthApi.textContent = health.api?.healthy ? 'Healthy' : 'Unavailable';
   renderHealthStorage(health.storage || []);
   renderHealthErrors(health.errors || []);
-
-  // Only pop the panel open on the first bad reading, so a manual toggle survives polling.
-  if (!healthy && !overviewHealth.dataset.alerted) {
-    overviewHealth.open = true;
-    overviewHealth.dataset.alerted = 'true';
-  } else if (healthy) {
-    delete overviewHealth.dataset.alerted;
-  }
 }
 
 function renderHealthStorage(stores) {
@@ -6021,18 +6012,13 @@ function handleNotificationCenterClick(event) {
   setActiveTab(notification.tab || 'overview');
   closeNotificationCenter();
 
-  // Errors live inside the collapsed health panel, so landing on the tab is not enough —
-  // open it and take the reader to the entry, otherwise the click looks like it did nothing.
+  // Take the reader directly to the relevant health entry.
   if (notification.type === 'error') {
     revealHealthErrors();
   }
 }
 
 function revealHealthErrors() {
-  // Opening <details> exposes the list to layout immediately, so the scroll can follow
-  // straight away — no rAF, which would never fire if the tab were backgrounded.
-  overviewHealth.open = true;
-  overviewHealth.dataset.alerted = 'true';
   healthErrorList.scrollIntoView({ behavior: 'smooth', block: 'center' });
   healthErrorList.classList.add('is-flagged');
   window.setTimeout(() => healthErrorList.classList.remove('is-flagged'), 1800);

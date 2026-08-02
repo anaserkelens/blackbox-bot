@@ -2654,21 +2654,15 @@ input[type='search'] {
   border-radius: var(--r-sm);
 }
 
-/* --- Health: a single quiet strip until something is wrong --- */
+/* --- Health --- */
 .ov-health {
   padding: 0.85rem 1.3rem;
 }
 
-.ov-health summary {
+.ov-health-header {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  cursor: pointer;
-  list-style: none;
-}
-
-.ov-health summary::-webkit-details-marker {
-  display: none;
 }
 
 .ov-health-title {
@@ -2685,16 +2679,6 @@ input[type='search'] {
 .ov-health-title i {
   color: var(--text-faint);
   font-size: 13px;
-}
-
-.ov-health-chevron {
-  color: var(--text-faint);
-  font-size: 12px;
-  transition: transform var(--t-fast);
-}
-
-.ov-health[open] .ov-health-chevron {
-  transform: rotate(180deg);
 }
 
 .ov-health-body {
