@@ -43,8 +43,11 @@
   --clay: #dd9289;
   --clay-soft: rgba(221, 146, 137, 0.13);
 
-  --font-display: 'Geist Variable', 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-body: 'Geist Variable', 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Manrope Variable: axis is 200–800, so nothing here may ask for more than 800 or it
+     silently clamps. High x-height keeps the 12–13px labels legible, and it runs
+     narrower than Inter, which matters in a fixed-width content column. */
+  --font-display: 'Manrope Variable', 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Manrope Variable', 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: ui-monospace, 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
 
   --r-xl: 26px;
@@ -1226,7 +1229,7 @@ input[type='search'] {
   background: var(--clay);
   color: #1c1210;
   font-size: 0.62rem;
-  font-weight: 900;
+  font-weight: 800;   /* Manrope's heaviest; 900 would clamp here anyway */
   display: grid;
   place-items: center;
   border: 2px solid var(--bg);
@@ -1619,7 +1622,7 @@ input[type='search'] {
 .nav-section-label {
   margin: 1.25rem 0.75rem 0.45rem;
   font-size: 0.65rem;
-  font-weight: 850;
+  font-weight: 800;   /* Manrope's heaviest; 850 would clamp here anyway */
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text);
@@ -1818,8 +1821,19 @@ input[type='search'] {
      internally, so the page ends where its content ends instead of being stretched to a
      full screen and padded out with dead space. */
 
-  /* The corner patch existed to fill the sidebar's rounded top-left. The sidebar is
-     square now, so there is no corner to fill. */
+  /* Sits behind the sidebar's rounded top-left (z 79 vs the sidebar's 80) so the notch
+     shows the rail/topbar tier rather than the darker page behind everything. */
+  .dashboard::before {
+    content: '';
+    position: fixed;
+    left: 72px;
+    top: 72px;
+    z-index: 79;
+    width: var(--r-xl);
+    height: var(--r-xl);
+    background: var(--well);
+    pointer-events: none;
+  }
 
   .dashboard-content {
     width: 100%;
@@ -1857,15 +1871,18 @@ input[type='search'] {
     height: calc(100dvh - 72px);
     max-height: none;
     background: var(--nav);
-    /* Square and borderless: columns are told apart by their tier colour, the way
-       Discord's rail / channel list / message area are. */
+    /* Borderless: columns are told apart by their tier colour, the way Discord's
+       rail / channel list / message area are. The one exception is the top-left
+       corner, which stays rounded as the app frame's shoulder. */
     border: 0;
-    border-radius: 0;
+    border-radius: var(--r-xl) 0 0;
     box-shadow: none;
   }
 
+  /* The guild header paints the top of the sidebar, so it has to carry the same
+     corner or its background squares it off again. */
   .dashboard-tabs .guild-header {
-    border-radius: 0;
+    border-radius: var(--r-xl) 0 0 0;
   }
 
   .server-rail {
