@@ -8,7 +8,6 @@
 :root {
   --nav-gap: 0.35rem;                /* sidebar column gap; banner offset depends on it */
   --topbar-h: 72px;                  /* fixed topbar; content offset and full-height panels use it */
-  --dashboard-pad-b: 2.5rem;         /* bottom breathing room under the content column */
   --guild-header-h: 52px;            /* sticky server name row */
   --channel-header-h: 48px;          /* sticky per-page channel bar; overview height math uses it */
   --userbar-h: 62px;                 /* floating account bar, spans rail + sidebar */
@@ -1791,6 +1790,8 @@ input[type='search'] {
 
 /* The message area. Lightest tier, one surface, and the only region that scrolls its
    own content — everything a page renders lives inside this box. */
+/* The message area. Lightest tier, square, full bleed — it is a region of the window,
+   not a card floating on one. */
 .dashboard-content {
   min-width: 0;
   display: flex;
@@ -1798,36 +1799,28 @@ input[type='search'] {
   flex: 1;
   min-height: 0;
   background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
+  border: 0;
+  border-radius: 0;
 }
 
 @media (min-width: 1081px) {
+  /* Flush, like Discord: the content column butts straight against the sidebar (72px
+     rail + 276px nav = 348px) and runs to the right and bottom edges of the window.
+     No gutter, no floating card — the tier colours do the separating, not whitespace. */
   .dashboard {
     max-width: none;
     margin: 0;
-    padding:
-      calc(var(--topbar-h) + 1.1rem) clamp(1rem, 2.4vw, 2rem) var(--dashboard-pad-b)
-      calc(348px + clamp(1rem, 2.4vw, 2rem));
+    gap: 0;
+    padding: var(--topbar-h) 0 0 348px;
   }
 
   /* No viewport cap on the page. The feed and the joins list cap themselves and scroll
      internally, so the page ends where its content ends instead of being stretched to a
      full screen and padded out with dead space. */
 
-  .dashboard::before {
-    content: '';
-    position: fixed;
-    left: 72px;
-    top: 72px;
-    z-index: 79;
-    width: var(--r-xl);
-    height: var(--r-xl);
-    background: var(--well);
-    pointer-events: none;
-  }
+  /* The corner patch existed to fill the sidebar's rounded top-left. The sidebar is
+     square now, so there is no corner to fill. */
 
-  /* Full bleed: the sidebar already frames the page, no centred column on top of it. */
   .dashboard-content {
     width: 100%;
   }
@@ -1864,16 +1857,15 @@ input[type='search'] {
     height: calc(100dvh - 72px);
     max-height: none;
     background: var(--nav);
+    /* Square and borderless: columns are told apart by their tier colour, the way
+       Discord's rail / channel list / message area are. */
     border: 0;
-    border-top: 1px solid var(--line);
-    border-left: 1px solid var(--line);
-    border-right: 1px solid var(--line);
-    border-radius: var(--r-xl) 0 0;
+    border-radius: 0;
     box-shadow: none;
   }
 
   .dashboard-tabs .guild-header {
-    border-radius: calc(var(--r-xl) - 1px) 0 0 0;
+    border-radius: 0;
   }
 
   .server-rail {
@@ -8724,7 +8716,7 @@ button.growth-search-result span {
   padding: 0.5rem 1.15rem;
   background: var(--panel);
   border-bottom: 1px solid var(--line-strong);
-  border-radius: calc(var(--r-lg) - 1px) calc(var(--r-lg) - 1px) 0 0;
+  border-radius: 0;
   box-shadow: 0 4px 12px -8px rgba(0, 0, 0, 0.8);
 }
 
