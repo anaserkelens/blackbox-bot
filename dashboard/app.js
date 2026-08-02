@@ -4570,7 +4570,18 @@ function renderActivityFeed() {
     return;
   }
 
+  let lastDayKey = null;
+
   for (const activity of state.activityItems) {
+    // Discord splits a channel by day with a ruled date divider. Same idea here: the
+    // feed is a message list, so it gets the same seam.
+    const dayKey = toActivityDayKey(activity.createdAt);
+
+    if (dayKey && dayKey !== lastDayKey) {
+      activityFeed.append(buildActivityDayDivider(activity.createdAt));
+      lastDayKey = dayKey;
+    }
+
     const item = document.createElement('article');
     const icon = document.createElement('span');
     const copy = document.createElement('div');
@@ -4593,6 +4604,46 @@ function renderActivityFeed() {
     item.append(icon, copy);
     activityFeed.append(item);
   }
+}
+
+function toActivityDayKey(value) {
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime()) ? null : date.toDateString();
+}
+
+// "Today" / "Yesterday" beat a bare date for the two days that carry most of the feed.
+function formatActivityDay(value) {
+  const date = new Date(value);
+  const today = new Date();
+  const yesterday = new Date(today);
+
+  yesterday.setDate(today.getDate() - 1);
+
+  if (date.toDateString() === today.toDateString()) {
+    return 'Today';
+  }
+
+  if (date.toDateString() === yesterday.toDateString()) {
+    return 'Yesterday';
+  }
+
+  return date.toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'long',
+    year: date.getFullYear() === today.getFullYear() ? undefined : 'numeric',
+  });
+}
+
+function buildActivityDayDivider(value) {
+  const divider = document.createElement('div');
+  const label = document.createElement('span');
+
+  divider.className = 'activity-day';
+  label.textContent = formatActivityDay(value);
+  divider.append(label);
+
+  return divider;
 }
 
 // An empty panel should still tell you what belongs there and give you a way forward,

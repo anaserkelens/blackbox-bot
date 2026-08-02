@@ -9,7 +9,7 @@
   --nav-gap: 0.35rem;                /* sidebar column gap; banner offset depends on it */
   --topbar-h: 72px;                  /* fixed topbar; content offset and full-height panels use it */
   --guild-header-h: 52px;            /* sticky server name row */
-  --channel-header-h: 48px;          /* sticky per-page channel bar; overview height math uses it */
+  --channel-header-h: 56px;          /* sticky per-page channel bar; sticky offsets derive from it */
   --userbar-h: 62px;                 /* floating account bar, spans rail + sidebar */
   --userbar-gap: 10px;               /* how far it floats off the bottom-left */
   --bean: #8fa1be;
@@ -2090,7 +2090,7 @@ input[type='search'] {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  padding: 1.15rem;
+  padding: 16px;   /* one gutter for the whole app; the channel header uses it too */
   animation: bean-panel-in 300ms var(--ease);
 }
 
@@ -2441,11 +2441,13 @@ input[type='search'] {
   font-size: 18px;
 }
 
+/* No inner gutter: the message rows carry their own 16px, so the hover band can run to
+   the edge of the message area the way a channel's does. */
 .ov-activity {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: 1.2rem 1.3rem;
+  padding: 0;
 }
 
 .ov-rail {
@@ -8734,10 +8736,12 @@ button.growth-search-result span {
   min-height: var(--channel-header-h);
   margin: 0;
   padding: 0 16px;
-  background: var(--panel);
-  border-bottom: 1px solid var(--line-strong);
+  /* A hair lighter than the content column it sits on. Identical backgrounds left the
+     bar with no mass at all — only its 1px border said it was there. */
+  background: var(--raised);
+  border-bottom: 1px solid var(--line);
   border-radius: 0;
-  box-shadow: 0 4px 12px -8px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.28), 0 8px 16px -10px rgba(0, 0, 0, 0.9);
 }
 
 .channel-header-icon {
@@ -8792,11 +8796,11 @@ button.growth-search-result span {
 .channel-header-action {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   min-height: 0;
   padding: 0;
-  font-size: 15px;
+  font-size: 18px;
   color: var(--text-faint);
   background: none;
   border: 0;
@@ -8823,11 +8827,11 @@ button.growth-search-result span {
 /* Wins over the global input rule, which would otherwise stretch this to the full
    column and force a 44px touch target into a 48px bar. */
 .channel-header-search input {
-  width: 168px;
+  width: 200px;
   min-height: 0;
-  height: 28px;
-  padding: 0 28px 0 10px;
-  font-size: 13px;
+  height: 32px;
+  padding: 0 32px 0 12px;
+  font-size: 14px;
   border-radius: var(--r-sm);
   background: var(--well);
   border: 1px solid transparent;
@@ -8835,7 +8839,7 @@ button.growth-search-result span {
 }
 
 .channel-header-search input:focus-visible {
-  width: 220px;
+  width: 260px;
   border-color: var(--bean);
   box-shadow: none;
 }
@@ -8847,8 +8851,8 @@ button.growth-search-result span {
 
 .channel-header-search i {
   position: absolute;
-  right: 9px;
-  font-size: 12px;
+  right: 11px;
+  font-size: 13px;
   color: var(--text-faint);
   pointer-events: none;
 }
@@ -8920,6 +8924,133 @@ button.growth-search-result span {
   font-weight: 560;
 }
 
+/* ---- Channel intro ----
+   Discord opens a channel with a large round glyph, the channel name and a line of
+   explanation, then rules off before the first message. The overview greeting takes
+   that exact shape so the top of the page reads as the start of a channel. */
+.overview-page .ov-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  padding: 8px 16px 20px;
+  margin-inline: -16px;
+  border-bottom: 1px solid var(--line);
+  background: none;
+}
+
+.ov-banner-glyph {
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  margin-bottom: 8px;
+  border-radius: 50%;
+  background: var(--raised);
+  color: var(--text-soft);
+  font-size: 30px;
+}
+
+.overview-page .ov-banner h1 {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0 0 6px;
+}
+
+.overview-page .ov-banner-lead {
+  font-size: 15px;
+  color: var(--text-soft);
+  margin: 0;
+  max-width: 68ch;
+}
+
+.overview-page .ov-banner-meta {
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.overview-page .ov-banner-actions {
+  margin-top: 16px;
+}
+
+/* ---- Message list ----
+   Discord's row: 40px avatar, name and timestamp sharing one baseline, body beneath,
+   and a full-bleed hover band. 16px gutter matches the channel header above it.
+   The bleed lives on the scroller, not the rows — .activity-feed clips overflow-x, so
+   negatively margined rows would have their hover band cut off at the edge. */
+.activity-feed {
+  gap: 0;
+  /* Left only: the message list runs flush to the channel edge, but its right edge stops
+     at the member rail rather than sliding under it. */
+  margin-left: -16px;
+  margin-right: 0;
+  padding-right: 0;
+}
+
+.activity-item {
+  gap: 16px;
+  padding: 6px 16px;
+  margin-inline: 0;
+  border-radius: 0;
+}
+
+.activity-item:hover {
+  background: rgba(0, 0, 0, 0.16);
+}
+
+/* The coloured spine was a dashboard flourish; a channel row just lifts on hover. */
+.activity-item::before {
+  display: none;
+}
+
+.activity-icon {
+  width: 40px;
+  height: 40px;
+  font-size: 15px;
+}
+
+.activity-head {
+  align-items: baseline;
+  gap: 8px;
+}
+
+.activity-copy strong {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.activity-copy time {
+  font-size: 12px;
+}
+
+.activity-copy p {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text-soft);
+}
+
+/* ---- Date divider ----
+   A hairline across the feed with the day sitting in a gap in the middle of it. */
+.activity-day {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 18px 0 10px;
+  border-top: 1px solid var(--line);
+}
+
+.activity-day span {
+  transform: translateY(-50%);
+  padding: 0 8px;
+  background: var(--panel);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-faint);
+}
+
 /* ---- Group labels ----
    Discord labels a group with small uppercase text, not a heading in a card. The
    eyebrow already sat above most panel titles, so it becomes that label and the h2
@@ -8980,8 +9111,8 @@ button.growth-search-result span {
   border: 0;
   border-radius: var(--r-sm);
   box-shadow: none;
-  padding: 0.6rem 1.15rem;
-  margin-inline: -1.15rem;   /* cancels .tab-panel's gutter so hover reaches the edge */
+  padding: 0.6rem 16px;
+  margin-inline: -16px;   /* cancels .tab-panel's gutter so hover reaches the edge */
   transition: background var(--t-fast);
 }
 

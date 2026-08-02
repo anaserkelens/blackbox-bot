@@ -278,16 +278,22 @@
             <section class="tab-panel overview-page" data-panel="overview">
               <!-- One 12-column grid for the whole page: every edge below lands on the same
                    column lines, so the banner, the stat row and the feed/rail share one seam. -->
+              <!-- Discord's channel intro: a big round glyph, the greeting, then the
+                   state line. It marks the top of the feed the way "Welcome to #channel"
+                   marks the start of a channel. -->
               <section class="ov-banner" aria-labelledby="room-heading">
+                <span class="ov-banner-glyph" aria-hidden="true">
+                  <i class="fa-solid fa-house"></i>
+                </span>
                 <div class="ov-banner-copy">
+                  <h1 id="room-heading">Welcome back.</h1>
+                  <p class="ov-banner-lead" id="overview-state-line">Bean is having a look around…</p>
                   <p class="ov-banner-meta">
                     <span class="ov-presence" aria-hidden="true"></span>
                     <span id="journal-date">Today</span>
                     <span class="ov-meta-dot" aria-hidden="true"></span>
                     <span class="ov-banner-open">The room is open</span>
                   </p>
-                  <h1 id="room-heading">Welcome back.</h1>
-                  <p class="ov-banner-lead" id="overview-state-line">Bean is having a look around…</p>
                 </div>
                 <div class="ov-banner-actions">
                   <button type="button" data-tab-link="messages">
