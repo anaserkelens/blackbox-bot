@@ -705,6 +705,8 @@ function bindEvents() {
     button.addEventListener('click', () => selectActivityFilter(button.dataset.activityType));
   });
   memberSearchForm.addEventListener('submit', handleMemberSearch);
+  document.querySelector('#channel-refresh')?.addEventListener('click', handleChannelRefresh);
+  document.querySelector('#channel-search')?.addEventListener('submit', handleChannelSearch);
   memberSearchResults.addEventListener('click', handleMemberResultClick);
   analyticsRangeInput.addEventListener('change', () => {
     writeInterfacePreferences({ analyticsRange: analyticsRangeInput.value });
@@ -6532,6 +6534,13 @@ const dashboardTabTopics = {
   boosts: 'Say thank you to the people keeping the lights on.',
 };
 
+/* Every page already ships its own refresh control; rather than maintaining a tab →
+   handler map that would drift, the header just drives whichever one the active panel
+   owns, and hides itself on the pages that have none. */
+function getPanelRefreshButton(tab) {
+  return document.querySelector(`[data-panel="${tab}"] [id^="refresh-"]`);
+}
+
 function renderChannelHeader(tab) {
   const header = document.querySelector('#channel-header');
 
@@ -6547,6 +6556,32 @@ function renderChannelHeader(tab) {
     `channel-header-icon ${navIcon || 'fa-solid fa-hashtag'}`;
   header.querySelector('#channel-header-name').textContent = getDashboardTabLabel(tab);
   header.querySelector('#channel-header-topic').textContent = dashboardTabTopics[tab] || '';
+
+  const refresh = header.querySelector('#channel-refresh');
+
+  if (refresh) {
+    refresh.hidden = !getPanelRefreshButton(tab);
+  }
+}
+
+function handleChannelRefresh() {
+  getPanelRefreshButton(getActiveTab())?.click();
+}
+
+function handleChannelSearch(event) {
+  event.preventDefault();
+
+  const input = document.querySelector('#channel-search-input');
+  const query = input?.value.trim();
+
+  if (!query) {
+    return;
+  }
+
+  setActiveTab('members');
+  memberSearchInput.value = query;
+  input.value = '';
+  memberSearchForm.requestSubmit();
 }
 
 function handleGlobalKeydown(event) {

@@ -253,6 +253,27 @@
               <h1 id="channel-header-name" class="channel-header-name">Overview</h1>
               <span class="channel-header-rule" aria-hidden="true"></span>
               <p id="channel-header-topic" class="channel-header-topic"></p>
+              <div class="channel-header-actions">
+                <button
+                  id="channel-refresh"
+                  class="channel-header-action"
+                  type="button"
+                  aria-label="Refresh this page"
+                  title="Refresh this page"
+                >
+                  <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+                </button>
+                <form id="channel-search" class="channel-header-search" role="search">
+                  <input
+                    id="channel-search-input"
+                    type="search"
+                    placeholder="Search members"
+                    aria-label="Search members"
+                    autocomplete="off"
+                  />
+                  <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                </form>
+              </div>
             </header>
             <section class="tab-panel overview-page" data-panel="overview">
               <!-- One 12-column grid for the whole page: every edge below lands on the same

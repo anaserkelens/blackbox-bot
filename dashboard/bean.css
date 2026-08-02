@@ -8720,17 +8720,20 @@ button.growth-search-result span {
 
 /* Spans the whole content column, edge to edge, like a real channel header. It is the
    lid of the surface, so it carries the column's top corners. */
+/* Metrics mirror Discord's channel header: 48px tall, 16px gutter, a 20px muted glyph,
+   a 16px/600 name, an 8px-tall rule, and a 14px topic. */
 .channel-header {
   position: sticky;
   top: var(--topbar-h);
   z-index: 5;
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 8px;
   flex: none;
+  height: var(--channel-header-h);
   min-height: var(--channel-header-h);
   margin: 0;
-  padding: 0.5rem 1.15rem;
+  padding: 0 16px;
   background: var(--panel);
   border-bottom: 1px solid var(--line-strong);
   border-radius: 0;
@@ -8739,13 +8742,15 @@ button.growth-search-result span {
 
 .channel-header-icon {
   color: var(--text-faint);
-  font-size: 0.95rem;
+  font-size: 20px;
+  width: 24px;
+  text-align: center;
   flex: none;
 }
 
 .channel-header-name {
   font-family: var(--font-display);
-  font-size: 1.02rem;
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: -0.005em;
   line-height: 1.2;
@@ -8756,19 +8761,103 @@ button.growth-search-result span {
 
 .channel-header-rule {
   width: 1px;
-  align-self: stretch;
-  margin: 0.28rem 0.25rem;
+  height: 24px;
+  align-self: center;
+  margin: 0 8px;
   background: var(--line-strong);
   flex: none;
 }
 
 .channel-header-topic {
   min-width: 0;
-  font-size: 0.82rem;
+  flex: 1;
+  font-size: 14px;
   color: var(--text-faint);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ---- Header toolbar ----
+   The right side was empty. Discord parks the per-channel affordances here, so this is
+   where the page's refresh and a member lookup live now. */
+.channel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex: none;
+}
+
+.channel-header-action {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  min-height: 0;
+  padding: 0;
+  font-size: 15px;
+  color: var(--text-faint);
+  background: none;
+  border: 0;
+  border-radius: var(--r-sm);
+  box-shadow: none;
+  cursor: pointer;
+  transition: color var(--t-fast), background var(--t-fast);
+}
+
+.channel-header-action:hover {
+  color: var(--text);
+  background: var(--bean-softer);
+  transform: none;
+  filter: none;
+}
+
+.channel-header-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: none;
+}
+
+/* Wins over the global input rule, which would otherwise stretch this to the full
+   column and force a 44px touch target into a 48px bar. */
+.channel-header-search input {
+  width: 168px;
+  min-height: 0;
+  height: 28px;
+  padding: 0 28px 0 10px;
+  font-size: 13px;
+  border-radius: var(--r-sm);
+  background: var(--well);
+  border: 1px solid transparent;
+  transition: width var(--t-med), border-color var(--t-fast), background var(--t-fast);
+}
+
+.channel-header-search input:focus-visible {
+  width: 220px;
+  border-color: var(--bean);
+  box-shadow: none;
+}
+
+.channel-header-search input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.channel-header-search i {
+  position: absolute;
+  right: 9px;
+  font-size: 12px;
+  color: var(--text-faint);
+  pointer-events: none;
+}
+
+/* Below this the topic is already hidden; the search would crowd the name next. */
+@media (max-width: 900px) {
+  .channel-header-search {
+    display: none;
+  }
 }
 
 /* The topic is the first thing worth dropping when the column gets tight. */
