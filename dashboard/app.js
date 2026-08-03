@@ -4637,8 +4637,7 @@ function renderActivityFeed() {
   if (visibleItems.length === 0) {
     const filtered = Boolean(state.activityType);
 
-    activityFeed.append(buildEmptyState({
-      icon: 'fa-seedling',
+    activityFeed.append(buildActivityEmptyMessage({
       title: search ? 'No matching activity' : filtered ? 'Nothing in this filter' : 'No activity recorded yet',
       body: search
         ? `Nothing in this feed matches “${state.activitySearch}”.`
@@ -4665,27 +4664,76 @@ function renderActivityFeed() {
     }
 
     const item = document.createElement('article');
-    const icon = document.createElement('span');
+    const avatar = document.createElement('span');
     const copy = document.createElement('div');
     const head = document.createElement('div');
+    const author = document.createElement('strong');
+    const botTag = document.createElement('span');
+    const eventLine = document.createElement('div');
+    const eventIcon = document.createElement('span');
     const title = document.createElement('strong');
     const summary = document.createElement('p');
     const time = document.createElement('time');
 
     item.className = `activity-item ${activity.type}`;
-    icon.className = `activity-icon ${activity.type}`;
-    icon.innerHTML = `<i class="fa-solid ${getActivityIcon(activity.type)}" aria-hidden="true"></i>`;
+    avatar.className = 'activity-icon ov-bean-avatar';
+    avatar.innerHTML = '<img src="/assets/bean-icon.png" alt=""><i aria-hidden="true"></i>';
     copy.className = 'activity-copy';
     head.className = 'activity-head';
+    author.textContent = 'Bean';
+    botTag.className = 'ov-bot-tag';
+    botTag.textContent = 'APP';
+    eventLine.className = 'activity-event-line';
+    eventIcon.className = `activity-event-icon ${activity.type}`;
+    eventIcon.innerHTML = `<i class="fa-solid ${getActivityIcon(activity.type)}" aria-hidden="true"></i>`;
     title.textContent = activity.title;
     summary.textContent = activity.summary || activity.details?.[0] || 'Bean recorded this action.';
     time.dateTime = activity.createdAt;
     time.textContent = formatDashboardCaseDateTime(activity.createdAt);
-    head.append(title, time);
-    copy.append(head, summary);
-    item.append(icon, copy);
+    head.append(author, botTag, time);
+    eventLine.append(eventIcon, title);
+    copy.append(head, eventLine, summary);
+    item.append(avatar, copy);
     activityFeed.append(item);
   }
+}
+
+function buildActivityEmptyMessage({ title, body, action }) {
+  const item = document.createElement('article');
+  const avatar = document.createElement('span');
+  const copy = document.createElement('div');
+  const head = document.createElement('div');
+  const author = document.createElement('strong');
+  const botTag = document.createElement('span');
+  const heading = document.createElement('strong');
+  const message = document.createElement('p');
+
+  item.className = 'activity-item activity-empty-message';
+  avatar.className = 'activity-icon ov-bean-avatar';
+  avatar.innerHTML = '<img src="/assets/bean-icon.png" alt=""><i aria-hidden="true"></i>';
+  copy.className = 'activity-copy';
+  head.className = 'activity-head';
+  author.textContent = 'Bean';
+  botTag.className = 'ov-bot-tag';
+  botTag.textContent = 'APP';
+  head.append(author, botTag);
+  heading.className = 'activity-empty-title';
+  heading.textContent = title;
+  message.textContent = body;
+  copy.append(head, heading, message);
+
+  if (action) {
+    const button = document.createElement('button');
+
+    button.type = 'button';
+    button.className = 'secondary activity-empty-action';
+    button.textContent = action.label;
+    button.addEventListener('click', action.onClick);
+    copy.append(button);
+  }
+
+  item.append(avatar, copy);
+  return item;
 }
 
 function toActivityDayKey(value) {
@@ -4777,12 +4825,11 @@ function renderOverviewRail() {
   overviewJoinsList.replaceChildren();
 
   if (joins.length === 0) {
-    overviewJoinsList.append(buildEmptyState({
-      icon: 'fa-user-plus',
-      title: 'No arrivals yet',
-      body: 'New members show up here the moment they join.',
-      action: { label: 'Browse members', onClick: () => setActiveTab('members') },
-    }));
+    const empty = document.createElement('p');
+
+    empty.className = 'ov-rail-empty';
+    empty.textContent = 'No recent arrivals';
+    overviewJoinsList.append(empty);
   }
 
   joins.forEach((join, index) => {

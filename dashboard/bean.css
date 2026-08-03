@@ -2892,6 +2892,424 @@ input[type='search'] {
   }
 }
 
+/* ---------- 35. Overview as a Discord channel ---------- */
+.overview-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 250px;
+  gap: 0;
+  min-height: calc(100dvh - var(--topbar-h) - var(--channel-header-h));
+  height: calc(100dvh - var(--topbar-h) - var(--channel-header-h));
+  padding: 0;
+  overflow: hidden;
+}
+
+.overview-page > .ov-channel {
+  grid-column: 1;
+}
+
+.overview-page > .ov-rail {
+  grid-column: 2;
+}
+
+.ov-channel {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-width: 0;
+  min-height: 0;
+  background: var(--panel);
+}
+
+.ov-channel-scroll {
+  min-height: 0;
+  padding: 16px 0 24px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+
+.ov-bean-message,
+.activity-item {
+  position: relative;
+  display: flex;
+  gap: 16px;
+  padding: 6px 16px;
+  border-radius: 0;
+  transition: background var(--t-fast);
+}
+
+.ov-bean-message:hover,
+.activity-item:hover {
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.ov-welcome-message {
+  padding-top: 18px;
+  padding-bottom: 14px;
+}
+
+.ov-message-avatar,
+.activity-icon {
+  position: relative;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  overflow: visible;
+  border-radius: 50%;
+  background: var(--raised);
+}
+
+.ov-message-avatar img,
+.activity-icon img,
+.ov-member-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.ov-bean-avatar > i,
+.ov-member-avatar > i {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 12px;
+  height: 12px;
+  border: 3px solid var(--panel);
+  border-radius: 50%;
+  background: var(--sage);
+}
+
+.ov-message-content,
+.activity-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.ov-message-head,
+.activity-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-height: 20px;
+}
+
+.ov-message-head strong,
+.activity-head > strong:first-child {
+  color: var(--bean-bright);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.ov-message-head time,
+.activity-head time {
+  color: var(--text-faint);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ov-bot-tag {
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--bean);
+  color: var(--bean-ink);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.overview-page .ov-welcome-message h1 {
+  margin: 4px 0 2px;
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+.ov-welcome-message p,
+.ov-notice-copy p,
+.activity-copy p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.ov-message-components {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ov-message-components button {
+  min-height: 32px;
+  padding: 0.3rem 0.75rem;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.ov-notice-message[hidden] {
+  display: none;
+}
+
+.ov-notice-message {
+  margin-top: 4px;
+}
+
+.ov-notice {
+  width: min(620px, 100%);
+  margin-top: 4px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--lamp);
+  border-radius: 4px;
+  background: var(--raised);
+}
+
+.ov-notice-copy p {
+  overflow: hidden;
+  color: var(--text-soft);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+}
+
+.activity-item {
+  min-height: 52px;
+  margin: 0;
+}
+
+.activity-item::before {
+  display: none;
+}
+
+.activity-event-line {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  margin-top: 1px;
+}
+
+.activity-event-line > strong,
+.activity-empty-title {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.activity-event-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  color: var(--text-faint);
+  background: var(--well);
+  font-size: 9px;
+}
+
+.activity-event-icon.join { color: var(--sage); }
+.activity-event-icon.moderation { color: var(--clay); }
+.activity-event-icon.mailbox { color: var(--lamp); }
+.activity-event-icon.voice { color: var(--bean-bright); }
+
+.activity-empty-title {
+  display: block;
+  margin-top: 1px;
+}
+
+.activity-empty-action {
+  min-height: 30px;
+  margin-top: 8px;
+  padding: 0.25rem 0.65rem;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.activity-day {
+  margin: 22px 16px 12px;
+}
+
+.activity-day span {
+  background: var(--panel);
+}
+
+.ov-command-bar {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 36px;
+  align-items: center;
+  gap: 4px;
+  margin: 0 16px 16px;
+  padding: 6px;
+  border-radius: 8px;
+  background: var(--raised);
+  box-shadow: 0 -10px 28px var(--panel);
+}
+
+.ov-command-bar button {
+  min-height: 36px;
+  border: 0;
+  box-shadow: none;
+}
+
+.ov-command-add,
+.ov-command-shortcut {
+  width: 36px;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-faint);
+}
+
+.ov-command-add:hover,
+.ov-command-shortcut:hover {
+  background: var(--bean-softer);
+  color: var(--text);
+  filter: none;
+}
+
+.ov-command-prompt {
+  justify-content: flex-start;
+  padding: 0 8px;
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.ov-command-prompt:hover {
+  color: var(--text-soft);
+  filter: none;
+}
+
+.overview-page > .ov-rail {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--raised);
+  overflow-y: auto;
+}
+
+.ov-rail-section {
+  padding: 18px 10px 4px;
+}
+
+.ov-rail-heading {
+  margin: 0 8px 6px;
+  font-size: 11px;
+}
+
+.ov-member-row,
+.ov-person {
+  width: 100%;
+  min-height: 44px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-soft);
+  text-align: left;
+}
+
+.ov-member-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ov-member-row:hover,
+.ov-person:hover {
+  background: var(--bean-softer);
+  filter: none;
+}
+
+.ov-member-avatar {
+  position: relative;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.ov-member-avatar > i {
+  border-color: var(--raised);
+}
+
+.ov-member-row > span:last-child {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ov-member-row strong {
+  color: var(--text-soft);
+  font-size: 14px;
+}
+
+.ov-member-row small {
+  overflow: hidden;
+  color: var(--text-faint);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov-people {
+  max-height: none;
+  overflow: visible;
+}
+
+.ov-rail-empty {
+  margin: 8px;
+  color: var(--text-faint);
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .overview-page {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .overview-page > .ov-channel {
+    grid-column: 1;
+  }
+
+  .overview-page > .ov-rail {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .overview-page {
+    height: auto;
+    min-height: calc(100dvh - 9rem);
+  }
+
+  .ov-channel {
+    min-height: calc(100dvh - 9rem);
+  }
+
+  .ov-channel-scroll {
+    overflow-y: visible;
+  }
+}
+
 /* Public server home: one Discord-style system notice, only when action is required. */
 .ov-notice {
   display: grid;
@@ -9261,4 +9679,27 @@ button.growth-search-result span {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Final channel overrides live after the shared Discord-row treatment above. */
+.overview-page .activity-feed {
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+}
+
+.overview-page {
+  grid-template-rows: minmax(0, 1fr);
+  align-content: stretch;
+}
+
+.overview-page > .ov-channel,
+.overview-page > .ov-rail {
+  min-height: 0;
+  height: 100%;
+}
+
+.overview-page .activity-day {
+  margin: 22px 16px 12px;
 }

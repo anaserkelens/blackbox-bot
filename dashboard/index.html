@@ -276,78 +276,65 @@
               </div>
             </header>
             <section class="tab-panel overview-page" data-panel="overview">
-              <!-- One 12-column grid for the whole page: every edge below lands on the same
-                   column lines, so the banner, the stat row and the feed/rail share one seam. -->
-              <!-- Discord's channel intro: a big round glyph, the greeting, then the
-                   state line. It marks the top of the feed the way "Welcome to #channel"
-                   marks the start of a channel. -->
-              <section class="ov-banner" aria-labelledby="room-heading">
-                <span class="ov-banner-glyph" aria-hidden="true">
-                  <i class="fa-solid fa-house"></i>
-                </span>
-                <div class="ov-banner-copy">
-                  <h1 id="room-heading">Welcome back.</h1>
-                  <p class="ov-banner-lead" id="overview-state-line">Bean is having a look around…</p>
-                  <p class="ov-banner-meta">
-                    <span class="ov-presence" aria-hidden="true"></span>
-                    <span id="journal-date">Today</span>
-                    <span class="ov-meta-dot" aria-hidden="true"></span>
-                    <span class="ov-banner-open">The room is open</span>
-                  </p>
+              <main class="ov-channel" aria-label="Overview channel messages">
+                <div class="ov-channel-scroll">
+                  <article class="ov-bean-message ov-welcome-message">
+                    <span class="ov-message-avatar ov-bean-avatar">
+                      <img src="/assets/bean-icon.png" alt="" />
+                      <i aria-hidden="true"></i>
+                    </span>
+                    <div class="ov-message-content">
+                      <header class="ov-message-head">
+                        <strong>Bean</strong>
+                        <span class="ov-bot-tag">APP</span>
+                        <time id="journal-date">Today</time>
+                      </header>
+                      <h1 id="room-heading">Welcome back.</h1>
+                      <p id="overview-state-line">Bean is having a look around…</p>
+                      <div class="ov-message-components">
+                        <button type="button" data-tab-link="messages"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i> Write a message</button>
+                        <button type="button" class="secondary" data-create-launcher><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Create something</button>
+                      </div>
+                    </div>
+                  </article>
+
+                  <article id="overview-notice" class="ov-bean-message ov-notice-message" aria-live="polite" hidden>
+                    <span class="ov-message-avatar ov-bean-avatar"><img src="/assets/bean-icon.png" alt="" /><i aria-hidden="true"></i></span>
+                    <div class="ov-message-content">
+                      <header class="ov-message-head"><strong>Bean</strong><span class="ov-bot-tag">APP</span><time>Just now</time></header>
+                      <div class="ov-notice">
+                        <span id="overview-notice-icon" class="ov-notice-icon" aria-hidden="true"></span>
+                        <div class="ov-notice-copy"><strong id="overview-notice-title"></strong><p id="overview-notice-message"></p></div>
+                        <span id="overview-notice-count" class="ov-notice-count"></span>
+                        <button id="overview-notice-action" class="secondary" type="button">Review</button>
+                      </div>
+                    </div>
+                  </article>
+
+                  <span id="activity-storage-status" hidden>Checking activity</span>
+                  <button id="refresh-activity" type="button" hidden aria-label="Refresh activity feed"></button>
+                  <div id="activity-feed" class="activity-feed" aria-live="polite"></div>
                 </div>
-                <div class="ov-banner-actions">
-                  <button type="button" data-tab-link="messages">
-                    <i class="fa-solid fa-pen-nib" aria-hidden="true"></i>
-                    Write a message
+
+                <div class="ov-command-bar">
+                  <button class="ov-command-add" type="button" data-create-launcher aria-label="Open create menu"><i class="fa-solid fa-plus" aria-hidden="true"></i></button>
+                  <button class="ov-command-prompt" type="button" data-create-launcher>Ask Bean to do something…</button>
+                  <button class="ov-command-shortcut" type="button" data-tab-link="messages" aria-label="Write a Discord message"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i></button>
+                </div>
+              </main>
+
+              <aside class="ov-rail" aria-label="Overview members">
+                <section class="ov-rail-section ov-rail-bean">
+                  <p class="ov-rail-heading">Bean — online</p>
+                  <button class="ov-member-row" type="button" data-tab-link="bot">
+                    <span class="ov-member-avatar"><img src="/assets/bean-icon.png" alt="" /><i aria-hidden="true"></i></span>
+                    <span><strong>Bean</strong><small>Managing this server</small></span>
                   </button>
-                  <button type="button" class="secondary" data-create-launcher>
-                    <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
-                    Create something
-                  </button>
-                </div>
-              </section>
-
-              <section id="overview-notice" class="ov-notice" aria-live="polite" hidden>
-                <span id="overview-notice-icon" class="ov-notice-icon" aria-hidden="true"></span>
-                <div class="ov-notice-copy">
-                  <strong id="overview-notice-title"></strong>
-                  <p id="overview-notice-message"></p>
-                </div>
-                <span id="overview-notice-count" class="ov-notice-count"></span>
-                <button id="overview-notice-action" class="secondary" type="button">Review</button>
-              </section>
-
-              <section class="dashboard-panel ov-activity" aria-labelledby="ov-activity-title">
-                <header class="ov-panel-head">
-                  <div>
-                    <p class="eyebrow">Community</p>
-                    <h2 id="ov-activity-title">Recent activity</h2>
-                  </div>
-                  <div class="toolbar-actions">
-                    <span id="activity-storage-status" class="status-pill">Checking activity</span>
-                    <button id="refresh-activity" class="secondary icon-button" type="button" aria-label="Refresh activity feed" title="Refresh activity feed">
-                      <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
-                    </button>
-                  </div>
-                </header>
-                <div class="activity-filter-row" role="group" aria-label="Filter activity">
-                  <button class="activity-filter active" type="button" data-activity-type="">All</button>
-                  <button class="activity-filter" type="button" data-activity-type="join">Joins</button>
-                  <button class="activity-filter" type="button" data-activity-type="moderation">Cases</button>
-                  <button class="activity-filter" type="button" data-activity-type="mailbox">Mailbox</button>
-                  <button class="activity-filter" type="button" data-activity-type="voice">Voice</button>
-                </div>
-                <div id="activity-feed" class="activity-feed"></div>
-              </section>
-
-              <!-- One surface, two sections: two stacked cards left the rail misaligned with
-                   the feed whenever either section was short. -->
-              <aside class="dashboard-panel ov-rail" aria-label="Community at a glance">
+                </section>
                 <section class="ov-rail-section ov-rail-joins">
-                  <p class="ov-rail-heading">Recent joins <span id="ov-joins-count" class="ov-rail-count">0</span></p>
+                  <p class="ov-rail-heading">Recently joined — <span id="ov-joins-count">0</span></p>
                   <div id="ov-joins-list" class="ov-people"></div>
                 </section>
-
               </aside>
             </section>
 
