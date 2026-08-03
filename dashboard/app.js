@@ -21,16 +21,15 @@ const notificationCenterList = document.querySelector('#notification-center-list
 const notificationCenterSummary = document.querySelector('#notification-center-summary');
 const notificationCloseButtons = [...document.querySelectorAll('[data-notification-close]')];
 const markNotificationsReadButton = document.querySelector('#mark-notifications-read');
-const overviewOpenCases = document.querySelector('#overview-open-cases');
-const overviewScheduledPosts = document.querySelector('#overview-scheduled-posts');
-const overviewNewMembers = document.querySelector('#overview-new-members');
 const overviewStateLine = document.querySelector('#overview-state-line');
 const overviewJoinsList = document.querySelector('#ov-joins-list');
 const overviewJoinsCount = document.querySelector('#ov-joins-count');
-const overviewPulse = document.querySelector('#ov-pulse');
-const overviewAttentionCount = document.querySelector('#overview-attention-count');
-const overviewAttentionList = document.querySelector('#overview-attention-list');
-const overviewFeatureGrid = document.querySelector('#overview-feature-grid');
+const overviewNotice = document.querySelector('#overview-notice');
+const overviewNoticeIcon = document.querySelector('#overview-notice-icon');
+const overviewNoticeTitle = document.querySelector('#overview-notice-title');
+const overviewNoticeMessage = document.querySelector('#overview-notice-message');
+const overviewNoticeCount = document.querySelector('#overview-notice-count');
+const overviewNoticeAction = document.querySelector('#overview-notice-action');
 const overviewHealth = document.querySelector('#overview-health');
 const overviewHealthSummary = document.querySelector('#overview-health-summary');
 const roomHeading = document.querySelector('#room-heading');
@@ -2286,8 +2285,7 @@ function renderFeatureControls() {
   }
 
   renderCurrentServerReadiness(features);
-  renderOverviewFeatureCoverage();
-  renderOverviewAttention();
+  renderOverviewNotice();
 
   featureToggleInputs.forEach((input) => {
     const key = input.dataset.featureToggle;
@@ -4207,10 +4205,10 @@ function showDashboard(session) {
   loadSavedMessages().catch((error) => setSendStatus(error.message, 'error'));
   refreshBotSettings().catch((error) => setSendStatus(error.message, 'error'));
   loadModerationCases(false).catch(() => {
-    overviewOpenCases.textContent = 'Unavailable';
+    state.overviewLoaded.cases = false;
   });
   loadScheduledMailboxPosts(false).catch(() => {
-    overviewScheduledPosts.textContent = 'Unavailable';
+    state.overviewLoaded.scheduled = false;
   });
   loadDashboardHealth(false).catch(() => null);
   loadActivityFeed(false).catch(() => null);
@@ -4356,24 +4354,12 @@ function renderOverviewSummary() {
       (moderationCase) => getModerationCaseEffectiveStatus(moderationCase) === 'active',
     ).length
     : null;
-  const scheduledPosts = state.overviewLoaded.scheduled
-    ? state.scheduledMailboxPosts.filter((job) =>
-      ['scheduled', 'publishing', 'failed'].includes(job.status)).length
+  const failedPosts = state.overviewLoaded.scheduled
+    ? state.scheduledMailboxPosts.filter((job) => job.status === 'failed').length
     : null;
-  const newMembers = state.activitySummary?.join ?? null;
-
-  for (const [element, value] of [
-    [overviewOpenCases, openCases],
-    [overviewScheduledPosts, scheduledPosts],
-    [overviewNewMembers, newMembers],
-  ]) {
-    element.textContent = value === null ? '—' : value.toLocaleString();
-    element.closest('.ov-stat')?.classList.toggle('is-zero', value === 0);
-  }
-
   const waiting = [
     openCases && `${openCases} open ${openCases === 1 ? 'case' : 'cases'}`,
-    scheduledPosts && `${scheduledPosts} ${scheduledPosts === 1 ? 'post' : 'posts'} scheduled`,
+    failedPosts && `${failedPosts} failed ${failedPosts === 1 ? 'post' : 'posts'}`,
   ].filter(Boolean);
 
   if (waiting.length) {
@@ -4382,65 +4368,10 @@ function renderOverviewSummary() {
     overviewStateLine.textContent = 'Nothing is waiting on you. Bean has the room.';
   }
 
-  renderOverviewAttention();
+  renderOverviewNotice();
 }
 
-const overviewFeatureRoutes = {
-  welcomeMessages: 'welcome-embed',
-  inviteModeration: 'invite-moderation',
-  streamMonitor: 'live-embed',
-  youtubeMonitor: 'live-embed',
-  temporaryVoice: 'voice-rooms',
-  tickets: 'tickets',
-  reactionRoles: 'reaction-roles',
-  beanProtection: 'bean-protection',
-  detailedLogging: 'audit-logging',
-};
-
-function renderOverviewFeatureCoverage() {
-  if (!overviewFeatureGrid) {
-    return;
-  }
-
-  const features = state.configuration?.features;
-
-  overviewFeatureGrid.replaceChildren();
-
-  if (!features) {
-    renderLoadingSkeleton(overviewFeatureGrid, 3);
-    return;
-  }
-
-  for (const [key, [label, description, iconName]] of Object.entries(dashboardConfigurationDefinitions.features)) {
-    const enabled = Boolean(features[key]);
-    const item = document.createElement('button');
-    const icon = document.createElement('span');
-    const copy = document.createElement('span');
-    const title = document.createElement('strong');
-    const status = document.createElement('small');
-
-    item.type = 'button';
-    item.className = `ov-feature-item ${enabled ? 'is-enabled' : 'is-disabled'}`;
-    item.title = description;
-    icon.className = 'ov-feature-icon';
-    icon.innerHTML = `<i class="${iconName.includes('fa-brands') ? iconName : `fa-solid ${iconName}`}" aria-hidden="true"></i>`;
-    copy.className = 'ov-feature-copy';
-    title.textContent = label;
-    status.textContent = enabled ? 'Running' : 'Not enabled';
-    copy.append(title, status);
-    item.append(icon, copy, document.createElement('i'));
-    item.lastElementChild.className = 'fa-solid fa-chevron-right ov-feature-go';
-    item.lastElementChild.setAttribute('aria-hidden', 'true');
-    item.addEventListener('click', () => setActiveTab(overviewFeatureRoutes[key] || 'config'));
-    overviewFeatureGrid.append(item);
-  }
-}
-
-function renderOverviewAttention() {
-  if (!overviewAttentionList || !overviewAttentionCount) {
-    return;
-  }
-
+function renderOverviewNotice() {
   const items = [];
   const checks = state.configurationDiagnostics?.checks || [];
 
@@ -4495,61 +4426,24 @@ function renderOverviewAttention() {
 
   const uniqueItems = items.filter((item, index) =>
     items.findIndex((candidate) => candidate.title === item.title && candidate.copy === item.copy) === index,
-  ).slice(0, 4);
-
-  overviewAttentionList.replaceChildren();
-  overviewAttentionCount.classList.remove('ready', 'offline');
-
-  const checksComplete = Boolean(state.configurationDiagnostics)
-    && Boolean(state.health)
-    && state.overviewLoaded.cases
-    && state.overviewLoaded.scheduled;
-
-  if (uniqueItems.length === 0 && !checksComplete) {
-    const checking = document.createElement('div');
-
-    checking.className = 'ov-attention-clear is-checking';
-    checking.innerHTML = '<span><i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i></span><div><strong>Bean is checking the room</strong><p>Reviewing permissions, delivery connections, and staff queues.</p></div>';
-    overviewAttentionList.append(checking);
-    overviewAttentionCount.textContent = 'Checking setup';
-    return;
-  }
+  );
 
   if (uniqueItems.length === 0) {
-    const ready = document.createElement('div');
-
-    ready.className = 'ov-attention-clear';
-    ready.innerHTML = '<span><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span><div><strong>You\'re all caught up</strong><p>Bean found no configuration, delivery, or moderation issues.</p></div>';
-    overviewAttentionList.append(ready);
-    overviewAttentionCount.textContent = 'All clear';
-    overviewAttentionCount.classList.add('ready');
+    overviewNotice.hidden = true;
+    overviewNoticeAction.onclick = null;
     return;
   }
 
-  overviewAttentionCount.textContent = `${uniqueItems.length} to review`;
-  overviewAttentionCount.classList.add('offline');
+  const attention = uniqueItems[0];
 
-  for (const attention of uniqueItems) {
-    const item = document.createElement('article');
-    const icon = document.createElement('span');
-    const copy = document.createElement('div');
-    const title = document.createElement('strong');
-    const message = document.createElement('p');
-    const action = document.createElement('button');
-
-    item.className = 'ov-attention-item';
-    icon.className = 'ov-attention-icon';
-    icon.innerHTML = `<i class="fa-solid ${attention.icon}" aria-hidden="true"></i>`;
-    title.textContent = attention.title;
-    message.textContent = attention.copy;
-    copy.append(title, message);
-    action.type = 'button';
-    action.className = 'secondary';
-    action.textContent = attention.label;
-    action.addEventListener('click', attention.action);
-    item.append(icon, copy, action);
-    overviewAttentionList.append(item);
-  }
+  overviewNotice.hidden = false;
+  overviewNoticeIcon.innerHTML = `<i class="fa-solid ${attention.icon}" aria-hidden="true"></i>`;
+  overviewNoticeTitle.textContent = attention.title;
+  overviewNoticeMessage.textContent = attention.copy;
+  overviewNoticeCount.textContent = uniqueItems.length > 1 ? `+${uniqueItems.length - 1}` : '';
+  overviewNoticeCount.hidden = uniqueItems.length <= 1;
+  overviewNoticeAction.textContent = attention.label;
+  overviewNoticeAction.onclick = attention.action;
 }
 
 function joinWithAnd(parts) {
@@ -4592,7 +4486,7 @@ function renderDashboardHealth() {
   healthApi.textContent = health.api?.healthy ? 'Healthy' : 'Unavailable';
   renderHealthStorage(health.storage || []);
   renderHealthErrors(health.errors || []);
-  renderOverviewAttention();
+  renderOverviewNotice();
 }
 
 function renderHealthStorage(stores) {
@@ -4736,8 +4630,8 @@ function renderActivityFeed() {
     : state.activityItems;
 
   activityStorageStatus.classList.remove('ready', 'offline');
-  activityStorageStatus.textContent = storage?.persistent ? 'Activity saved' : 'Activity is temporary';
-  activityStorageStatus.classList.add(storage?.persistent ? 'ready' : 'offline');
+  activityStorageStatus.textContent = 'Live';
+  activityStorageStatus.classList.add('ready');
   activityFeed.replaceChildren();
 
   if (visibleItems.length === 0) {
@@ -4910,48 +4804,6 @@ function renderOverviewRail() {
     overviewJoinsList.append(row);
   });
 
-  renderOverviewPulse();
-}
-
-function renderOverviewPulse() {
-  const summary = state.activitySummary;
-
-  overviewPulse.replaceChildren();
-
-  if (!summary) {
-    return;
-  }
-
-  const rows = [
-    { key: 'join', label: 'Members joined' },
-    { key: 'moderation', label: 'Cases opened' },
-    { key: 'mailbox', label: 'Mailbox posts' },
-    { key: 'voice', label: 'Voice sessions' },
-  ];
-  // Bars are relative to the busiest row, so the shape stays readable at any scale.
-  const peak = Math.max(1, ...rows.map((row) => summary[row.key] || 0));
-
-  if (peak === 1 && rows.every((row) => !summary[row.key])) {
-    overviewPulse.append(buildEmptyState({
-      icon: 'fa-wave-square',
-      title: 'A quiet week',
-      body: 'Nothing has happened in the last seven days.',
-    }));
-    return;
-  }
-
-  for (const { key, label } of rows) {
-    const value = summary[key] || 0;
-    const row = document.createElement('div');
-
-    row.className = `ov-pulse-row ${key}${value === 0 ? ' is-zero' : ''}`;
-    row.innerHTML = `
-      <span>${label}</span>
-      <strong>${value.toLocaleString()}</strong>
-      <span class="ov-pulse-bar"><i style="width: ${value === 0 ? 0 : Math.round((value / peak) * 100)}%"></i></span>
-    `;
-    overviewPulse.append(row);
-  }
 }
 
 function getActivityIcon(type) {
@@ -6216,12 +6068,18 @@ function handleNotificationCenterClick(event) {
 }
 
 function revealHealthErrors() {
+  setActiveTab('config');
+  setConfigSection('diagnostics');
+
   if (overviewHealth) {
     overviewHealth.open = true;
   }
-  healthErrorList.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  healthErrorList.classList.add('is-flagged');
-  window.setTimeout(() => healthErrorList.classList.remove('is-flagged'), 1800);
+
+  window.requestAnimationFrame(() => {
+    healthErrorList.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    healthErrorList.classList.add('is-flagged');
+    window.setTimeout(() => healthErrorList.classList.remove('is-flagged'), 1800);
+  });
 }
 
 function markAllNotificationsRead() {

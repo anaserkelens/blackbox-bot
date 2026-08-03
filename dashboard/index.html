@@ -307,55 +307,15 @@
                 </div>
               </section>
 
-              <section class="ov-attention" aria-labelledby="ov-attention-title">
-                <header class="ov-section-heading">
-                  <div>
-                    <p class="eyebrow">Server check-in</p>
-                    <h2 id="ov-attention-title">Needs your attention</h2>
-                  </div>
-                  <span id="overview-attention-count" class="status-pill">Checking setup</span>
-                </header>
-                <div id="overview-attention-list" class="ov-attention-list" aria-live="polite"></div>
+              <section id="overview-notice" class="ov-notice" aria-live="polite" hidden>
+                <span id="overview-notice-icon" class="ov-notice-icon" aria-hidden="true"></span>
+                <div class="ov-notice-copy">
+                  <strong id="overview-notice-title"></strong>
+                  <p id="overview-notice-message"></p>
+                </div>
+                <span id="overview-notice-count" class="ov-notice-count"></span>
+                <button id="overview-notice-action" class="secondary" type="button">Review</button>
               </section>
-
-              <button class="ov-stat cases" type="button" data-tab-link="cases">
-                <span class="ov-stat-spine" aria-hidden="true"></span>
-                <span class="ov-stat-label">
-                  <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
-                  Open cases
-                </span>
-                <span class="ov-stat-value">
-                  <strong id="overview-open-cases">—</strong>
-                  <span class="ov-stat-note">Moderation queue</span>
-                </span>
-                <i class="fa-solid fa-chevron-right ov-stat-go" aria-hidden="true"></i>
-              </button>
-
-              <button class="ov-stat mailbox" type="button" data-tab-link="mailbox">
-                <span class="ov-stat-spine" aria-hidden="true"></span>
-                <span class="ov-stat-label">
-                  <i class="fa-solid fa-clock" aria-hidden="true"></i>
-                  Posts scheduled
-                </span>
-                <span class="ov-stat-value">
-                  <strong id="overview-scheduled-posts">—</strong>
-                  <span class="ov-stat-note">Waiting to publish</span>
-                </span>
-                <i class="fa-solid fa-chevron-right ov-stat-go" aria-hidden="true"></i>
-              </button>
-
-              <button class="ov-stat joins" type="button" data-tab-link="members">
-                <span class="ov-stat-spine" aria-hidden="true"></span>
-                <span class="ov-stat-label">
-                  <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
-                  New members
-                </span>
-                <span class="ov-stat-value">
-                  <strong id="overview-new-members">—</strong>
-                  <span class="ov-stat-note">Last 7 days</span>
-                </span>
-                <i class="fa-solid fa-chevron-right ov-stat-go" aria-hidden="true"></i>
-              </button>
 
               <section class="dashboard-panel ov-activity" aria-labelledby="ov-activity-title">
                 <header class="ov-panel-head">
@@ -388,83 +348,7 @@
                   <div id="ov-joins-list" class="ov-people"></div>
                 </section>
 
-                <section class="ov-rail-section ov-rail-week">
-                  <p class="ov-rail-heading">This week</p>
-                  <div id="ov-pulse" class="ov-pulse"></div>
-                </section>
-
-                <section class="ov-rail-section ov-rail-actions">
-                  <p class="ov-rail-heading">Quick actions</p>
-                  <div class="ov-quick-actions">
-                    <button type="button" data-tab-link="messages"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i><span>Write a message</span></button>
-                    <button type="button" data-tab-link="cases"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i><span>Review cases</span></button>
-                    <button type="button" data-tab-link="mailbox"><i class="fa-solid fa-calendar-plus" aria-hidden="true"></i><span>Schedule a post</span></button>
-                  </div>
-                </section>
               </aside>
-
-              <section class="ov-feature-coverage" aria-labelledby="ov-feature-title">
-                <header class="ov-section-heading">
-                  <div>
-                    <p class="eyebrow">Bean coverage</p>
-                    <h2 id="ov-feature-title">Features in this server</h2>
-                  </div>
-                  <button class="secondary" type="button" data-tab-link="config">Manage features</button>
-                </header>
-                <div id="overview-feature-grid" class="ov-feature-grid" aria-live="polite"></div>
-              </section>
-
-              <details id="overview-health" class="dashboard-panel ov-health">
-                <summary class="ov-health-header">
-                  <span class="ov-health-title">
-                    <i class="fa-solid fa-heart-pulse" aria-hidden="true"></i>
-                    Bean health
-                  </span>
-                  <span id="overview-health-summary" class="ov-health-summary">Checking Discord and dashboard connections</span>
-                  <span id="health-status" class="status-pill">Checking health</span>
-                  <i class="fa-solid fa-chevron-down ov-health-chevron" aria-hidden="true"></i>
-                </summary>
-
-                <div class="ov-health-body">
-                  <div class="ov-health-rows">
-                    <div>
-                      <span><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> Uptime</span>
-                      <strong id="health-uptime">—</strong>
-                    </div>
-                    <div>
-                      <span><i class="fa-brands fa-discord" aria-hidden="true"></i> Discord latency</span>
-                      <strong id="health-latency">—</strong>
-                    </div>
-                    <div>
-                      <span><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i> Dashboard API</span>
-                      <strong id="health-api">—</strong>
-                    </div>
-                  </div>
-
-                  <div class="ov-health-block">
-                    <div class="mini-heading">
-                      <strong>Storage</strong>
-                      <span id="health-storage-summary" class="muted">Checking</span>
-                    </div>
-                    <div id="health-storage-list" class="health-storage-list"></div>
-                  </div>
-
-                  <div class="ov-health-block">
-                    <div class="mini-heading">
-                      <strong>Recent errors</strong>
-                      <span class="muted">This deployment</span>
-                    </div>
-                    <div id="health-error-list" class="health-error-list"></div>
-                  </div>
-
-                  <div class="action-row">
-                    <button id="refresh-health" class="secondary" type="button">
-                      <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
-                      Refresh health
-                    </button>
-                  </div>
-                </div>
-              </details>
             </section>
 
         <section class="tab-panel" data-panel="mailbox" hidden>
@@ -2512,6 +2396,30 @@
                 <button id="refresh-config-diagnostics" class="secondary" type="button"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Run checks</button>
               </header>
               <div id="config-diagnostic-list" class="config-diagnostic-list"></div>
+              <details id="overview-health" class="dashboard-panel ov-health config-runtime-health">
+                <summary class="ov-health-header">
+                  <span class="ov-health-title"><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i> Runtime and delivery</span>
+                  <span id="overview-health-summary" class="ov-health-summary">Checking Discord and dashboard connections</span>
+                  <span id="health-status" class="status-pill">Checking health</span>
+                  <i class="fa-solid fa-chevron-down ov-health-chevron" aria-hidden="true"></i>
+                </summary>
+                <div class="ov-health-body">
+                  <div class="ov-health-rows">
+                    <div><span><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i> Uptime</span><strong id="health-uptime">—</strong></div>
+                    <div><span><i class="fa-brands fa-discord" aria-hidden="true"></i> Discord latency</span><strong id="health-latency">—</strong></div>
+                    <div><span><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i> Dashboard API</span><strong id="health-api">—</strong></div>
+                  </div>
+                  <div class="ov-health-block">
+                    <div class="mini-heading"><strong>Storage</strong><span id="health-storage-summary" class="muted">Checking</span></div>
+                    <div id="health-storage-list" class="health-storage-list"></div>
+                  </div>
+                  <div class="ov-health-block">
+                    <div class="mini-heading"><strong>Recent errors</strong><span class="muted">This deployment</span></div>
+                    <div id="health-error-list" class="health-error-list"></div>
+                  </div>
+                  <div class="action-row"><button id="refresh-health" class="secondary" type="button"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Refresh health</button></div>
+                </div>
+              </details>
             </section>
 
             <section class="config-section" data-config-panel="access" hidden>
