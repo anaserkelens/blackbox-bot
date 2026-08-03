@@ -33,6 +33,8 @@ const overviewNoticeAction = document.querySelector('#overview-notice-action');
 const overviewHealth = document.querySelector('#overview-health');
 const overviewHealthSummary = document.querySelector('#overview-health-summary');
 const roomHeading = document.querySelector('#room-heading');
+const overviewCommandSearch = document.querySelector('#overview-command-search');
+const overviewCommandPalette = document.querySelector('#overview-command-palette');
 const healthStatus = document.querySelector('#health-status');
 const refreshHealthButton = document.querySelector('#refresh-health');
 const healthUptime = document.querySelector('#health-uptime');
@@ -274,6 +276,35 @@ const voiceRoomListCount = document.querySelector('#voice-room-list-count');
 const voiceRoomList = document.querySelector('#voice-room-list');
 const tabButtons = [...document.querySelectorAll('.tab-button')];
 const tabPanels = [...document.querySelectorAll('.tab-panel')];
+const dashboardPageLayouts = Object.freeze({
+  overview: 'channel',
+  members: 'directory',
+  cases: 'directory',
+  messages: 'composer',
+  mailbox: 'composer',
+  'welcome-embed': 'composer',
+  'live-embed': 'composer',
+  'reaction-roles': 'settings',
+  'community-growth': 'insights',
+  analytics: 'insights',
+  config: 'settings',
+  bot: 'settings',
+  'bean-protection': 'settings',
+  'invite-moderation': 'settings',
+  'audit-logging': 'settings',
+  tickets: 'settings',
+  'voice-rooms': 'settings',
+  'report-system': 'placeholder',
+  'auto-responder': 'placeholder',
+  automations: 'placeholder',
+  backup: 'placeholder',
+  giveaways: 'placeholder',
+  boosts: 'placeholder',
+});
+
+tabPanels.forEach((panel) => {
+  panel.dataset.pageLayout = dashboardPageLayouts[panel.dataset.panel] || 'settings';
+});
 const createNavList = document.querySelector('#create-nav-list');
 const featureNavList = document.querySelector('#feature-nav-list');
 const refreshBotButton = document.querySelector('#refresh-bot');
@@ -581,7 +612,6 @@ const state = {
   activityStorage: null,
   activitySummary: null,
   activityType: '',
-  activitySearch: '',
   recentJoins: [],
   // Loaders resolve in whatever order the network returns them; without this an empty
   // array reads as a confident "0 open cases" before the real count has arrived.
@@ -712,7 +742,11 @@ function bindEvents() {
   memberSearchForm.addEventListener('submit', handleMemberSearch);
   document.querySelector('#channel-refresh')?.addEventListener('click', handleChannelRefresh);
   document.querySelector('#channel-search')?.addEventListener('submit', handleChannelSearch);
-  document.querySelector('#channel-search-input')?.addEventListener('input', handleChannelSearchInput);
+  overviewCommandSearch?.addEventListener('focus', renderOverviewCommandPalette);
+  overviewCommandSearch?.addEventListener('input', renderOverviewCommandPalette);
+  overviewCommandSearch?.addEventListener('keydown', handleOverviewCommandKeydown);
+  overviewCommandPalette?.addEventListener('click', handleOverviewCommandClick);
+  document.addEventListener('pointerdown', handleOverviewCommandOutsideClick);
   memberSearchResults.addEventListener('click', handleMemberResultClick);
   analyticsRangeInput.addEventListener('change', () => {
     writeInterfacePreferences({ analyticsRange: analyticsRangeInput.value });
@@ -4620,40 +4654,27 @@ async function loadActivityFeed(showNotification = false) {
 }
 
 function renderActivityFeed() {
-  const storage = state.activityStorage;
-  const search = state.activitySearch.trim().toLowerCase();
-  const visibleItems = search
-    ? state.activityItems.filter((activity) =>
-      [activity.title, activity.summary, ...(activity.details || [])]
-        .some((value) => String(value || '').toLowerCase().includes(search)),
-    )
-    : state.activityItems;
-
   activityStorageStatus.classList.remove('ready', 'offline');
   activityStorageStatus.textContent = 'Live';
   activityStorageStatus.classList.add('ready');
   activityFeed.replaceChildren();
 
-  if (visibleItems.length === 0) {
+  if (state.activityItems.length === 0) {
     const filtered = Boolean(state.activityType);
 
     activityFeed.append(buildActivityEmptyMessage({
-      title: search ? 'No matching activity' : filtered ? 'Nothing in this filter' : 'No activity recorded yet',
-      body: search
-        ? `Nothing in this feed matches “${state.activitySearch}”.`
-        : filtered
+      title: filtered ? 'Nothing in this filter' : 'No activity recorded yet',
+      body: filtered
         ? 'Bean has not logged anything of this kind. Try another filter.'
         : 'Joins, cases, mailbox posts and voice rooms will collect here as they happen.',
-      action: search
-        ? { label: 'Clear search', onClick: clearOverviewActivitySearch }
-        : filtered ? { label: 'Show everything', onClick: () => selectActivityFilter('') } : null,
+      action: filtered ? { label: 'Show everything', onClick: () => selectActivityFilter('') } : null,
     }));
     return;
   }
 
   let lastDayKey = null;
 
-  for (const activity of visibleItems) {
+  for (const activity of state.activityItems) {
     // Discord splits a channel by day with a ruled date divider. Same idea here: the
     // feed is a message list, so it gets the same seam.
     const dayKey = toActivityDayKey(activity.createdAt);
@@ -6707,12 +6728,12 @@ function renderChannelHeader(tab) {
 
   const search = header.querySelector('#channel-search');
   const searchInput = header.querySelector('#channel-search-input');
-  const canSearch = tab === 'overview' || tab === 'members';
+  const searchConfig = getChannelSearchConfig(tab);
 
-  search.hidden = !canSearch;
-  searchInput.placeholder = tab === 'overview' ? 'Search activity' : 'Search members';
+  search.hidden = !searchConfig;
+  searchInput.placeholder = searchConfig?.placeholder || 'Search';
   searchInput.setAttribute('aria-label', searchInput.placeholder);
-  searchInput.value = tab === 'overview' ? state.activitySearch : '';
+  searchInput.value = '';
 }
 
 function handleChannelRefresh() {
@@ -6729,35 +6750,203 @@ function handleChannelSearch(event) {
     return;
   }
 
-  if (getActiveTab() === 'overview') {
-    state.activitySearch = query;
-    renderActivityFeed();
+  const searchConfig = getChannelSearchConfig(getActiveTab());
+
+  if (!searchConfig) {
     return;
   }
 
-  setActiveTab('members');
-  memberSearchInput.value = query;
   input.value = '';
-  memberSearchForm.requestSubmit();
+  searchConfig.submit(query);
 }
 
-function handleChannelSearchInput(event) {
-  if (getActiveTab() !== 'overview' || event.target.value) {
+function getChannelSearchConfig(tab) {
+  if (tab === 'overview' || tab === 'members') {
+    return {
+      placeholder: 'Search members',
+      submit: (query) => {
+        setActiveTab('members');
+        memberSearchInput.value = query;
+        memberSearchForm.requestSubmit();
+      },
+    };
+  }
+
+  if (tab === 'cases') {
+    return {
+      placeholder: 'Search cases',
+      submit: (query) => {
+        setActiveTab('cases');
+        caseSearchInput.value = query;
+        caseSearchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      },
+    };
+  }
+
+  if (tab === 'community-growth') {
+    return {
+      placeholder: 'Search growth profiles',
+      submit: (query) => {
+        setActiveTab('community-growth');
+        growthProfileSearchInput.value = query;
+        growthProfileSearchForm.requestSubmit();
+      },
+    };
+  }
+
+  return null;
+}
+
+let overviewCommandResults = [];
+let overviewCommandSelection = -1;
+
+function getOverviewCommandItems(query = '') {
+  const preferredTabs = ['messages', 'mailbox', 'live-embed', 'welcome-embed', 'cases', 'bean-protection', 'members', 'config'];
+  const panels = new Map(tabPanels.map((panel) => [panel.dataset.panel, panel]));
+  const tabs = query
+    ? [...panels.keys()].filter((tab) => tab !== 'overview')
+    : preferredTabs.filter((tab) => panels.has(tab));
+  const normalizedQuery = query.trim().toLowerCase();
+
+  return tabs.map((tab) => {
+    const navIcon = dashboardView.querySelector(
+      `.tab-button[data-tab="${tab}"] i, [data-tab-link="${tab}"] i`,
+    );
+    const label = getDashboardTabLabel(tab);
+    const description = dashboardTabTopics[tab] || 'Open this Bean workspace.';
+
+    return {
+      tab,
+      label,
+      description,
+      iconClass: navIcon?.className || 'fa-solid fa-hashtag',
+      searchText: `${label} ${description} ${tab}`.toLowerCase(),
+    };
+  }).filter((item) => !normalizedQuery || item.searchText.includes(normalizedQuery)).slice(0, 8);
+}
+
+function renderOverviewCommandPalette() {
+  if (!overviewCommandPalette || !overviewCommandSearch) {
     return;
   }
 
-  clearOverviewActivitySearch();
-}
+  overviewCommandResults = getOverviewCommandItems(overviewCommandSearch.value);
+  overviewCommandSelection = overviewCommandResults.length ? 0 : -1;
+  overviewCommandPalette.replaceChildren();
+  overviewCommandPalette.hidden = false;
+  overviewCommandSearch.setAttribute('aria-expanded', 'true');
 
-function clearOverviewActivitySearch() {
-  state.activitySearch = '';
-  const input = document.querySelector('#channel-search-input');
+  if (overviewCommandResults.length === 0) {
+    const empty = document.createElement('p');
 
-  if (getActiveTab() === 'overview' && input) {
-    input.value = '';
+    empty.className = 'ov-command-empty';
+    empty.textContent = 'No Bean feature matches that search.';
+    overviewCommandPalette.append(empty);
+    return;
   }
 
-  renderActivityFeed();
+  const heading = document.createElement('p');
+
+  heading.className = 'ov-command-heading';
+  heading.textContent = overviewCommandSearch.value.trim() ? 'Search results' : 'Jump to';
+  overviewCommandPalette.append(heading);
+
+  overviewCommandResults.forEach((item, index) => {
+    const button = document.createElement('button');
+    const icon = document.createElement('span');
+    const copy = document.createElement('span');
+    const label = document.createElement('strong');
+    const description = document.createElement('small');
+
+    button.type = 'button';
+    button.role = 'option';
+    button.dataset.commandIndex = String(index);
+    button.className = `ov-command-result${index === overviewCommandSelection ? ' is-selected' : ''}`;
+    button.setAttribute('aria-selected', String(index === overviewCommandSelection));
+    icon.className = 'ov-command-result-icon';
+    icon.innerHTML = `<i class="${item.iconClass}" aria-hidden="true"></i>`;
+    copy.className = 'ov-command-result-copy';
+    label.textContent = item.label;
+    description.textContent = item.description;
+    copy.append(label, description);
+    button.append(icon, copy);
+    overviewCommandPalette.append(button);
+  });
+}
+
+function handleOverviewCommandKeydown(event) {
+  if (event.key === 'Escape') {
+    closeOverviewCommandPalette();
+    return;
+  }
+
+  if (!['ArrowDown', 'ArrowUp', 'Enter'].includes(event.key)) {
+    return;
+  }
+
+  event.preventDefault();
+
+  if (overviewCommandPalette.hidden) {
+    renderOverviewCommandPalette();
+  }
+
+  if (event.key === 'Enter') {
+    openOverviewCommandResult(overviewCommandSelection < 0 ? 0 : overviewCommandSelection);
+    return;
+  }
+
+  const direction = event.key === 'ArrowDown' ? 1 : -1;
+  overviewCommandSelection = Math.max(
+    0,
+    Math.min(overviewCommandResults.length - 1, overviewCommandSelection + direction),
+  );
+  updateOverviewCommandSelection();
+}
+
+function handleOverviewCommandClick(event) {
+  const result = event.target.closest('[data-command-index]');
+
+  if (result) {
+    openOverviewCommandResult(Number(result.dataset.commandIndex));
+  }
+}
+
+function updateOverviewCommandSelection() {
+  overviewCommandPalette.querySelectorAll('[data-command-index]').forEach((button, index) => {
+    const selected = index === overviewCommandSelection;
+
+    button.classList.toggle('is-selected', selected);
+    button.setAttribute('aria-selected', String(selected));
+    if (selected) button.scrollIntoView({ block: 'nearest' });
+  });
+}
+
+function openOverviewCommandResult(index) {
+  const result = overviewCommandResults[index];
+
+  if (!result) {
+    return;
+  }
+
+  overviewCommandSearch.value = '';
+  closeOverviewCommandPalette();
+  setActiveTab(result.tab);
+}
+
+function closeOverviewCommandPalette() {
+  if (!overviewCommandPalette || !overviewCommandSearch) {
+    return;
+  }
+
+  overviewCommandPalette.hidden = true;
+  overviewCommandSearch.setAttribute('aria-expanded', 'false');
+  overviewCommandSelection = -1;
+}
+
+function handleOverviewCommandOutsideClick(event) {
+  if (!event.target.closest('.ov-command-bar')) {
+    closeOverviewCommandPalette();
+  }
 }
 
 function handleGlobalKeydown(event) {

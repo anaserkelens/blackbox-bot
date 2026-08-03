@@ -3145,6 +3145,7 @@ input[type='search'] {
 }
 
 .ov-command-bar {
+  position: relative;
   display: grid;
   grid-template-columns: 36px minmax(0, 1fr) 36px;
   align-items: center;
@@ -3154,6 +3155,116 @@ input[type='search'] {
   border-radius: 8px;
   background: var(--raised);
   box-shadow: 0 -10px 28px var(--panel);
+}
+
+.ov-command-search {
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.ov-command-search::placeholder {
+  color: var(--text-faint);
+  opacity: 1;
+}
+
+.ov-command-search:focus {
+  border: 0;
+  outline: 0;
+  box-shadow: none;
+}
+
+.ov-command-palette {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 30;
+  max-height: min(430px, 55vh);
+  padding: 6px;
+  overflow-y: auto;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--well);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+.ov-command-palette[hidden] {
+  display: none;
+}
+
+.ov-command-heading {
+  margin: 5px 8px 7px;
+  color: var(--text-faint);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ov-command-result {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+}
+
+.ov-command-result:hover,
+.ov-command-result.is-selected {
+  background: var(--bean-soft);
+  filter: none;
+}
+
+.ov-command-result-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--raised);
+  color: var(--bean-bright);
+}
+
+.ov-command-result-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ov-command-result-copy strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.ov-command-result-copy small {
+  overflow: hidden;
+  color: var(--text-faint);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov-command-empty {
+  margin: 0;
+  padding: 18px 12px;
+  color: var(--text-faint);
+  font-size: 13px;
+  text-align: center;
 }
 
 .ov-command-bar button {
@@ -3230,6 +3341,7 @@ input[type='search'] {
 .ov-member-row {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 10px;
 }
 
@@ -9702,4 +9814,204 @@ button.growth-search-result span {
 
 .overview-page .activity-day {
   margin: 22px 16px 12px;
+}
+
+/* ---------- 36. Discord workspace foundations ---------- */
+@media (min-width: 1081px) {
+  .tab-panel[data-page-layout]:not([data-page-layout='channel']) {
+    height: calc(100dvh - var(--topbar-h) - var(--channel-header-h));
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+}
+
+.tab-panel[data-page-layout]:not([data-page-layout='channel']) {
+  width: 100%;
+  padding: 20px 24px 36px;
+}
+
+/* Builders use Discord's editor + live context split. */
+.tab-panel[data-page-layout='composer'] {
+  --composer-rail: clamp(340px, 34%, 480px);
+}
+
+.tab-panel[data-page-layout='composer'] .workspace,
+.tab-panel[data-page-layout='composer'] .live-embed-workspace {
+  grid-template-columns: minmax(0, 1fr) var(--composer-rail);
+  gap: 0;
+  align-items: stretch;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+}
+
+.tab-panel[data-page-layout='composer'] :is(.composer, .live-embed-editor) {
+  min-width: 0;
+  padding: 18px 22px 24px;
+}
+
+.tab-panel[data-page-layout='composer'] :is(.preview-panel, .mailbox-preview-panel, .live-embed-preview-panel) {
+  position: sticky;
+  top: 0;
+  min-height: 100%;
+  padding: 18px;
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--raised);
+  box-shadow: none;
+}
+
+.tab-panel[data-page-layout='composer'] :is(.saved-messages-panel, .scheduled-mailbox-panel, .feature-status-strip, .feature-status-grid) {
+  border-radius: 6px;
+  background: var(--raised);
+}
+
+.tab-panel[data-page-layout='composer'] .saved-messages-panel {
+  padding: 14px 16px;
+}
+
+.tab-panel[data-page-layout='composer'] .scheduled-mailbox-panel {
+  padding: 18px 20px;
+}
+
+.tab-panel[data-page-layout='composer'] :is(.composer, .live-embed-editor) > .toolbar-row:first-child {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Directories follow Discord's list + selected detail pattern. */
+.tab-panel[data-page-layout='directory'] :is(.member-search-hero, .case-filter-panel) {
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--raised);
+}
+
+.tab-panel[data-page-layout='directory'] :is(.member-profile-workspace, .case-workspace) {
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  gap: 0;
+  min-height: min(680px, calc(100dvh - 250px));
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  overflow: hidden;
+}
+
+.tab-panel[data-page-layout='directory'] :is(.member-results-panel, .case-list-panel) {
+  min-width: 0;
+  padding: 14px 10px;
+  border-right: 1px solid var(--line);
+  background: var(--raised);
+}
+
+.tab-panel[data-page-layout='directory'] :is(.member-profile-panel, .case-detail-panel) {
+  min-width: 0;
+  padding: 18px 22px;
+  background: var(--panel);
+}
+
+.tab-panel[data-page-layout='directory'] :is(.member-search-results, .case-list) {
+  max-height: calc(100dvh - 340px);
+  padding: 0;
+}
+
+.tab-panel[data-page-layout='directory'] :is(.member-result, .case-list-item) {
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+}
+
+.tab-panel[data-page-layout='directory'] :is(.member-result, .case-list-item):hover {
+  background: var(--bean-softer);
+}
+
+/* Settings stay narrow and deliberate, like Discord's Server Settings. */
+.tab-panel[data-page-layout='settings'] {
+  max-width: 1180px;
+  margin-inline: auto;
+}
+
+.tab-panel[data-page-layout='settings'] :is(.feature-page-hero, .config-hero) {
+  padding: 4px 0 18px;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+}
+
+.tab-panel[data-page-layout='settings'] :is(.feature-status-strip, .feature-status-grid) {
+  border-radius: 6px;
+  background: var(--raised);
+}
+
+.tab-panel[data-page-layout='settings'] :is(.feature-page-grid, .protection-workspace-grid, .voice-room-layout, .reaction-role-workspace) {
+  gap: 20px;
+}
+
+.tab-panel[data-page-layout='settings'] :is(.feature-detail-card, .feature-requirements-card, .feature-note-card, .protection-settings-card, .protection-native-card, .protection-incidents-card, .voice-room-settings, .voice-room-guide, .voice-room-list-panel, .reaction-role-builder, .reaction-role-guide, .reaction-role-list-panel, .bot-settings-card, .bot-presence-panel) {
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--raised);
+}
+
+.tab-panel[data-page-layout='settings'] .config-section-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--well);
+}
+
+/* Server Insights pages retain charts but share Discord's restrained surfaces. */
+.tab-panel[data-page-layout='insights'] {
+  max-width: 1440px;
+  margin-inline: auto;
+}
+
+.tab-panel[data-page-layout='insights'] :is(.analytics-hero, .growth-hero) {
+  padding: 4px 0 18px;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+}
+
+.tab-panel[data-page-layout='insights'] :is(.analytics-chart-panel, .analytics-detail-panel, .growth-leaderboard-panel, .growth-profile-panel, .growth-settings-panel, .growth-recognition-panel, .growth-season-panel, .growth-activity-panel) {
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--raised);
+}
+
+/* Unbuilt features read like an empty channel, not a dead dashboard card. */
+.tab-panel[data-page-layout='placeholder'] {
+  justify-content: center;
+  min-height: calc(100dvh - var(--topbar-h) - var(--channel-header-h));
+}
+
+.tab-panel[data-page-layout='placeholder'] .feature-page-hero,
+.tab-panel[data-page-layout='placeholder'] .feature-note-card {
+  width: min(680px, 100%);
+  margin-inline: auto;
+}
+
+@media (max-width: 1080px) {
+  .tab-panel[data-page-layout]:not([data-page-layout='channel']) {
+    padding: 16px;
+  }
+
+  .tab-panel[data-page-layout='composer'] .workspace,
+  .tab-panel[data-page-layout='composer'] .live-embed-workspace,
+  .tab-panel[data-page-layout='directory'] :is(.member-profile-workspace, .case-workspace) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tab-panel[data-page-layout='composer'] :is(.preview-panel, .mailbox-preview-panel, .live-embed-preview-panel),
+  .tab-panel[data-page-layout='directory'] :is(.member-results-panel, .case-list-panel) {
+    border-left: 0;
+    border-right: 0;
+    border-top: 1px solid var(--line);
+  }
 }

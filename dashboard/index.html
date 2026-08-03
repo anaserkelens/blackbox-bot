@@ -318,8 +318,9 @@
 
                 <div class="ov-command-bar">
                   <button class="ov-command-add" type="button" data-create-launcher aria-label="Open create menu"><i class="fa-solid fa-plus" aria-hidden="true"></i></button>
-                  <button class="ov-command-prompt" type="button" data-create-launcher>Ask Bean to do something…</button>
+                  <input id="overview-command-search" class="ov-command-search" type="search" placeholder="Search Bean features…" aria-label="Search Bean features" autocomplete="off" aria-controls="overview-command-palette" aria-expanded="false" />
                   <button class="ov-command-shortcut" type="button" data-tab-link="messages" aria-label="Write a Discord message"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i></button>
+                  <div id="overview-command-palette" class="ov-command-palette" role="listbox" aria-label="Bean features" hidden></div>
                 </div>
               </main>
 
