@@ -28,6 +28,12 @@ const overviewStateLine = document.querySelector('#overview-state-line');
 const overviewJoinsList = document.querySelector('#ov-joins-list');
 const overviewJoinsCount = document.querySelector('#ov-joins-count');
 const overviewPulse = document.querySelector('#ov-pulse');
+const overviewAttentionCount = document.querySelector('#overview-attention-count');
+const overviewAttentionList = document.querySelector('#overview-attention-list');
+const overviewFeatureGrid = document.querySelector('#overview-feature-grid');
+const overviewHealth = document.querySelector('#overview-health');
+const overviewHealthSummary = document.querySelector('#overview-health-summary');
+const roomHeading = document.querySelector('#room-heading');
 const healthStatus = document.querySelector('#health-status');
 const refreshHealthButton = document.querySelector('#refresh-health');
 const healthUptime = document.querySelector('#health-uptime');
@@ -576,6 +582,7 @@ const state = {
   activityStorage: null,
   activitySummary: null,
   activityType: '',
+  activitySearch: '',
   recentJoins: [],
   // Loaders resolve in whatever order the network returns them; without this an empty
   // array reads as a confident "0 open cases" before the real count has arrived.
@@ -706,6 +713,7 @@ function bindEvents() {
   memberSearchForm.addEventListener('submit', handleMemberSearch);
   document.querySelector('#channel-refresh')?.addEventListener('click', handleChannelRefresh);
   document.querySelector('#channel-search')?.addEventListener('submit', handleChannelSearch);
+  document.querySelector('#channel-search-input')?.addEventListener('input', handleChannelSearchInput);
   memberSearchResults.addEventListener('click', handleMemberResultClick);
   analyticsRangeInput.addEventListener('change', () => {
     writeInterfacePreferences({ analyticsRange: analyticsRangeInput.value });
@@ -2278,6 +2286,8 @@ function renderFeatureControls() {
   }
 
   renderCurrentServerReadiness(features);
+  renderOverviewFeatureCoverage();
+  renderOverviewAttention();
 
   featureToggleInputs.forEach((input) => {
     const key = input.dataset.featureToggle;
@@ -4226,6 +4236,9 @@ function renderSessionIdentity(session) {
 
   sessionName.textContent = user.displayName || user.username || 'Dashboard Founder';
   sessionRole.textContent = `${capitalizeDashboardText(role)} access`;
+  roomHeading.textContent = user.displayName || user.username
+    ? `Welcome back, ${user.displayName || user.username}.`
+    : 'Welcome back.';
   sessionAvatar.replaceChildren();
 
   if (user.avatarUrl) {
@@ -4368,6 +4381,175 @@ function renderOverviewSummary() {
   } else if (state.overviewLoaded.cases && state.overviewLoaded.scheduled) {
     overviewStateLine.textContent = 'Nothing is waiting on you. Bean has the room.';
   }
+
+  renderOverviewAttention();
+}
+
+const overviewFeatureRoutes = {
+  welcomeMessages: 'welcome-embed',
+  inviteModeration: 'invite-moderation',
+  streamMonitor: 'live-embed',
+  youtubeMonitor: 'live-embed',
+  temporaryVoice: 'voice-rooms',
+  tickets: 'tickets',
+  reactionRoles: 'reaction-roles',
+  beanProtection: 'bean-protection',
+  detailedLogging: 'audit-logging',
+};
+
+function renderOverviewFeatureCoverage() {
+  if (!overviewFeatureGrid) {
+    return;
+  }
+
+  const features = state.configuration?.features;
+
+  overviewFeatureGrid.replaceChildren();
+
+  if (!features) {
+    renderLoadingSkeleton(overviewFeatureGrid, 3);
+    return;
+  }
+
+  for (const [key, [label, description, iconName]] of Object.entries(dashboardConfigurationDefinitions.features)) {
+    const enabled = Boolean(features[key]);
+    const item = document.createElement('button');
+    const icon = document.createElement('span');
+    const copy = document.createElement('span');
+    const title = document.createElement('strong');
+    const status = document.createElement('small');
+
+    item.type = 'button';
+    item.className = `ov-feature-item ${enabled ? 'is-enabled' : 'is-disabled'}`;
+    item.title = description;
+    icon.className = 'ov-feature-icon';
+    icon.innerHTML = `<i class="${iconName.includes('fa-brands') ? iconName : `fa-solid ${iconName}`}" aria-hidden="true"></i>`;
+    copy.className = 'ov-feature-copy';
+    title.textContent = label;
+    status.textContent = enabled ? 'Running' : 'Not enabled';
+    copy.append(title, status);
+    item.append(icon, copy, document.createElement('i'));
+    item.lastElementChild.className = 'fa-solid fa-chevron-right ov-feature-go';
+    item.lastElementChild.setAttribute('aria-hidden', 'true');
+    item.addEventListener('click', () => setActiveTab(overviewFeatureRoutes[key] || 'config'));
+    overviewFeatureGrid.append(item);
+  }
+}
+
+function renderOverviewAttention() {
+  if (!overviewAttentionList || !overviewAttentionCount) {
+    return;
+  }
+
+  const items = [];
+  const checks = state.configurationDiagnostics?.checks || [];
+
+  for (const check of checks.filter((item) => item.status !== 'ready' && isVisibleConfigurationCheck(item))) {
+    items.push({
+      icon: getDiagnosticIcon(check.status),
+      title: check.label,
+      copy: check.message,
+      label: 'Fix setup',
+      action: () => setActiveTab(check.group === 'channels' ? getChannelOwnerTab(check.key) : 'config'),
+    });
+  }
+
+  const openCases = state.overviewLoaded.cases
+    ? state.moderationCases.filter(
+      (moderationCase) => getModerationCaseEffectiveStatus(moderationCase) === 'active',
+    ).length
+    : 0;
+  const failedPosts = state.overviewLoaded.scheduled
+    ? state.scheduledMailboxPosts.filter((job) => job.status === 'failed').length
+    : 0;
+
+  if (openCases) {
+    items.push({
+      icon: 'fa-folder-open',
+      title: `${openCases} open moderation ${openCases === 1 ? 'case' : 'cases'}`,
+      copy: 'The moderation queue is waiting for a staff review.',
+      label: 'Review cases',
+      action: () => setActiveTab('cases'),
+    });
+  }
+
+  if (failedPosts) {
+    items.push({
+      icon: 'fa-envelope-circle-check',
+      title: `${failedPosts} failed scheduled ${failedPosts === 1 ? 'post' : 'posts'}`,
+      copy: 'Bean could not publish these posts at their scheduled time.',
+      label: 'Review posts',
+      action: () => setActiveTab('mailbox'),
+    });
+  }
+
+  for (const error of (state.health?.errors || []).slice(0, 2)) {
+    items.push({
+      icon: 'fa-triangle-exclamation',
+      title: error.source || 'Bean health issue',
+      copy: error.message,
+      label: 'View diagnostics',
+      action: revealHealthErrors,
+    });
+  }
+
+  const uniqueItems = items.filter((item, index) =>
+    items.findIndex((candidate) => candidate.title === item.title && candidate.copy === item.copy) === index,
+  ).slice(0, 4);
+
+  overviewAttentionList.replaceChildren();
+  overviewAttentionCount.classList.remove('ready', 'offline');
+
+  const checksComplete = Boolean(state.configurationDiagnostics)
+    && Boolean(state.health)
+    && state.overviewLoaded.cases
+    && state.overviewLoaded.scheduled;
+
+  if (uniqueItems.length === 0 && !checksComplete) {
+    const checking = document.createElement('div');
+
+    checking.className = 'ov-attention-clear is-checking';
+    checking.innerHTML = '<span><i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i></span><div><strong>Bean is checking the room</strong><p>Reviewing permissions, delivery connections, and staff queues.</p></div>';
+    overviewAttentionList.append(checking);
+    overviewAttentionCount.textContent = 'Checking setup';
+    return;
+  }
+
+  if (uniqueItems.length === 0) {
+    const ready = document.createElement('div');
+
+    ready.className = 'ov-attention-clear';
+    ready.innerHTML = '<span><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span><div><strong>You\'re all caught up</strong><p>Bean found no configuration, delivery, or moderation issues.</p></div>';
+    overviewAttentionList.append(ready);
+    overviewAttentionCount.textContent = 'All clear';
+    overviewAttentionCount.classList.add('ready');
+    return;
+  }
+
+  overviewAttentionCount.textContent = `${uniqueItems.length} to review`;
+  overviewAttentionCount.classList.add('offline');
+
+  for (const attention of uniqueItems) {
+    const item = document.createElement('article');
+    const icon = document.createElement('span');
+    const copy = document.createElement('div');
+    const title = document.createElement('strong');
+    const message = document.createElement('p');
+    const action = document.createElement('button');
+
+    item.className = 'ov-attention-item';
+    icon.className = 'ov-attention-icon';
+    icon.innerHTML = `<i class="fa-solid ${attention.icon}" aria-hidden="true"></i>`;
+    title.textContent = attention.title;
+    message.textContent = attention.copy;
+    copy.append(title, message);
+    action.type = 'button';
+    action.className = 'secondary';
+    action.textContent = attention.label;
+    action.addEventListener('click', attention.action);
+    item.append(icon, copy, action);
+    overviewAttentionList.append(item);
+  }
 }
 
 function joinWithAnd(parts) {
@@ -4400,6 +4582,9 @@ function renderDashboardHealth() {
   healthStatus.classList.remove('ready', 'offline');
   healthStatus.classList.add(healthy ? 'ready' : 'offline');
   healthStatus.textContent = healthy ? 'All systems cozy' : 'Needs attention';
+  overviewHealthSummary.textContent = healthy
+    ? 'Discord connected and the dashboard API is healthy'
+    : 'A connection or delivery check needs attention';
   healthUptime.textContent = formatHealthUptime(health.runtime?.uptimeSeconds || 0);
   healthLatency.textContent = Number.isFinite(health.discord?.latencyMs)
     ? `${health.discord.latencyMs} ms`
@@ -4407,6 +4592,7 @@ function renderDashboardHealth() {
   healthApi.textContent = health.api?.healthy ? 'Healthy' : 'Unavailable';
   renderHealthStorage(health.storage || []);
   renderHealthErrors(health.errors || []);
+  renderOverviewAttention();
 }
 
 function renderHealthStorage(stores) {
@@ -4476,7 +4662,7 @@ function renderHealthErrors(errors) {
 const errorRemedies = [
   {
     test: /YouTube feed request failed with HTTP 404/i,
-    hint: 'That YouTube channel ID does not exist. Set YOUTUBE_CHANNEL_ID to the real UC… id, or turn the monitor off with YOUTUBE_UPLOAD_MONITOR_ENABLED=false. Until then this repeats every poll.',
+    hint: 'YouTube did not return this feed after automatic retries. If it continues, verify the saved source under Creator Notifications → YouTube Upload; YOUTUBE_CHANNEL_ID only supplies the first-run default.',
   },
   {
     test: /YouTube feed request failed with HTTP 5\d\d/i,
@@ -4541,29 +4727,40 @@ async function loadActivityFeed(showNotification = false) {
 
 function renderActivityFeed() {
   const storage = state.activityStorage;
+  const search = state.activitySearch.trim().toLowerCase();
+  const visibleItems = search
+    ? state.activityItems.filter((activity) =>
+      [activity.title, activity.summary, ...(activity.details || [])]
+        .some((value) => String(value || '').toLowerCase().includes(search)),
+    )
+    : state.activityItems;
 
   activityStorageStatus.classList.remove('ready', 'offline');
   activityStorageStatus.textContent = storage?.persistent ? 'Activity saved' : 'Activity is temporary';
   activityStorageStatus.classList.add(storage?.persistent ? 'ready' : 'offline');
   activityFeed.replaceChildren();
 
-  if (state.activityItems.length === 0) {
+  if (visibleItems.length === 0) {
     const filtered = Boolean(state.activityType);
 
     activityFeed.append(buildEmptyState({
       icon: 'fa-seedling',
-      title: filtered ? 'Nothing in this filter' : 'No activity recorded yet',
-      body: filtered
+      title: search ? 'No matching activity' : filtered ? 'Nothing in this filter' : 'No activity recorded yet',
+      body: search
+        ? `Nothing in this feed matches “${state.activitySearch}”.`
+        : filtered
         ? 'Bean has not logged anything of this kind. Try another filter.'
         : 'Joins, cases, mailbox posts and voice rooms will collect here as they happen.',
-      action: filtered ? { label: 'Show everything', onClick: () => selectActivityFilter('') } : null,
+      action: search
+        ? { label: 'Clear search', onClick: clearOverviewActivitySearch }
+        : filtered ? { label: 'Show everything', onClick: () => selectActivityFilter('') } : null,
     }));
     return;
   }
 
   let lastDayKey = null;
 
-  for (const activity of state.activityItems) {
+  for (const activity of visibleItems) {
     // Discord splits a channel by day with a ruled date divider. Same idea here: the
     // feed is a message list, so it gets the same seam.
     const dayKey = toActivityDayKey(activity.createdAt);
@@ -6019,6 +6216,9 @@ function handleNotificationCenterClick(event) {
 }
 
 function revealHealthErrors() {
+  if (overviewHealth) {
+    overviewHealth.open = true;
+  }
   healthErrorList.scrollIntoView({ behavior: 'smooth', block: 'center' });
   healthErrorList.classList.add('is-flagged');
   window.setTimeout(() => healthErrorList.classList.remove('is-flagged'), 1800);
@@ -6599,6 +6799,15 @@ function renderChannelHeader(tab) {
   if (refresh) {
     refresh.hidden = !getPanelRefreshButton(tab);
   }
+
+  const search = header.querySelector('#channel-search');
+  const searchInput = header.querySelector('#channel-search-input');
+  const canSearch = tab === 'overview' || tab === 'members';
+
+  search.hidden = !canSearch;
+  searchInput.placeholder = tab === 'overview' ? 'Search activity' : 'Search members';
+  searchInput.setAttribute('aria-label', searchInput.placeholder);
+  searchInput.value = tab === 'overview' ? state.activitySearch : '';
 }
 
 function handleChannelRefresh() {
@@ -6615,10 +6824,35 @@ function handleChannelSearch(event) {
     return;
   }
 
+  if (getActiveTab() === 'overview') {
+    state.activitySearch = query;
+    renderActivityFeed();
+    return;
+  }
+
   setActiveTab('members');
   memberSearchInput.value = query;
   input.value = '';
   memberSearchForm.requestSubmit();
+}
+
+function handleChannelSearchInput(event) {
+  if (getActiveTab() !== 'overview' || event.target.value) {
+    return;
+  }
+
+  clearOverviewActivitySearch();
+}
+
+function clearOverviewActivitySearch() {
+  state.activitySearch = '';
+  const input = document.querySelector('#channel-search-input');
+
+  if (getActiveTab() === 'overview' && input) {
+    input.value = '';
+  }
+
+  renderActivityFeed();
 }
 
 function handleGlobalKeydown(event) {

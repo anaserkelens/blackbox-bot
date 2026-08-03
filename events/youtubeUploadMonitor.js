@@ -7,6 +7,7 @@ const {
 } = require('../utils/youtubeUploadMonitor');
 
 let checkInProgress = false;
+const recentFeedErrors = new Map();
 
 function setup(client) {
   if (!config.youtubeMonitor.enabled) {
@@ -55,7 +56,22 @@ async function checkForUploads(client) {
       );
     }
 
+    for (const source of result.checkedSources) {
+      if (recentFeedErrors.has(source.channelId)) {
+        console.log(`YouTube feed recovered for ${source.displayName} (${source.channelId}).`);
+        recentFeedErrors.delete(source.channelId);
+      }
+    }
+
     for (const error of result.errors) {
+      const signature = `${error.channelId}:${error.message}`;
+      const previousError = recentFeedErrors.get(error.channelId);
+
+      if (previousError === signature) {
+        continue;
+      }
+
+      recentFeedErrors.set(error.channelId, signature);
       console.error(
         `YouTube feed check failed for ${error.displayName} (${error.channelId}): ${error.message}`,
       );

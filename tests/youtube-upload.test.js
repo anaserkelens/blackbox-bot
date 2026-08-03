@@ -15,6 +15,7 @@ const {
   resolveYouTubeSourceReferences,
 } = require('../utils/youtubeChannels');
 const {
+  fetchYouTubeVideos,
   loadYouTubeUploadState,
   parseYouTubeFeed,
   runYouTubeUploadCheck,
@@ -117,6 +118,27 @@ test('YouTube feed parsing decodes titles and returns thumbnail data', () => {
     thumbnailUrl: 'https://i.ytimg.com/vi/67rGoXhQcvA/hqdefault.jpg',
     publishedAt: '2026-07-26T00:00:12+00:00',
   });
+});
+
+test('YouTube feed retries a temporary 404 before reporting failure', async () => {
+  let attempts = 0;
+  const videos = await fetchYouTubeVideos(
+    'UC7qyud6JzpiNoiFVQgzFAkg',
+    async () => {
+      attempts += 1;
+      return attempts === 1
+        ? { ok: false, status: 404 }
+        : { ok: true, status: 200, text: async () => createFeed([{
+          id: '67rGoXhQcvA',
+          title: 'Recovered feed',
+          publishedAt: '2026-07-26T00:00:12+00:00',
+        }]) };
+    },
+    { retryDelaysMs: [0] },
+  );
+
+  assert.equal(attempts, 2);
+  assert.equal(videos[0].title, 'Recovered feed');
 });
 
 test('YouTube defaults contain the requested mention, button, emoji, and large image', () => {

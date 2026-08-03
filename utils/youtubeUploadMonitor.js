@@ -7,6 +7,7 @@ const { getYouTubeSourceUrl } = require('./youtubeChannels');
 
 const defaultStatePath = path.join(__dirname, '..', 'data', 'youtube-upload-state.json');
 const maximumSeenVideos = 50;
+const defaultFeedRetryDelaysMs = [750, 2000];
 
 async function runYouTubeUploadCheck(client, config, options = {}) {
   const settings = await loadYouTubeEmbedSettings(config);
@@ -19,6 +20,7 @@ async function runYouTubeUploadCheck(client, config, options = {}) {
   const announced = [];
   const videos = [];
   const initializedSources = [];
+  const checkedSources = [];
   const errors = [];
 
   for (const source of sources) {
@@ -28,6 +30,7 @@ async function runYouTubeUploadCheck(client, config, options = {}) {
       sourceVideos = await fetchYouTubeVideos(
         source.channelId,
         options.fetchImpl || globalThis.fetch,
+        { retryDelaysMs: options.feedRetryDelaysMs },
       );
     } catch (error) {
       errors.push({
@@ -40,6 +43,7 @@ async function runYouTubeUploadCheck(client, config, options = {}) {
 
     const enrichedVideos = sourceVideos.map((video) => ({ ...video, source }));
     videos.push(...enrichedVideos);
+    checkedSources.push(source);
 
     if (sourceVideos.length === 0) {
       continue;
@@ -100,6 +104,7 @@ async function runYouTubeUploadCheck(client, config, options = {}) {
     initialized: initializedSources.length > 0,
     initializedSources,
     announced,
+    checkedSources,
     videos,
     errors,
   };
@@ -169,7 +174,7 @@ function uniqueVideoIds(values) {
   return [...new Set(values)].slice(0, maximumSeenVideos);
 }
 
-async function fetchYouTubeVideos(channelId, fetchImpl = globalThis.fetch) {
+async function fetchYouTubeVideos(channelId, fetchImpl = globalThis.fetch, options = {}) {
   if (!/^UC[\w-]{22}$/.test(String(channelId || ''))) {
     throw new Error('YouTube channel ID is missing or invalid.');
   }
@@ -178,21 +183,49 @@ async function fetchYouTubeVideos(channelId, fetchImpl = globalThis.fetch) {
     throw new Error('This Node.js runtime does not provide fetch().');
   }
 
-  const response = await fetchImpl(
-    `https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(channelId)}`,
-    {
-      headers: {
-        'User-Agent': 'UNDR-CTRL-Bean-Bot/1.0 (+https://www.youtube.com/@5nooof)',
-      },
-      signal: AbortSignal.timeout(20_000),
-    },
-  );
+  const retryDelaysMs = options.retryDelaysMs || defaultFeedRetryDelaysMs;
+  let response;
+
+  for (let attempt = 0; attempt <= retryDelaysMs.length; attempt += 1) {
+    try {
+      response = await fetchImpl(
+        `https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(channelId)}`,
+        {
+          headers: {
+            'User-Agent': 'UNDR-CTRL-Bean-Bot/1.0 (+https://www.youtube.com/@5nooof)',
+          },
+          signal: AbortSignal.timeout(20_000),
+        },
+      );
+    } catch (error) {
+      if (attempt === retryDelaysMs.length) {
+        throw error;
+      }
+
+      await wait(retryDelaysMs[attempt]);
+      continue;
+    }
+
+    if (response.ok || !isRetryableFeedStatus(response.status) || attempt === retryDelaysMs.length) {
+      break;
+    }
+
+    await wait(retryDelaysMs[attempt]);
+  }
 
   if (!response.ok) {
     throw new Error(`YouTube feed request failed with HTTP ${response.status}.`);
   }
 
   return parseYouTubeFeed(await response.text());
+}
+
+function isRetryableFeedStatus(status) {
+  return status === 404 || status === 408 || status === 429 || status >= 500;
+}
+
+function wait(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 function parseYouTubeFeed(xml) {

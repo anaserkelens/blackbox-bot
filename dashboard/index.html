@@ -307,6 +307,17 @@
                 </div>
               </section>
 
+              <section class="ov-attention" aria-labelledby="ov-attention-title">
+                <header class="ov-section-heading">
+                  <div>
+                    <p class="eyebrow">Server check-in</p>
+                    <h2 id="ov-attention-title">Needs your attention</h2>
+                  </div>
+                  <span id="overview-attention-count" class="status-pill">Checking setup</span>
+                </header>
+                <div id="overview-attention-list" class="ov-attention-list" aria-live="polite"></div>
+              </section>
+
               <button class="ov-stat cases" type="button" data-tab-link="cases">
                 <span class="ov-stat-spine" aria-hidden="true"></span>
                 <span class="ov-stat-label">
@@ -381,16 +392,38 @@
                   <p class="ov-rail-heading">This week</p>
                   <div id="ov-pulse" class="ov-pulse"></div>
                 </section>
+
+                <section class="ov-rail-section ov-rail-actions">
+                  <p class="ov-rail-heading">Quick actions</p>
+                  <div class="ov-quick-actions">
+                    <button type="button" data-tab-link="messages"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i><span>Write a message</span></button>
+                    <button type="button" data-tab-link="cases"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i><span>Review cases</span></button>
+                    <button type="button" data-tab-link="mailbox"><i class="fa-solid fa-calendar-plus" aria-hidden="true"></i><span>Schedule a post</span></button>
+                  </div>
+                </section>
               </aside>
 
-              <section id="overview-health" class="dashboard-panel ov-health">
-                <div class="ov-health-header">
+              <section class="ov-feature-coverage" aria-labelledby="ov-feature-title">
+                <header class="ov-section-heading">
+                  <div>
+                    <p class="eyebrow">Bean coverage</p>
+                    <h2 id="ov-feature-title">Features in this server</h2>
+                  </div>
+                  <button class="secondary" type="button" data-tab-link="config">Manage features</button>
+                </header>
+                <div id="overview-feature-grid" class="ov-feature-grid" aria-live="polite"></div>
+              </section>
+
+              <details id="overview-health" class="dashboard-panel ov-health">
+                <summary class="ov-health-header">
                   <span class="ov-health-title">
                     <i class="fa-solid fa-heart-pulse" aria-hidden="true"></i>
                     Bean health
                   </span>
+                  <span id="overview-health-summary" class="ov-health-summary">Checking Discord and dashboard connections</span>
                   <span id="health-status" class="status-pill">Checking health</span>
-                </div>
+                  <i class="fa-solid fa-chevron-down ov-health-chevron" aria-hidden="true"></i>
+                </summary>
 
                 <div class="ov-health-body">
                   <div class="ov-health-rows">
@@ -431,7 +464,7 @@
                     </button>
                   </div>
                 </div>
-              </section>
+              </details>
             </section>
 
         <section class="tab-panel" data-panel="mailbox" hidden>
