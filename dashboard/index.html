@@ -1832,6 +1832,14 @@
               <span class="config-feature-toggle"><input type="checkbox" data-feature-toggle="welcomeMessages" data-requires-permission="configure"><i></i></span>
             </label>
           </section>
+          <form id="join-role-form" class="dashboard-panel">
+            <div class="toolbar-row"><div><p class="eyebrow">New members</p><h2>Role on join</h2>
+              <p>Give new members a role automatically, independently of the welcome message. Bots are excluded; members completing screening receive it after acceptance.</p></div></div>
+            <label class="field" for="join-role-select">Automatic role</label>
+            <select id="join-role-select" aria-label="Role on join" data-requires-permission="configure"><option value="">Disabled — no automatic role</option></select>
+            <p id="join-role-status" class="muted" role="status">Loading role settings…</p>
+            <button type="submit" data-requires-permission="configure">Save join role</button>
+          </form>
           <section class="workspace">
             <form id="welcome-message-form" class="composer">
               <div class="toolbar-row">

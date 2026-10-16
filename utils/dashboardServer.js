@@ -19,6 +19,7 @@ const {
   syncNativeAutoModerationRules,
 } = require('./beanProtection');
 const { config } = require('./config');
+const { validateJoinRole } = require('./joinRole');
 const { runWithGuild } = require('./guildContext');
 const {
   getCommunityGrowthOverview,
@@ -449,6 +450,24 @@ async function handleScopedRequest(client, request, response) {
         permissions: getSessionPermissions(session),
         discordOauthEnabled: isDiscordOauthConfigured(),
       });
+      return;
+    }
+
+    if (url.pathname === '/api/join-role' && ['GET', 'PUT'].includes(request.method)) {
+      let settings = await loadDashboardSettings(config);
+      if (request.method === 'PUT') {
+        const body = await readJsonBody(request, 64 * 1024);
+        try {
+          const roleId = body.roleId || null;
+          await validateJoinRole(getDashboardGuild(client), roleId);
+          settings.roles.autoJoin = roleId;
+          settings = await saveDashboardSettings(config, settings, session.user);
+        } catch (error) {
+          sendJson(response, 400, { error: error.message });
+          return;
+        }
+      }
+      sendJson(response, 200, { roleId: settings.roles.autoJoin, membersIntentEnabled: config.intents.members });
       return;
     }
 
@@ -1225,6 +1244,7 @@ async function handleSaveDashboardConfiguration(client, request, response, actor
       throw new Error('Feature channel storage is unavailable. No configuration changes were saved.');
     }
 
+    if (body.settings?.roles?.autoJoin) await validateJoinRole(getDashboardGuild(client), body.settings.roles.autoJoin);
     settings = await saveDashboardSettings(config, body.settings, actor);
     settings = await applyFeatureOwnedChannels(settings);
   } catch (error) {
@@ -1321,8 +1341,8 @@ async function getConfigurationDiagnostics(client, settings) {
       key: 'members',
       label: 'Server Members intent',
       enabled: Boolean(config.intents.members),
-      required: settings.features.welcomeMessages || settings.features.beanProtection,
-      reason: 'automatic welcomes and join-raid detection',
+      required: settings.features.welcomeMessages || settings.features.beanProtection || Boolean(settings.roles.autoJoin),
+      reason: 'automatic welcomes, roles on join, and join-raid detection',
     },
     {
       key: 'messageContent',

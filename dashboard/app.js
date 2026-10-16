@@ -499,6 +499,7 @@ const embedPreviewSubtitle = document.querySelector('#embed-preview-subtitle');
 const embedBuilderButtons = [...document.querySelectorAll('[data-embed-builder]')];
 let serverRailRefreshPending = false;
 let serverRailLastRefreshAt = 0;
+let closeActivePicker = null;
 const selectedGuildKey = 'bean_dashboard_selected_guild';
 const selectedGuildId = window.sessionStorage.getItem(selectedGuildKey) || '';
 function guildStorageKey(key) { return key + ':' + (selectedGuildId || 'unselected'); }
@@ -705,6 +706,7 @@ async function init() {
   initializeWorkspaceNavigation();
   initializeInterfacePreferences();
   bindEvents();
+  document.getElementById('join-role-form').addEventListener('submit', saveJoinRole);
   resetMailboxBuilder();
   renderSavedMessages();
   initializeBuilderWorkflows();
@@ -1934,6 +1936,7 @@ const dashboardConfigurationDefinitions = {
     staff: ['Staff role', 'Full dashboard access below Founder ownership.'],
     moderator: ['Moderator role', 'Cases, members, tickets, and voice operations.'],
     live: ['Going Live role', 'Granted to members streaming on Twitch.'],
+    autoJoin: ['Role on join', 'Automatically assigned to new members. Also configurable on the Welcome page.'],
     newUpload: ['New Upload role', 'Mentioned for YouTube upload alerts.'],
   },
   features: {
@@ -2044,6 +2047,7 @@ function renderConfigurationChannelSelect(select, key, selectedValue) {
 
   setSelectValueWithUnavailableOption(select, selectedValue, 'Unavailable channel');
   updateChannelSelectAppearance(select);
+  enhanceDashboardSelect(select);
 }
 
 function renderConfigurationRoles() {
@@ -2092,6 +2096,7 @@ function renderConfigurationRoles() {
     shell.append(icon, select, chevron);
     card.append(heading, shell);
     configRoleGrid.append(card);
+    enhanceDashboardSelect(select);
   }
 }
 
@@ -2425,7 +2430,7 @@ function renderFeaturePageAvailability() {
 
   document.querySelectorAll('[data-feature-page], [data-feature-page-any]').forEach((page) => {
     const enabled = isFeaturePageEditorEnabled(page, features);
-    const exemptSelector = '.feature-status-strip, .feature-page-hero, .feature-status-grid, .embed-kind-switch';
+    const exemptSelector = '.feature-status-strip, .feature-page-hero, .feature-status-grid, .embed-kind-switch, #join-role-form';
 
     page.classList.toggle('is-active-feature-disabled', !enabled);
 
@@ -6599,6 +6604,7 @@ function setActiveTab(tab, options = {}) {
   }
 
   if (nextTab === 'welcome-embed' && !dashboardView.hidden) {
+    loadJoinRole().catch((error) => { document.getElementById('join-role-status').textContent = error.message; });
     loadWelcomeMessageSettings(false).catch((error) => setSendStatus(error.message, 'error'));
   }
 
@@ -10165,4 +10171,137 @@ function appendPreviewButtonContent(anchor, button) {
   }
 
   anchor.textContent = button.emoji ? `${button.emoji} ${button.label}` : button.label;
+}
+
+async function loadJoinRole() {
+  const [settings, result] = await Promise.all([api('/api/join-role'), api('/api/roles')]);
+  const select = document.getElementById('join-role-select');
+  select.replaceChildren(new Option('Disabled — no automatic role', ''));
+  for (const role of result.roles || []) select.append(new Option('@ ' + role.name, role.id));
+  setSelectValueWithUnavailableOption(select, settings.roleId || '', 'Unavailable role');
+  enhanceDashboardSelect(select);
+  document.getElementById('join-role-status').textContent = settings.membersIntentEnabled
+    ? 'Bean needs Manage Roles and a higher role than the one selected. Changes apply to future joins.'
+    : 'Enable Server Members Intent in Discord and ENABLE_SERVER_MEMBERS_INTENT=true on Railway for automatic roles to work.';
+}
+
+async function saveJoinRole(event) {
+  event.preventDefault();
+  const button = event.currentTarget.querySelector('button[type="submit"]');
+  if (state.session?.permissions?.configure === false) return;
+  button.disabled = true;
+  const status = document.getElementById('join-role-status');
+  try {
+    const result = await api('/api/join-role', { method: 'PUT', body: { roleId: document.getElementById('join-role-select').value || null } });
+    if (state.configuration) state.configuration.roles.autoJoin = result.roleId;
+    if (state.savedConfiguration) state.savedConfiguration.roles.autoJoin = result.roleId;
+    const configurationSelect = document.getElementById('config-role-autoJoin');
+    if (configurationSelect) { configurationSelect.value = result.roleId || ''; enhanceDashboardSelect(configurationSelect); }
+    status.textContent = result.membersIntentEnabled
+      ? (result.roleId ? 'Saved. New members will receive this role.' : 'Saved. Automatic roles are disabled.')
+      : 'Saved. Enable Server Members Intent in Discord and ENABLE_SERVER_MEMBERS_INTENT=true on Railway to activate.';
+  } catch (error) { status.textContent = error.message; }
+  finally { button.disabled = state.session?.permissions?.configure === false; }
+}
+
+function enhanceDashboardSelect(select) {
+  if (select.beanPicker) { select.beanPicker.sync(); return; }
+  const trigger = document.createElement('button');
+  trigger.type = 'button';
+  trigger.className = 'bean-picker-trigger';
+  trigger.setAttribute('aria-haspopup', 'listbox');
+  trigger.setAttribute('aria-expanded', 'false');
+  const name = select.getAttribute('aria-label') || select.closest('label')?.querySelector('strong')?.textContent || 'Choose a channel';
+  const sync = () => {
+    trigger.textContent = select.selectedOptions[0]?.textContent || 'Choose an option';
+    trigger.disabled = select.disabled;
+    trigger.setAttribute('aria-label', name + ': ' + trigger.textContent);
+  };
+  select.hidden = true;
+  select.after(trigger);
+  select.beanPicker = { sync };
+  select.addEventListener('change', sync);
+  new MutationObserver(sync).observe(select, { attributes: true, childList: true, subtree: true });
+  sync();
+  trigger.addEventListener('click', (event) => {
+    event.preventDefault();
+    const wasOpen = trigger.getAttribute('aria-expanded') === 'true';
+    closeActivePicker?.();
+    if (wasOpen) return;
+    const menu = document.createElement('div');
+    menu.className = 'bean-picker-menu';
+    menu.setAttribute('popover', 'manual');
+    const search = document.createElement('input');
+    search.type = 'search'; search.placeholder = 'Search…';
+    search.setAttribute('aria-label', 'Search ' + name);
+    const options = document.createElement('div');
+    options.className = 'bean-picker-options';
+    options.id = select.id + '-options';
+    options.setAttribute('role', 'listbox');
+    options.setAttribute('aria-label', name);
+    trigger.setAttribute('aria-controls', options.id);
+    menu.append(search, options);
+    document.body.append(menu);
+    menu.showPopover?.();
+    const positionMenu = () => {
+      const bounds = trigger.getBoundingClientRect();
+      menu.style.width = Math.min(Math.max(bounds.width, 240), window.innerWidth - 24) + 'px';
+      menu.style.left = Math.max(12, Math.min(bounds.left, window.innerWidth - menu.offsetWidth - 12)) + 'px';
+      const below = window.innerHeight - bounds.bottom - 16;
+      const above = bounds.top - 16;
+      const upwards = below < 240 && above > below;
+      menu.style.maxHeight = Math.max(100, Math.min(360, upwards ? above : below)) + 'px';
+      menu.style.top = 'auto'; menu.style.bottom = 'auto';
+      if (upwards) menu.style.bottom = (window.innerHeight - bounds.top + 6) + 'px';
+      else menu.style.top = (bounds.bottom + 6) + 'px';
+    };
+    positionMenu();
+    trigger.setAttribute('aria-expanded', 'true');
+    const close = (restoreFocus = false) => {
+      menu.remove(); trigger.setAttribute('aria-expanded', 'false');
+      document.removeEventListener('pointerdown', outside);
+      window.removeEventListener('resize', positionMenu);
+      window.removeEventListener('scroll', onScroll, true);
+      closeActivePicker = null;
+      if (restoreFocus) trigger.focus();
+    };
+    const outside = (event) => { if (!menu.contains(event.target) && !trigger.contains(event.target)) close(); };
+    const onScroll = (event) => { if (!menu.contains(event.target)) close(); };
+    closeActivePicker = close;
+    document.addEventListener('pointerdown', outside);
+    window.addEventListener('resize', positionMenu);
+    window.addEventListener('scroll', onScroll, true);
+    menu.addEventListener('focusout', (event) => { if (event.relatedTarget && !menu.contains(event.relatedTarget)) close(); });
+    const render = () => {
+      options.replaceChildren();
+      let lastGroup = null;
+      for (const option of select.options) {
+        if (option.hidden || option.disabled || !option.textContent.toLowerCase().includes(search.value.toLowerCase())) continue;
+        const group = option.parentElement.tagName === 'OPTGROUP' ? option.parentElement.label : '';
+        if (group && group !== lastGroup) {
+          const heading = document.createElement('div'); heading.className = 'bean-picker-group'; heading.textContent = group; options.append(heading);
+        }
+        lastGroup = group;
+        const item = document.createElement('button'); item.type = 'button'; item.className = 'bean-picker-option';
+        item.setAttribute('role', 'option'); item.setAttribute('aria-selected', String(option.value === select.value));
+        item.textContent = option.textContent;
+        item.addEventListener('click', () => { select.value = option.value; select.dispatchEvent(new Event('change', { bubbles: true })); close(true); });
+        options.append(item);
+      }
+      if (!options.children.length) { const empty = document.createElement('p'); empty.className = 'bean-picker-group'; empty.textContent = 'No matches'; options.append(empty); }
+    };
+    menu.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(true); }
+      if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+        if (event.target === search && ['Home', 'End'].includes(event.key)) return;
+        event.preventDefault(); const items = [...options.querySelectorAll('button')];
+        const current = items.indexOf(document.activeElement);
+        const index = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1
+          : event.key === 'ArrowDown' ? Math.min(current + 1, items.length - 1) : Math.max(current - 1, 0);
+        items[index]?.focus();
+      }
+    });
+    search.addEventListener('input', render);
+    render(); search.focus({ preventScroll: true });
+  });
 }

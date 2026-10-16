@@ -20,6 +20,7 @@ const legacyFeatureChannelKeys = [
   'tempVoiceTrigger',
 ];
 const roleKeys = [
+  'autoJoin',
   'founder',
   'staff',
   'moderator',

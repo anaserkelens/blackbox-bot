@@ -89,6 +89,7 @@ const config = {
     tempVoiceTrigger: readEnv('TEMP_VOICE_TRIGGER_CHANNEL_ID') || '1520514900978307226',
   },
   roles: {
+    autoJoin: readEnv('AUTO_JOIN_ROLE_ID'),
     founder: readEnv('FOUNDER_ROLE_ID') || '1520451840058064999',
     staff: readEnv('STAFF_ROLE_ID'),
     moderator: readEnv('MODERATOR_ROLE_ID'),

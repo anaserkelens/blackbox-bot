@@ -10032,3 +10032,18 @@ button.growth-search-result span {
   .server-rail-tooltip { display: none; }
   .server-rail-divider { width: 1px; height: 32px; flex: none; background: var(--line-strong); }
 }
+
+/* Searchable channel and role menus, using the dashboard's existing surfaces. */
+.bean-picker-trigger { display: block; width: 100%; min-width: 0; min-height: 44px; padding: 0.7rem 2rem 0.7rem 0.9rem; text-align: left; color: var(--text); background: var(--well); border: 1px solid var(--line); border-radius: 12px; font: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: none; }
+.cozy-channel-select .bean-picker-trigger, .cozy-role-select .bean-picker-trigger { padding-left: 2.65rem; }
+.bean-picker-trigger:hover, .bean-picker-trigger[aria-expanded='true'] { background: var(--well); border-color: var(--bean); transform: none; }
+.bean-picker-menu { position: fixed; inset: auto; margin: 0; z-index: 1000; display: flex; flex-direction: column; gap: 8px; padding: 8px; color: var(--text); background: var(--panel); border: 1px solid var(--line-strong); border-radius: 14px; box-shadow: 0 16px 40px rgba(0,0,0,.5); box-sizing: border-box; }
+.bean-picker-menu input { width: 100%; min-height: 38px; flex: none; background: var(--well); }
+.bean-picker-options { overflow-y: auto; min-height: 0; overscroll-behavior: contain; }
+.bean-picker-option { display: block; width: 100%; padding: 9px 12px; text-align: left; background: transparent; color: var(--text-soft); border: 0; border-radius: 8px; box-shadow: none; font-size: 0.85rem; white-space: normal; }
+.bean-picker-option:hover, .bean-picker-option:focus-visible { background: var(--bean-soft); color: var(--text); transform: none; }
+.bean-picker-option[aria-selected='true'] { background: var(--bean-soft); color: var(--bean-bright); }
+.bean-picker-option[aria-selected='true']::after { content: '✓'; float: right; margin-left: 8px; }
+.bean-picker-group { padding: 10px 12px 5px; color: var(--text-faint); font-size: 0.72rem; font-weight: 700; }
+#join-role-form { display: grid; gap: 12px; }
+#join-role-form > button[type='submit'] { justify-self: start; }

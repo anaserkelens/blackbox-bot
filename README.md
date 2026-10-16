@@ -279,3 +279,9 @@ Then run:
 ```bash
 npm run deploy:commands
 ```
+
+### Automatic role on join
+
+Open **Welcome message → Role on join**, select a role, and choose **Save join role**. Choose **Disabled — no automatic role** to turn it off. This setting is separate for each server and works independently of the welcome-message toggle. It affects future human members, not existing members or bots. Members with pending membership screening receive the role after screening completes.
+
+Bean needs Manage Roles and its highest role must sit above the assigned role. Enable Server Members Intent in the Discord Developer Portal and set `ENABLE_SERVER_MEMBERS_INTENT=true` on Railway. The dashboard checks the selected role before saving; if permissions or the role change later, assignment failures appear in the bot logs. The optional `AUTO_JOIN_ROLE_ID` environment variable supplies the original server's default.
