@@ -38,46 +38,7 @@
       </section>
 
       <section id="dashboard-view" class="dashboard" hidden>
-        <nav class="server-rail" aria-label="Servers">
-          <button class="server-rail-home" type="button" data-tab-link="overview" aria-label="Home">
-            <i class="fa-solid fa-house" aria-hidden="true"></i>
-            <span class="server-rail-tooltip" aria-hidden="true">Home</span>
-          </button>
-          <span class="server-rail-divider" aria-hidden="true"></span>
-          <div class="server-rail-switcher-wrap">
-            <button
-              type="button"
-              id="guild-switcher"
-              class="server-rail-server"
-              aria-haspopup="listbox"
-              aria-expanded="false"
-              aria-controls="guild-switcher-menu"
-              aria-label="Switch server: The Corner"
-            >
-              <img src="/assets/bean-icon.png" alt="" data-guild-icon />
-              <span class="server-rail-tooltip" aria-hidden="true" data-guild-name>The Corner</span>
-            </button>
-            <div class="guild-switcher-menu" id="guild-switcher-menu" role="listbox" aria-label="Your servers" hidden>
-              <button type="button" class="guild-switcher-option is-active" role="option" aria-selected="true">
-                <span class="guild-switcher-avatar sm">
-                  <img src="/assets/bean-icon.png" alt="" data-guild-icon />
-                </span>
-                <span class="guild-switcher-meta">
-                  <strong data-guild-name>The Corner</strong>
-                  <small data-guild-members>Members: —</small>
-                </span>
-                <i class="fa-solid fa-check guild-switcher-check" aria-hidden="true"></i>
-              </button>
-              <p class="guild-switcher-note">Managing 1 server · more coming soon</p>
-            </div>
-          </div>
-          <!-- ponytail: no bot-invite URL exists yet, so this is presentational.
-               Drop the OAuth invite link on it and remove aria-disabled when there is one. -->
-          <button class="server-rail-add" type="button" aria-disabled="true" aria-label="Add a server (coming soon)">
-            <i class="fa-solid fa-plus" aria-hidden="true"></i>
-            <span class="server-rail-tooltip" aria-hidden="true">Add a server · coming soon</span>
-          </button>
-        </nav>
+
 
         <header class="topbar">
           <div class="home-brand">
@@ -105,13 +66,21 @@
           </div>
         </header>
 
+        <nav class="server-rail" aria-label="Servers">
+          <button class="server-rail-home" type="button" data-tab-link="overview" aria-label="Home">
+            <i class="fa-solid fa-house" aria-hidden="true"></i>
+            <span class="server-rail-tooltip" aria-hidden="true">Home</span>
+          </button>
+          <span class="server-rail-divider" aria-hidden="true"></span>
+          <div id="server-rail-list" class="server-rail-list" aria-label="Your servers"></div>
+          <a class="server-rail-add" href="/invite" target="_blank" rel="noopener noreferrer" aria-label="Add a server">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            <span class="server-rail-tooltip" aria-hidden="true">Add a server</span>
+          </a>
+        </nav>
+
         <div class="dashboard-layout">
           <nav class="dashboard-tabs" aria-label="Dashboard spaces">
-            <div class="server-selection">
-              <label for="server-select">Server</label>
-              <select id="server-select" aria-label="Select Discord server"></select>
-              <a href="/invite" target="_blank" rel="noopener noreferrer">Add Bean to a server ↗</a>
-            </div>
             <div class="guild-header">
               <strong class="guild-header-name" data-guild-name>The Corner</strong>
               <small class="guild-header-members">

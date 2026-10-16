@@ -4234,18 +4234,7 @@ function showDashboard(session) {
     window.location.reload();
     return;
   }
-  const switcher = document.getElementById('server-select');
-  switcher.replaceChildren(...(session.guilds || []).map((guild) => {
-    const option = document.createElement('option');
-    option.value = guild.id;
-    option.textContent = guild.name;
-    option.selected = guild.id === session.guildId;
-    return option;
-  }));
-  switcher.onchange = () => {
-    window.sessionStorage.setItem(selectedGuildKey, switcher.value);
-    window.location.reload();
-  };
+  renderServerRail(session);
   loginView.hidden = true;
   dashboardView.hidden = false;
   document.body.classList.remove('login-active');
@@ -6451,8 +6440,6 @@ function setGuildName(guildName) {
     element.textContent = name;
   });
 
-  const guildSwitcher = document.querySelector('#guild-switcher');
-  guildSwitcher?.setAttribute('aria-label', `Switch server: ${name}`);
 }
 
 function setGuildIdentity(ping) {
@@ -6475,45 +6462,44 @@ function setGuildIdentity(ping) {
   }
 }
 
-function initGuildSwitcher() {
-  const trigger = document.querySelector('#guild-switcher');
-  const menu = document.querySelector('#guild-switcher-menu');
-
-  if (!trigger || !menu) {
-    return;
-  }
-
-  const close = () => {
-    menu.hidden = true;
-    trigger.setAttribute('aria-expanded', 'false');
-  };
-
-  trigger.addEventListener('click', (event) => {
-    event.stopPropagation();
-    const open = menu.hidden;
-    menu.hidden = !open;
-    trigger.setAttribute('aria-expanded', String(open));
-  });
-
-  document.addEventListener('click', (event) => {
-    if (!menu.hidden && !menu.contains(event.target) && !trigger.contains(event.target)) {
-      close();
+function renderServerRail(session) {
+  const list = document.getElementById('server-rail-list');
+  list.replaceChildren(...(session.guilds || []).map((guild) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'server-rail-switcher-wrap';
+    const active = guild.id === session.guildId;
+    wrap.classList.toggle('is-active', active);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'server-rail-server';
+    button.setAttribute('aria-label', guild.name);
+    button.setAttribute('aria-pressed', String(active));
+    if (guild.iconUrl) {
+      const icon = document.createElement('img');
+      icon.src = guild.iconUrl;
+      icon.alt = '';
+      button.append(icon);
+    } else {
+      const initials = document.createElement('span');
+      initials.className = 'server-rail-initials';
+      initials.textContent = guild.name.trim().split(/\s+/).slice(0, 2).map((word) => Array.from(word)[0]).join('').toUpperCase();
+      initials.setAttribute('aria-hidden', 'true');
+      button.append(initials);
     }
-  });
-
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && !menu.hidden) {
-      close();
-      trigger.focus();
-    }
-  });
-
-  menu.querySelectorAll('.guild-switcher-option').forEach((option) => {
-    option.addEventListener('click', close);
-  });
+    const tooltip = document.createElement('span');
+    tooltip.className = 'server-rail-tooltip';
+    tooltip.setAttribute('aria-hidden', 'true');
+    tooltip.textContent = guild.name;
+    button.append(tooltip);
+    button.addEventListener('click', () => {
+      if (active) return;
+      window.sessionStorage.setItem(selectedGuildKey, guild.id);
+      window.location.reload();
+    });
+    wrap.append(button);
+    return wrap;
+  }));
 }
-
-initGuildSwitcher();
 
 function getActiveTab() {
   return getDashboardTabFromLocation()

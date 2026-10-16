@@ -119,8 +119,8 @@ Slash commands are synced to every server Bean has joined on startup, and immedi
 ### Using Bean in multiple servers
 
 1. Deploy the updated bot to the existing Railway service. Keep `DISCORD_GUILD_ID` set to your original server ID: it identifies the server whose existing configuration and saved files should be preserved.
-2. Open the dashboard and choose **Add Bean to a server** beneath the Server selector. Complete Discord’s installation flow for the other server. Ensure the application's Guild Install settings include the permissions needed by the features you use.
-3. Refresh the dashboard and choose the new server. Assign its channels and roles, and enable the features you want. New servers start without your original server's channel/role assignments.
+2. Open the dashboard and choose the **+** in the server icon sidebar. Complete Discord’s installation flow for the other server. Ensure the application's Guild Install settings include the permissions needed by the features you use.
+3. Refresh the dashboard and select the new server’s icon in the sidebar. Assign its channels and roles, and enable the features you want. New servers start without your original server's channel/role assignments.
 
 The same Railway URL serves all servers. Server settings, messages, logs, cases, protection, growth, reaction roles, temporary voice rooms, and scheduled posts are isolated. New server files live under `guilds/<server-id>/` next to the corresponding configured storage file or on the Railway volume. Keep the persistent Railway volume attached. Do not replace the original server ID with the second server's ID.
 

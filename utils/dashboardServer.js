@@ -339,7 +339,7 @@ async function getAccessibleDashboardGuilds(client, session) {
   const guilds = [];
   for (const guild of client.guilds.cache.values()) {
     const role = await getGuildDashboardRole(guild, session);
-    if (role) guilds.push({ id: guild.id, name: guild.name, role });
+    if (role) guilds.push({ id: guild.id, name: guild.name, role, iconUrl: guild.iconURL?.({ size: 128 }) || null });
   }
   return guilds;
 }
