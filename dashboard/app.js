@@ -497,6 +497,8 @@ const embedTimestampLabel = document.querySelector('#embed-timestamp-label');
 const embedSaveHint = document.querySelector('#embed-save-hint');
 const embedPreviewSubtitle = document.querySelector('#embed-preview-subtitle');
 const embedBuilderButtons = [...document.querySelectorAll('[data-embed-builder]')];
+let serverRailRefreshPending = false;
+let serverRailLastRefreshAt = 0;
 const selectedGuildKey = 'bean_dashboard_selected_guild';
 const selectedGuildId = window.sessionStorage.getItem(selectedGuildKey) || '';
 function guildStorageKey(key) { return key + ':' + (selectedGuildId || 'unselected'); }
@@ -930,7 +932,10 @@ function bindEvents() {
       event.returnValue = '';
     }
   });
+  window.addEventListener('focus', refreshServerRail);
+  window.setInterval(refreshServerRail, 15000);
   document.addEventListener('visibilitychange', () => {
+    refreshServerRail();
     if (!document.hidden && getActiveTab() === 'messages' && !dashboardView.hidden) {
       loadSavedMessages({ silent: true }).catch(() => null);
     }
@@ -6462,6 +6467,27 @@ function setGuildIdentity(ping) {
   }
 }
 
+async function refreshServerRail() {
+  const session = state.session;
+  if (!session || dashboardView.hidden || document.hidden || serverRailRefreshPending
+      || Date.now() - serverRailLastRefreshAt < 2000) return;
+  serverRailRefreshPending = true;
+  serverRailLastRefreshAt = Date.now();
+  try {
+    const latest = await api('/api/session', { recoverSession: false });
+    // Update only the icons, preserving the current page and any unsaved work.
+    if (state.session !== session || latest.guildId !== session.guildId) return;
+    if (JSON.stringify(latest.guilds) !== JSON.stringify(session.guilds)) {
+      session.guilds = latest.guilds;
+      renderServerRail(session);
+    }
+  } catch {
+    // A temporary connection failure can retry on the next focus or polling tick.
+  } finally {
+    serverRailRefreshPending = false;
+  }
+}
+
 function renderServerRail(session) {
   const list = document.getElementById('server-rail-list');
   list.replaceChildren(...(session.guilds || []).map((guild) => {
@@ -9993,7 +10019,7 @@ async function api(path, options = {}) {
   }
 
   if (!response.ok) {
-    if (path === '/api/session' && response.status === 403 && selectedGuildId) {
+    if (path === '/api/session' && options.recoverSession !== false && response.status === 403 && selectedGuildId) {
       window.sessionStorage.removeItem(selectedGuildKey);
       window.location.reload();
     }
