@@ -222,7 +222,7 @@ function getReactionRoleStorageInfo(config) {
   if (config.dashboard?.reactionRolesPath) {
     return {
       filePath: path.resolve(config.dashboard.reactionRolesPath),
-      persistent: true,
+      persistent: config.dashboard.guildStoragePersistence?.reactionRolesPath ?? true,
       source: 'DASHBOARD_REACTION_ROLES_PATH',
     };
   }

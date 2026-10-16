@@ -18,7 +18,7 @@ function createDefaultYouTubeEmbedSettings(config) {
       {
         label: 'Watch on YouTube',
         url: '{videoUrl}',
-        emoji: '<:corneryoutube:1531771043675504780>',
+        emoji: config.isAdditionalGuild ? '▶️' : '<:corneryoutube:1531771043675504780>',
       },
     ],
     embed: {
@@ -105,7 +105,7 @@ function getYouTubeEmbedStorageInfo(config) {
   if (config.dashboard.youtubeEmbedPath) {
     return {
       filePath: config.dashboard.youtubeEmbedPath,
-      persistent: true,
+      persistent: config.dashboard.guildStoragePersistence?.youtubeEmbedPath ?? true,
       source: 'DASHBOARD_YOUTUBE_EMBED_PATH',
     };
   }

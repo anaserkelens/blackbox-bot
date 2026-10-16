@@ -7,7 +7,7 @@ const { recordActivity } = require('./activityFeed');
 const defaultTempVoicePath = path.join(__dirname, '..', 'data', 'temporary-voice.json');
 const roomTimers = new Map();
 const creationLocks = new Set();
-let cachedState = null;
+const stateCache = new Map();
 let stateQueue = Promise.resolve();
 
 function createDefaultState(config) {
@@ -26,7 +26,7 @@ function getTempVoiceStorageInfo(config) {
   if (config.dashboard.tempVoicePath) {
     return {
       filePath: config.dashboard.tempVoicePath,
-      persistent: true,
+      persistent: config.dashboard.guildStoragePersistence?.tempVoicePath ?? true,
       source: 'TEMP_VOICE_PATH',
     };
   }
@@ -457,6 +457,7 @@ function isTrackedRoom(state, channelId) {
 }
 
 async function loadState(config) {
+  const cachedState = stateCache.get(getTempVoiceStorageInfo(config).filePath);
   if (cachedState) {
     return cachedState;
   }
@@ -473,8 +474,9 @@ async function loadState(config) {
     }
   }
 
-  cachedState = normalizeState(parsed, defaults);
-  return cachedState;
+  const state = normalizeState(parsed, defaults);
+  stateCache.set(filePath, state);
+  return state;
 }
 
 async function mutateState(config, mutator) {
@@ -490,7 +492,8 @@ async function mutateState(config, mutator) {
 }
 
 async function saveState(config, state) {
-  cachedState = normalizeState(state, createDefaultState(config));
+  const cachedState = normalizeState(state, createDefaultState(config));
+  stateCache.set(getTempVoiceStorageInfo(config).filePath, cachedState);
   await writeState(config, cachedState);
   return cachedState;
 }

@@ -40,6 +40,7 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.User, Partials.GuildMember],
 });
 
+require('./utils/guildContext').installGuildEventContext(client);
 client.commands = new Collection();
 
 for (const command of loadCommands()) {

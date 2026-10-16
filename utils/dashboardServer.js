@@ -19,6 +19,7 @@ const {
   syncNativeAutoModerationRules,
 } = require('./beanProtection');
 const { config } = require('./config');
+const { runWithGuild } = require('./guildContext');
 const {
   getCommunityGrowthOverview,
   getCommunityGrowthProfile,
@@ -139,7 +140,6 @@ const sessionCookieName = 'bean_dashboard';
 const oauthStateCookieName = 'bean_dashboard_oauth_state';
 const oauthSessions = new Map();
 const oauthStates = new Map();
-let dashboardStartupFeatures = null;
 let featureChannelMigrationPromise = Promise.resolve();
 let featureChannelMigrationError = null;
 
@@ -154,9 +154,6 @@ function startDashboard(client) {
     return null;
   }
 
-  dashboardStartupFeatures = {
-    youtubeMonitor: Boolean(config.youtubeMonitor.enabled),
-  };
   featureChannelMigrationError = null;
   featureChannelMigrationPromise = ensureFeatureChannelSettings()
     .catch((error) => {
@@ -176,8 +173,8 @@ function startDashboard(client) {
 
   const server = http.createServer((request, response) => {
     handleRequest(client, request, response).catch((error) => {
-      console.error('Dashboard request error:', error);
-      sendJson(response, 500, { error: 'Dashboard server error.' });
+      if (!error.statusCode) console.error('Dashboard request error:', error);
+      sendJson(response, error.statusCode || 500, { error: error.statusCode ? error.message : 'Dashboard server error.' });
     });
   });
 
@@ -301,6 +298,53 @@ function logCommunityGrowthStorage() {
 }
 
 async function handleRequest(client, request, response) {
+  const pathname = new URL(request.url, 'http://localhost').pathname;
+  const publicRoutes = ['/api/ping', '/api/login', '/api/logout'];
+  if (!pathname.startsWith('/api/') || publicRoutes.includes(pathname)) {
+    return handleScopedRequest(client, request, response);
+  }
+  const originalSession = getAuthenticatedSession(request);
+  if (!originalSession) return sendJson(response, 401, { error: 'Not authenticated.' });
+  const requestedId = request.headers['x-bean-guild-id'];
+  let accessible;
+  if (pathname === '/api/session' && !requestedId) accessible = await getAccessibleDashboardGuilds(client, originalSession);
+  const guildId = requestedId || accessible?.find((g) => g.id === config.guildId)?.id
+    || accessible?.[0]?.id || config.guildId || client.guilds.cache.values().next().value?.id;
+  const guild = client.guilds.cache.get(guildId);
+  const role = guild && await getGuildDashboardRole(guild, originalSession);
+  if (!role) return sendJson(response, 403, { error: 'You do not have dashboard access to this server.' });
+  request.dashboardSession = { ...originalSession, user: { ...originalSession.user, role } };
+  if (pathname.startsWith('/api/bot/') && originalSession.user.id !== config.ownerUserId
+      && originalSession.user.authMode !== 'password') {
+    return sendJson(response, 403, { error: 'Only the Bean owner can change the shared bot profile.' });
+  }
+  if (pathname === '/api/session') {
+    request.dashboardGuilds = accessible || await getAccessibleDashboardGuilds(client, originalSession);
+  }
+  request.dashboardGuild = guild;
+  request.discordClient = client;
+  return runWithGuild(guildId, () => handleScopedRequest(client, request, response), guild.name);
+}
+
+async function getGuildDashboardRole(guild, session) {
+  if (session.user.authMode === 'password' || session.user.id === config.ownerUserId) return 'founder';
+  const member = await guild.members.fetch({ user: session.user.id, force: true }).catch(() => null);
+  if (!member) return null;
+  if (guild.ownerId === session.user.id || member.permissions.has(PermissionFlagsBits.Administrator)
+      || member.permissions.has(PermissionFlagsBits.ManageGuild)) return 'founder';
+  return runWithGuild(guild.id, () => resolveDashboardRole(session.user.id, [...member.roles.cache.keys()]), guild.name);
+}
+
+async function getAccessibleDashboardGuilds(client, session) {
+  const guilds = [];
+  for (const guild of client.guilds.cache.values()) {
+    const role = await getGuildDashboardRole(guild, session);
+    if (role) guilds.push({ id: guild.id, name: guild.name, role });
+  }
+  return guilds;
+}
+
+async function handleScopedRequest(client, request, response) {
   recordApiRequest();
   const url = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
 
@@ -339,7 +383,7 @@ async function handleRequest(client, request, response) {
   }
 
   if (request.method === 'GET' && url.pathname === '/auth/discord/callback') {
-    await handleDiscordOauthCallback(request, response, url);
+    await handleDiscordOauthCallback(client, request, response, url);
     return;
   }
 
@@ -349,7 +393,7 @@ async function handleRequest(client, request, response) {
       return;
     }
 
-    redirect(response, `https://discord.com/oauth2/authorize?client_id=${config.clientId}`);
+    redirect(response, getBotInviteUrl());
     return;
   }
 
@@ -381,7 +425,7 @@ async function handleRequest(client, request, response) {
   }
 
   if (url.pathname.startsWith('/api/')) {
-    const session = getAuthenticatedSession(request);
+    const session = request.dashboardSession || getAuthenticatedSession(request);
 
     if (!session) {
       sendJson(response, 401, { error: 'Not authenticated.' });
@@ -399,6 +443,8 @@ async function handleRequest(client, request, response) {
         botReady: client.isReady(),
         tag: client.user?.tag || null,
         guildName: getDashboardGuildName(client),
+        guildId: config.guildId,
+        guilds: request.dashboardGuilds || [],
         user: session.user,
         permissions: getSessionPermissions(session),
         discordOauthEnabled: isDiscordOauthConfigured(),
@@ -755,13 +801,13 @@ function handleDiscordOauthStart(request, response, url) {
     client_id: config.clientId,
     redirect_uri: redirectUri,
     response_type: 'code',
-    scope: 'identify guilds.members.read',
+    scope: 'identify',
     state,
   });
   redirect(response, `https://discord.com/oauth2/authorize?${query}`);
 }
 
-async function handleDiscordOauthCallback(request, response, url) {
+async function handleDiscordOauthCallback(client, request, response, url) {
   const state = String(url.searchParams.get('state') || '');
   const code = String(url.searchParams.get('code') || '');
   const cookieState = parseCookies(request)[oauthStateCookieName];
@@ -807,31 +853,22 @@ async function handleDiscordOauthCallback(request, response, url) {
 
     const token = await tokenResponse.json();
     const headers = { Authorization: `Bearer ${token.access_token}` };
-    const [userResponse, memberResponse] = await Promise.all([
-      fetch('https://discord.com/api/v10/users/@me', { headers }),
-      fetch(`https://discord.com/api/v10/users/@me/guilds/${config.guildId}/member`, { headers }),
-    ]);
-
-    if (!userResponse.ok || !memberResponse.ok) {
-      throw new Error('The Discord account is not a member of the configured server.');
-    }
-
+    const userResponse = await fetch('https://discord.com/api/v10/users/@me', { headers });
+    if (!userResponse.ok) throw new Error('Could not verify the Discord account.');
     const user = await userResponse.json();
-    const member = await memberResponse.json();
-    const dashboardRole = resolveDashboardRole(user.id, member.roles);
-
-    if (!dashboardRole) {
+    const accessible = await getAccessibleDashboardGuilds(client, { user: { id: user.id, authMode: 'discord' } });
+    if (!accessible.length) {
       redirectToLogin(response, 'access', returnTo);
       return;
     }
-
+    const dashboardRole = accessible[0].role;
     const sessionToken = crypto.randomBytes(32).toString('hex');
     const session = {
       expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
       user: {
         id: user.id,
         username: user.username,
-        displayName: member.nick || user.global_name || user.username,
+        displayName: user.global_name || user.username,
         avatarUrl: user.avatar
           ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128`
           : null,
@@ -1229,7 +1266,7 @@ async function getConfigurationDiagnostics(client, settings) {
   for (const key of Object.keys(settings.channels)) {
     const id = settings.channels[key];
     const channel = id
-      ? channelCollection?.get?.(id) || await client.channels?.fetch?.(id)?.catch(() => null)
+      ? channelCollection?.get?.(id) || await fetchDashboardChannel(client, id)
       : null;
     const requiredPermissions = getRequiredChannelPermissions(key);
     const permissions = channel?.permissionsFor?.(client.user || botMember);
@@ -1339,18 +1376,6 @@ async function getConfigurationDiagnostics(client, settings) {
         ? `Bean is missing ${missingProtectionPermissions.map((item) => item.label).join(', ')}.`
         : 'Bean can coordinate AutoMod, verification, quarantine, and channel restoration.',
       missingPermissions: missingProtectionPermissions.map((item) => item.label),
-    });
-  }
-
-  if (settings.features.youtubeMonitor && dashboardStartupFeatures?.youtubeMonitor === false) {
-    checks.push({
-      id: 'feature-youtubeMonitor',
-      group: 'features',
-      key: 'youtubeMonitor',
-      label: 'YouTube monitor startup',
-      status: 'restart',
-      message: 'The monitor was disabled when Bean started. Restart Bean to begin polling.',
-      restartRequired: true,
     });
   }
 
@@ -1511,7 +1536,7 @@ async function handleSendMessage(client, request, response, options = {}) {
     return;
   }
 
-  const channel = await client.channels.fetch(channelId).catch(() => null);
+  const channel = await fetchDashboardChannel(client, channelId);
 
   if (!channel || typeof channel.isSendable !== 'function' || !channel.isSendable()) {
     sendJson(response, 404, { error: 'Channel was not found or is not sendable by the bot.' });
@@ -1573,7 +1598,7 @@ async function handleTestAnnouncement(client, request, response) {
     return;
   }
 
-  const channel = await client.channels.fetch(channelId).catch(() => null);
+  const channel = await fetchDashboardChannel(client, channelId);
 
   if (!channel?.isSendable?.()) {
     sendJson(response, 404, { error: 'The selected test channel is unavailable or not sendable.' });
@@ -2585,7 +2610,7 @@ async function handleImportMessage(client, request, response) {
     return;
   }
 
-  const channel = await client.channels.fetch(target.channelId).catch(() => null);
+  const channel = await fetchDashboardChannel(client, target.channelId);
 
   if (!channel || !channel.messages || typeof channel.messages.fetch !== 'function') {
     sendJson(response, 404, { error: 'Message channel was not found or is not readable by the bot.' });
@@ -2991,6 +3016,11 @@ function getDashboardGuildSummary(client) {
   };
 }
 
+async function fetchDashboardChannel(client, id) {
+  const channel = await client.channels.fetch(id).catch(() => null);
+  return channel && (channel.guildId || channel.guild?.id) === config.guildId ? channel : null;
+}
+
 function getDashboardGuild(client) {
   const guildCache = client.guilds?.cache;
 
@@ -2999,7 +3029,7 @@ function getDashboardGuild(client) {
   }
 
   const configuredGuild = config.guildId ? guildCache.get(config.guildId) : null;
-  return configuredGuild || guildCache.first?.() || guildCache.values?.().next().value || null;
+  return config.guildId ? configuredGuild || null : guildCache.first?.() || guildCache.values?.().next().value || null;
 }
 
 function normalizeBotImage(image, kind) {
@@ -3102,18 +3132,33 @@ function serveStatic(pathname, response) {
   fs.createReadStream(filePath).pipe(response);
 }
 
-function readJsonBody(request, maxBytes) {
-  return readTextBody(request, maxBytes).then((body) => {
-    if (!body) {
-      return {};
-    }
+async function readJsonBody(request, maxBytes) {
+  const body = await readTextBody(request, maxBytes);
+  let parsed;
+  try { parsed = body ? JSON.parse(body) : {}; }
+  catch { throw new Error('Request body must be valid JSON.'); }
+  if (request.dashboardGuild) await validateServerReferences(parsed, request);
+  return parsed;
+}
 
-    try {
-      return JSON.parse(body);
-    } catch {
-      throw new Error('Request body must be valid JSON.');
+async function validateServerReferences(value, request, parentKey = '') {
+  if (!value || typeof value !== 'object') return;
+  for (const [key, item] of Object.entries(value)) {
+    const isChannel = parentKey === 'channels' || /channelIds?$/i.test(key);
+    if (isChannel) {
+      for (const id of Array.isArray(item) ? item : [item]) {
+        if (!/^\d{17,20}$/.test(String(id || ''))) continue;
+        const channel = await request.discordClient.channels.fetch(id).catch(() => null);
+        const channelGuildId = channel?.guildId || channel?.guild?.id;
+        if (channelGuildId && channelGuildId !== request.dashboardGuild.id) {
+          const error = new Error('Choose channels from the selected server.');
+          error.statusCode = 400;
+          throw error;
+        }
+      }
     }
-  });
+    await validateServerReferences(item, request, key);
+  }
 }
 
 function readFormBody(request, maxBytes) {
@@ -3298,7 +3343,6 @@ function getDiscordOauthStatus() {
     ['DASHBOARD_PUBLIC_URL', Boolean(config.dashboard.publicUrl)],
     ['DISCORD_CLIENT_SECRET', Boolean(config.dashboard.discordOauth?.clientSecret)],
     ['DISCORD_CLIENT_ID', Boolean(config.clientId)],
-    ['DISCORD_GUILD_ID', Boolean(config.guildId)],
   ];
   const missing = requirements
     .filter(([, ready]) => !ready)
@@ -3309,6 +3353,19 @@ function getDiscordOauthStatus() {
     missing,
     redirectUri: config.dashboard.publicUrl ? getDiscordOauthRedirectUri() : null,
   };
+}
+
+function getBotInviteUrl() {
+  const permissions = [
+    'ViewChannel', 'SendMessages', 'ReadMessageHistory', 'EmbedLinks', 'AttachFiles',
+    'AddReactions', 'UseExternalEmojis', 'MentionEveryone', 'ViewAuditLog',
+    'ManageChannels', 'ManageRoles', 'ManageMessages', 'ManageGuild',
+    'KickMembers', 'BanMembers', 'ModerateMembers', 'Connect', 'MoveMembers',
+    'CreatePrivateThreads', 'ManageThreads', 'SendMessagesInThreads',
+  ].reduce((bits, name) => bits | PermissionFlagsBits[name], 0n);
+  const query = new URLSearchParams({ client_id: config.clientId,
+    scope: 'bot applications.commands', integration_type: '0', permissions: permissions.toString() });
+  return 'https://discord.com/oauth2/authorize?' + query;
 }
 
 function getDiscordOauthRedirectUri() {

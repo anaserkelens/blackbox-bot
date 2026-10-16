@@ -9,9 +9,15 @@ function createCommandPayload(commands) {
 async function syncCommandsForClient(client) {
   const body = createCommandPayload(client.commands.values());
 
-  if (config.guildId) {
-    await client.application.commands.set(body, config.guildId);
-    return { count: body.length, guildId: config.guildId, scope: 'guild' };
+  const guildIds = [...(client.guilds?.cache?.keys() || [])];
+  if (guildIds.length) {
+    const errors = [];
+    for (const guildId of guildIds) {
+      try { await client.application.commands.set(body, guildId); }
+      catch (error) { errors.push(new Error('Command sync failed for ' + guildId, { cause: error })); }
+    }
+    if (errors.length) throw new AggregateError(errors, 'Some server commands could not be synced.');
+    return { count: body.length, scope: String(guildIds.length) + ' server(s)' };
   }
 
   await client.application.commands.set(body);

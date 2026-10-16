@@ -108,7 +108,7 @@ function clearFinishedAnnouncement(oldPresence, member, streamingActivity) {
 }
 
 function createAnnouncementKey(memberId, streamUrl) {
-  return `${memberId}:${streamUrl}`;
+  return `${config.guildId}:${memberId}:${streamUrl}`;
 }
 
 async function updateBroadcastingRole(member, shouldHaveRole) {

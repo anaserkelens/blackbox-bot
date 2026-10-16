@@ -52,8 +52,9 @@ async function handleTicketCreation(interaction) {
     return;
   }
 
-  if (activeTickets.has(interaction.user.id)) {
-    const ticketData = activeTickets.get(interaction.user.id);
+  const ticketKey = `${interaction.guildId}:${interaction.user.id}`;
+  if (activeTickets.has(ticketKey)) {
+    const ticketData = activeTickets.get(ticketKey);
     await interaction.editReply(`You already have an open ticket: <#${ticketData.threadId}>`);
     return;
   }
@@ -82,7 +83,7 @@ async function handleTicketCreation(interaction) {
     }
   }
 
-  activeTickets.set(interaction.user.id, {
+  activeTickets.set(ticketKey, {
     creatorId: interaction.user.id,
     threadId: thread.id,
   });
@@ -143,10 +144,10 @@ async function handleTicketClose(interaction) {
   const closeReason = interaction.fields.getTextInputValue('close_reason');
   let ticketCreatorId = null;
 
-  for (const [userId, ticketData] of activeTickets.entries()) {
+  for (const [ticketKey, ticketData] of activeTickets.entries()) {
     if (ticketData.threadId === ticketThread.id) {
-      ticketCreatorId = userId;
-      activeTickets.delete(userId);
+      ticketCreatorId = ticketData.creatorId;
+      activeTickets.delete(ticketKey);
       break;
     }
   }

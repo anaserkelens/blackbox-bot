@@ -173,7 +173,7 @@ config.intents = {
 };
 
 module.exports = {
-  config,
+  config: require('./guildContext').createScopedConfig(config),
   readBoolean,
   readCsv,
   readEnv,

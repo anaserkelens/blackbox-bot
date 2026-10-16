@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const { forEachGuild } = require('./guildContext');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
@@ -15,7 +16,7 @@ function getMailboxScheduleStorageInfo(config) {
   if (config.dashboard.mailboxSchedulePath) {
     return {
       filePath: config.dashboard.mailboxSchedulePath,
-      persistent: true,
+      persistent: config.dashboard.guildStoragePersistence?.mailboxSchedulePath ?? true,
       source: 'MAILBOX_SCHEDULE_PATH',
     };
   }
@@ -141,13 +142,13 @@ async function startMailboxScheduler(client, config) {
     return schedulerTimer;
   }
 
-  await recoverPublishingJobs(config);
-  runMailboxSchedulerTick(client, config).catch((error) => {
+  await forEachGuild(client, () => recoverPublishingJobs(config));
+  forEachGuild(client, () => runMailboxSchedulerTick(client, config)).catch((error) => {
     recordBotError('Mailbox scheduler startup', error);
   });
 
   schedulerTimer = setInterval(() => {
-    runMailboxSchedulerTick(client, config).catch((error) => {
+    forEachGuild(client, () => runMailboxSchedulerTick(client, config)).catch((error) => {
       recordBotError('Mailbox scheduler tick', error);
     });
   }, 5000);

@@ -331,7 +331,7 @@ function getYouTubeUploadStateStorageInfo(config) {
   if (config.dashboard.youtubeUploadStatePath) {
     return {
       filePath: config.dashboard.youtubeUploadStatePath,
-      persistent: true,
+      persistent: config.dashboard.guildStoragePersistence?.youtubeUploadStatePath ?? true,
       source: 'YOUTUBE_UPLOAD_STATE_PATH',
     };
   }

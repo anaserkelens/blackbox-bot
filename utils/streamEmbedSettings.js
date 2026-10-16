@@ -271,7 +271,7 @@ function getStreamEmbedStorageInfo(config) {
   if (config.dashboard.streamEmbedPath) {
     return {
       filePath: config.dashboard.streamEmbedPath,
-      persistent: true,
+      persistent: config.dashboard.guildStoragePersistence?.streamEmbedPath ?? true,
       source: 'DASHBOARD_STREAM_EMBED_PATH',
     };
   }

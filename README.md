@@ -114,7 +114,19 @@ https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=412605
 
 4. Deploy. Railway will run `npm start` from `railway.toml`.
 
-Slash commands are synced on startup. If `DISCORD_GUILD_ID` is set, commands update instantly in that server. Without it, commands are global and can take a while to appear.
+Slash commands are synced to every server Bean has joined on startup, and immediately when Bean joins another server. Keep `AUTO_REGISTER_COMMANDS=true` for this behavior. The manual `deploy:commands` script still targets `DISCORD_GUILD_ID` when supplied, or global commands otherwise.
+
+### Using Bean in multiple servers
+
+1. Deploy the updated bot to the existing Railway service. Keep `DISCORD_GUILD_ID` set to your original server ID: it identifies the server whose existing configuration and saved files should be preserved.
+2. Open the dashboard and choose **Add Bean to a server** beneath the Server selector. Complete Discord’s installation flow for the other server. Ensure the application's Guild Install settings include the permissions needed by the features you use.
+3. Refresh the dashboard and choose the new server. Assign its channels and roles, and enable the features you want. New servers start without your original server's channel/role assignments.
+
+The same Railway URL serves all servers. Server settings, messages, logs, cases, protection, growth, reaction roles, temporary voice rooms, and scheduled posts are isolated. New server files live under `guilds/<server-id>/` next to the corresponding configured storage file or on the Railway volume. Keep the persistent Railway volume attached. Do not replace the original server ID with the second server's ID.
+
+Discord login checks access separately for each server: Bean’s owner can manage all joined servers; other users need server ownership, Administrator/Manage Server permission, or a configured dashboard role in that server. Server selection is saved per browser tab. Bean's avatar, profile and presence remain shared, and only Bean’s owner can change them.
+
+Installation uses Discord's [bot authorization flow](https://docs.discord.com/developers/topics/oauth2#bot-authorization-flow). No second bot token, Railway service, or OAuth callback URL is needed.
 
 `/testwelcome` posts the currently saved Welcome Message template in the current channel. Like `/teststream`, it is restricted to `BOT_OWNER_USER_ID`, who must also have `FOUNDER_ROLE_ID`.
 

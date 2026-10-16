@@ -115,7 +115,7 @@ function getPresenceSettingsStorageInfo(config) {
   if (config.dashboard.presencePath) {
     return {
       filePath: config.dashboard.presencePath,
-      persistent: true,
+      persistent: config.dashboard.guildStoragePersistence?.presencePath ?? true,
       source: 'DASHBOARD_PRESENCE_PATH',
     };
   }

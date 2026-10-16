@@ -347,7 +347,7 @@ function getModerationCasesStorageInfo(config) {
   if (config.dashboard.moderationCasesPath) {
     return {
       filePath: config.dashboard.moderationCasesPath,
-      persistent: true,
+      persistent: config.dashboard.guildStoragePersistence?.moderationCasesPath ?? true,
       source: 'MODERATION_CASES_PATH',
     };
   }

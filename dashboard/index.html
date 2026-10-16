@@ -107,6 +107,11 @@
 
         <div class="dashboard-layout">
           <nav class="dashboard-tabs" aria-label="Dashboard spaces">
+            <div class="server-selection">
+              <label for="server-select">Server</label>
+              <select id="server-select" aria-label="Select Discord server"></select>
+              <a href="/invite" target="_blank" rel="noopener noreferrer">Add Bean to a server ↗</a>
+            </div>
             <div class="guild-header">
               <strong class="guild-header-name" data-guild-name>The Corner</strong>
               <small class="guild-header-members">
@@ -2496,7 +2501,7 @@
             <section class="dashboard-panel bot-bio-panel bot-settings-card">
               <div class="bot-card-heading">
                 <h2>Bio</h2>
-                <span class="muted">Shown on the bot's Discord profile.</span>
+                <span class="muted">Shared across all servers. Only Bean’s owner can change the bot profile and presence.</span>
               </div>
 
               <form id="bot-bio-form" class="bot-bio-form">

@@ -110,7 +110,7 @@ function getProtectionStorageInfo(config) {
   if (config.dashboard?.protectionPath) {
     return {
       filePath: path.resolve(config.dashboard.protectionPath),
-      persistent: true,
+      persistent: config.dashboard.guildStoragePersistence?.protectionPath ?? true,
       source: 'BEAN_PROTECTION_PATH',
     };
   }

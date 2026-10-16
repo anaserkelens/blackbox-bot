@@ -12,7 +12,7 @@ function getActivityFeedStorageInfo(config) {
   if (config.dashboard.activityPath) {
     return {
       filePath: config.dashboard.activityPath,
-      persistent: true,
+      persistent: config.dashboard.guildStoragePersistence?.activityPath ?? true,
       source: 'DASHBOARD_ACTIVITY_PATH',
     };
   }

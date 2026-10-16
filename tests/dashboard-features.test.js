@@ -88,6 +88,7 @@ function createClient() {
   };
   const channel = {
     id: announcementChannelId,
+    guildId: guild.id,
     name: 'announcements',
     parentId: '1520000000000000200',
     parent: { id: '1520000000000000200', name: 'COMMUNITY' },
@@ -146,7 +147,7 @@ function createClient() {
         cache: {
           size: 1,
           first: () => guild,
-          get: () => null,
+          get: (id) => id === guild.id ? guild : null,
           values: function* values() {
             yield guild;
           },
@@ -487,6 +488,9 @@ test('dashboard configuration persists channels, roles, features, and audit hist
 
 test('authenticated dashboard APIs expose health, activity, and the schedule queue', async (context) => {
   const { client, guild, sent } = createClient();
+  const originalGuildId = config.guildId;
+  config.guildId = guild.id;
+  context.after(() => { config.guildId = originalGuildId; });
   const originalDashboard = { ...config.dashboard };
   const originalChannels = { ...config.channels };
   const originalRoles = { ...config.roles };

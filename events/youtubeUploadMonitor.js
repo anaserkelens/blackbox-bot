@@ -1,6 +1,7 @@
 const { Events } = require('discord.js');
 
 const { config } = require('../utils/config');
+const { forEachGuild } = require('../utils/guildContext');
 const {
   getYouTubeUploadStateStorageInfo,
   runYouTubeUploadCheck,
@@ -10,10 +11,6 @@ let checkInProgress = false;
 const recentFeedErrors = new Map();
 
 function setup(client) {
-  if (!config.youtubeMonitor.enabled) {
-    return;
-  }
-
   client.once(Events.ClientReady, async () => {
     const storage = getYouTubeUploadStateStorageInfo(config);
 
@@ -25,9 +22,9 @@ function setup(client) {
       console.warn('YouTube upload history will reset after redeploys unless a Railway volume is attached.');
     }
 
-    await checkForUploads(client);
+    await forEachGuild(client, () => checkForUploads(client));
     const timer = setInterval(
-      () => checkForUploads(client),
+      () => forEachGuild(client, () => checkForUploads(client)).catch(console.error),
       config.youtubeMonitor.pollIntervalSeconds * 1000,
     );
     timer.unref();

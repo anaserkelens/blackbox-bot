@@ -1,6 +1,7 @@
 const { Events } = require('discord.js');
 
 const { config } = require('../utils/config');
+const { forEachGuild } = require('../utils/guildContext');
 const {
   getTempVoiceStorageInfo,
   handleTempVoiceStateUpdate,
@@ -35,7 +36,7 @@ module.exports = {
         console.warn('Temporary voice room tracking will reset after redeploys unless a Railway volume is attached.');
       }
 
-      initializeTempVoiceRooms(client, config).catch((error) => {
+      forEachGuild(client, () => initializeTempVoiceRooms(client, config)).catch((error) => {
         console.error('Temporary voice room initialization failed:', error);
       });
     });

@@ -10015,3 +10015,10 @@ button.growth-search-result span {
     border-top: 1px solid var(--line);
   }
 }
+
+.server-selection { display: grid; gap: 8px; padding: 16px; }
+.server-selection label { font-size: 12px; opacity: .7; }
+.server-selection select { width: 100%; min-width: 0; padding: 10px; border-radius: 8px; background: var(--well); color: var(--text); border: 1px solid var(--line); }
+.server-selection a { font-size: 12px; color: inherit; }
+
+@media (max-width: 1080px) { .server-selection { flex-basis: 100%; padding: 8px; } }

@@ -5,7 +5,7 @@ const defaultWelcomeEmbedPath = path.join(__dirname, '..', 'data', 'welcome-embe
 
 function createDefaultWelcomeEmbedSettings(config) {
   return {
-    channelId: config.channels.welcome || '1520407983354544171',
+    channelId: config.channels.welcome || '',
     color: '#2DD4BF',
     image: null,
     blocks: [
@@ -252,7 +252,7 @@ function getWelcomeEmbedStorageInfo(config) {
   if (config.dashboard.welcomeEmbedPath) {
     return {
       filePath: config.dashboard.welcomeEmbedPath,
-      persistent: true,
+      persistent: config.dashboard.guildStoragePersistence?.welcomeEmbedPath ?? true,
       source: 'DASHBOARD_WELCOME_EMBED_PATH',
     };
   }

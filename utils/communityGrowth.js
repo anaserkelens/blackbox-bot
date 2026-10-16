@@ -744,7 +744,7 @@ function getCommunityGrowthStorageInfo(config) {
   if (config.dashboard?.communityGrowthPath) {
     return {
       filePath: path.resolve(config.dashboard.communityGrowthPath),
-      persistent: true,
+      persistent: config.dashboard.guildStoragePersistence?.communityGrowthPath ?? true,
       source: 'COMMUNITY_GROWTH_PATH',
     };
   }

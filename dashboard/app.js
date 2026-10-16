@@ -497,14 +497,17 @@ const embedTimestampLabel = document.querySelector('#embed-timestamp-label');
 const embedSaveHint = document.querySelector('#embed-save-hint');
 const embedPreviewSubtitle = document.querySelector('#embed-preview-subtitle');
 const embedBuilderButtons = [...document.querySelectorAll('[data-embed-builder]')];
+const selectedGuildKey = 'bean_dashboard_selected_guild';
+const selectedGuildId = window.sessionStorage.getItem(selectedGuildKey) || '';
+function guildStorageKey(key) { return key + ':' + (selectedGuildId || 'unselected'); }
 const sessionStorageKey = 'bean_dashboard_session';
-const savedMessagesStorageKey = 'bean_dashboard_saved_messages';
+const savedMessagesStorageKey = guildStorageKey('bean_dashboard_saved_messages');
 const presenceStorageKey = 'bean_dashboard_presence';
-const liveEmbedStorageKey = 'bean_dashboard_live_embed';
-const youtubeEmbedStorageKey = 'bean_dashboard_youtube_embed';
-const welcomeEmbedStorageKey = 'bean_dashboard_welcome_embed';
-const notificationStorageKey = 'bean_dashboard_notification_center';
-const notificationReadStorageKey = 'bean_dashboard_notification_read';
+const liveEmbedStorageKey = guildStorageKey('bean_dashboard_live_embed');
+const youtubeEmbedStorageKey = guildStorageKey('bean_dashboard_youtube_embed');
+const welcomeEmbedStorageKey = guildStorageKey('bean_dashboard_welcome_embed');
+const notificationStorageKey = guildStorageKey('bean_dashboard_notification_center');
+const notificationReadStorageKey = guildStorageKey('bean_dashboard_notification_read');
 const interfacePreferenceStorageKey = 'bean_dashboard_interface_preferences';
 const welcomeMessageId = 'welcome-message';
 const dashboardRouteByTab = Object.freeze({
@@ -975,8 +978,10 @@ async function checkApiStatus() {
     const ping = await api('/api/ping');
     const botText = ping.botReady || health.botReady ? `Bot online${ping.tag ? `: ${ping.tag}` : ''}` : 'Bot not ready';
 
-    setGuildName(ping.guildName);
-    setGuildIdentity(ping);
+    if (!state.session) {
+      setGuildName(ping.guildName);
+      setGuildIdentity(ping);
+    }
     renderDiscordLoginAvailability(ping);
     setApiStatus(`API connected. ${botText}.`, 'success');
   } catch (error) {
@@ -3990,7 +3995,7 @@ function markBuilderSaved(key, label = 'Saved to Bean') {
 
 function readBuilderHistory(key) {
   try {
-    const items = JSON.parse(window.localStorage.getItem(`bean_dashboard_versions_${key}`) || '[]');
+    const items = JSON.parse(window.localStorage.getItem(guildStorageKey(`bean_dashboard_versions_${key}`)) || '[]');
     return Array.isArray(items) ? items.slice(0, 15) : [];
   } catch {
     return [];
@@ -3999,7 +4004,7 @@ function readBuilderHistory(key) {
 
 function writeBuilderHistory(key, history) {
   try {
-    window.localStorage.setItem(`bean_dashboard_versions_${key}`, JSON.stringify(history.slice(0, 15)));
+    window.localStorage.setItem(guildStorageKey(`bean_dashboard_versions_${key}`), JSON.stringify(history.slice(0, 15)));
   } catch {
     // Server saves remain available when browser storage is full or blocked.
   }
@@ -4220,6 +4225,27 @@ function showLogin() {
 }
 
 function showDashboard(session) {
+  if (!session?.guildId) {
+    api('/api/session').then(showDashboard).catch((error) => setSendStatus(error.message, 'error'));
+    return;
+  }
+  if (session.guildId !== selectedGuildId) {
+    window.sessionStorage.setItem(selectedGuildKey, session.guildId);
+    window.location.reload();
+    return;
+  }
+  const switcher = document.getElementById('server-select');
+  switcher.replaceChildren(...(session.guilds || []).map((guild) => {
+    const option = document.createElement('option');
+    option.value = guild.id;
+    option.textContent = guild.name;
+    option.selected = guild.id === session.guildId;
+    return option;
+  }));
+  switcher.onchange = () => {
+    window.sessionStorage.setItem(selectedGuildKey, switcher.value);
+    window.location.reload();
+  };
   loginView.hidden = true;
   dashboardView.hidden = false;
   document.body.classList.remove('login-active');
@@ -9937,6 +9963,7 @@ async function api(path, options = {}) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   const headers = {};
+  if (selectedGuildId) headers['X-Bean-Guild-Id'] = selectedGuildId;
   const sessionToken = getSessionToken();
 
   if (options.body) {
@@ -9980,6 +10007,10 @@ async function api(path, options = {}) {
   }
 
   if (!response.ok) {
+    if (path === '/api/session' && response.status === 403 && selectedGuildId) {
+      window.sessionStorage.removeItem(selectedGuildKey);
+      window.location.reload();
+    }
     throw new Error(data.error || 'Request failed.');
   }
 

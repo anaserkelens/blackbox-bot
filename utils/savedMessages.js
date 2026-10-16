@@ -23,7 +23,7 @@ const seededWelcomeMessage = {
 async function loadSavedMessages(config) {
   const filePath = getSavedMessagesPath(config);
   const storedMessages = await readSavedMessagesFile(filePath);
-  const messages = ensureSeedMessage(storedMessages);
+  const messages = ensureSeedMessage(storedMessages, config);
 
   if (messages !== storedMessages) {
     await writeSavedMessagesFile(filePath, messages);
@@ -44,7 +44,7 @@ async function saveSavedMessages(config, messages) {
   const filePath = getSavedMessagesPath(config);
   const incomingMessages = messages.map(sanitizeSavedMessage).filter(Boolean);
   const storedMessages = await readSavedMessagesFile(filePath);
-  const sanitizedMessages = ensureSeedMessage(mergeSavedMessages(incomingMessages, storedMessages));
+  const sanitizedMessages = ensureSeedMessage(mergeSavedMessages(incomingMessages, storedMessages), config);
 
   await writeSavedMessagesFile(filePath, sanitizedMessages);
 
@@ -117,7 +117,7 @@ function getSavedMessagesStorageInfo(config) {
   if (config.dashboard.savedMessagesPath) {
     return {
       filePath: config.dashboard.savedMessagesPath,
-      persistent: true,
+      persistent: config.dashboard.guildStoragePersistence?.savedMessagesPath ?? true,
       source: 'DASHBOARD_SAVED_MESSAGES_PATH',
     };
   }
@@ -137,12 +137,15 @@ function getSavedMessagesStorageInfo(config) {
   };
 }
 
-function ensureSeedMessage(messages) {
+function ensureSeedMessage(messages, config) {
   if (messages.some((message) => message.id === welcomeMessageId)) {
     return messages;
   }
 
-  return [seededWelcomeMessage, ...messages];
+  const seed = structuredClone(seededWelcomeMessage);
+  seed.blocks[0].content = '# WELCOME TO ' + String(config.communityName || 'YOUR COMMUNITY').toUpperCase()
+    + '\n> ' + (config.communityDescription || 'A place to connect, create, and build together.');
+  return [seed, ...messages];
 }
 
 function mergeSavedMessages(primaryMessages, secondaryMessages) {

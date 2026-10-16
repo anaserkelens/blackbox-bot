@@ -169,7 +169,7 @@ function getDashboardSettingsStorageInfo(config) {
   if (config.dashboard?.settingsPath) {
     return {
       filePath: path.resolve(config.dashboard.settingsPath),
-      persistent: true,
+      persistent: config.dashboard.guildStoragePersistence?.settingsPath ?? true,
       source: 'DASHBOARD_SETTINGS_PATH',
     };
   }

@@ -7,6 +7,7 @@ const {
   queueNativeAutoModerationExecution,
 } = require('../utils/beanProtection');
 const { config } = require('../utils/config');
+const { forEachGuild } = require('../utils/guildContext');
 
 module.exports = {
   setup(client) {
@@ -23,7 +24,7 @@ module.exports = {
     });
 
     const checkEmergencyExpiration = () => {
-      processEmergencyExpiration(client, config)
+      forEachGuild(client, () => processEmergencyExpiration(client, config))
         .catch((error) => console.error('Emergency safety profile restoration failed:', error));
     };
     const expirationTimer = setInterval(checkEmergencyExpiration, 30000);
