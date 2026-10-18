@@ -34,35 +34,32 @@ test('uploads enforce count, size, encoding and component limits', () => {
   }) }, config), /too many/);
 });
 
-test('webhook uses authenticated identity, reuses Bean hook, and supports threads', async () => {
-  const client = { user: { id: 'bot' } };
+test('supplied webhook preserves its identity and supports threads', async () => {
   let sent;
-  const hook = { owner: client.user, name: 'Bean Dashboard', token: 'private', send: async (payload) => { sent = payload; return { id: 'message' }; } };
-  const parent = { id: 'channel', guildId: 'guild', permissionsFor: () => ({ has: () => true }),
-    fetchWebhooks: async () => [hook], createWebhook: () => { throw Error('Should reuse'); } };
-  const channel = { isThread: () => true, parent, id: 'thread' };
-  const user = { id: '12345678901234567', displayName: 'snuf', avatarUrl: 'https://cdn.discordapp.com/avatar.png' };
-  await sendDashboardMessage(client, channel, { files: [file], flags: 32768 }, 'webhook', user);
-  assert.equal(sent.username, 'snuf');
-  assert.equal(sent.avatarURL, user.avatarUrl);
+  const hook = { guildId: 'guild', channelId: 'channel', send: async payload => { sent = payload; return { id: 'message' }; } };
+  const client = { fetchWebhook: async (id, token) => { assert.equal(id, '12345678901234567'); assert.equal(token, 'secret'); return hook; } };
+  const channel = { guildId: 'guild', isThread: () => true, parent: { id: 'channel' }, id: 'thread' };
+  const url = 'https://discord.com/api/webhooks/12345678901234567/secret';
+  await sendDashboardMessage(client, channel, { files: [file], flags: 32768 }, 'webhook', url);
+  assert.equal(sent.username, undefined);
+  assert.equal(sent.avatarURL, undefined);
   assert.equal(sent.threadId, 'thread');
   assert.equal(sent.withComponents, true);
   assert.equal(sent.files.length, 1);
-  await assert.rejects(sendDashboardMessage(client, channel, {}, 'webhook', { ...user, authMode: 'password' }), /Sign in/);
-  parent.permissionsFor = () => ({ has: () => false });
-  await assert.rejects(sendDashboardMessage(client, channel, {}, 'webhook', user), /Manage Webhooks/);
-  const result = await sendDashboardMessage(client, { send: async (payload) => payload }, { flags: 32768 }, 'bean');
+  hook.guildId = 'other';
+  await assert.rejects(sendDashboardMessage(client, channel, {}, 'webhook', url), /selected server/);
+  hook.guildId = 'guild'; hook.channelId = 'other';
+  await assert.rejects(sendDashboardMessage(client, channel, {}, 'webhook', url), /destination channel/);
+  const result = await sendDashboardMessage(client, { send: async payload => payload }, { flags: 32768 }, 'bean');
   assert.equal(result.flags, 32768);
 });
 
-test('webhook creation is shared by concurrent publishes', async () => {
-  const client = { user: { id: 'bot' } };
-  let creations = 0;
-  const channel = { id: 'fresh', guildId: 'guild', permissionsFor: () => ({ has: () => true }),
-    fetchWebhooks: async () => [], createWebhook: async () => { creations++; return { send: async () => ({ id: 'sent' }) }; } };
-  const user = { id: '12345678901234567', username: 'snuf' };
-  await Promise.all([1, 2].map(() => sendDashboardMessage(client, channel, {}, 'webhook', user)));
-  assert.equal(creations, 1);
+test('webhook rejects invalid hosts and does not expose URL tokens in failures', async () => {
+  const client = { fetchWebhook: async () => { throw Error('secret token'); } };
+  for (const url of ['', 'http://discord.com/api/webhooks/12345678901234567/secret', 'https://evil.example/api/webhooks/12345678901234567/secret', 'https://discord.com.evil.example/api/webhooks/12345678901234567/secret']) {
+    await assert.rejects(sendDashboardMessage(client, {}, {}, 'webhook', url), /valid Discord webhook URL/);
+  }
+  await assert.rejects(sendDashboardMessage(client, {}, {}, 'webhook', 'https://discord.com/api/webhooks/12345678901234567/secret'), error => !error.message.includes('secret') && /Could not access/.test(error.message));
 });
 
 test('saved messages retain sender and attachment bytes after reload', async () => {

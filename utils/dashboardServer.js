@@ -1577,7 +1577,7 @@ async function handleSendMessage(client, request, response, options = {}) {
   let message;
   try {
     message = await sendDashboardMessage(client, channel, payload, options.source === 'mailbox' ? 'bean' : body.sender,
-      request.dashboardSession?.user);
+      body.webhookUrl);
   } catch (error) {
     sendJson(response, 400, { error: error.code === 40005 ? 'Discord rejected the upload size. Try a smaller file for this server.' : error.message });
     return;

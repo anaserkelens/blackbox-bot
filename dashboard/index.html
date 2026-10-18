@@ -531,9 +531,15 @@
                   Send as
                   <select id="message-sender" aria-label="Send as">
                     <option value="bean">Bean</option>
-                    <option value="webhook">My name &amp; avatar (webhook)</option>
+                    <option value="webhook">Discord webhook</option>
                   </select>
-                  <small class="muted">Webhook messages use your Discord profile and still show the APP badge.</small>
+                  <small class="muted">Use Bean or an existing Discord webhook.</small>
+                </label>
+
+                <label id="message-webhook-field" class="field span-2" hidden>
+                  Discord webhook URL
+                  <input id="message-webhook-url" type="password" autocomplete="off" spellcheck="false" placeholder="https://discord.com/api/webhooks/…" />
+                  <small class="muted">Uses the webhook’s name and avatar. Select its channel above. The URL is only used to send and is not saved with the message.</small>
                 </label>
 
                 <label class="field">

@@ -1037,7 +1037,7 @@ async function handleSend(event) {
     const payload = collectPayload();
     const result = await api('/api/send-message', {
       method: 'POST',
-      body: payload,
+      body: { ...payload, ...(payload.sender === 'webhook' ? { webhookUrl: document.querySelector('#message-webhook-url').value.trim() } : {}) },
     });
 
     const link = result.url ? ` Message: ${result.url}` : '';
@@ -4255,9 +4255,6 @@ function showDashboard(session) {
   startInterfaceClock();
   setGuildName(session?.guildName);
   state.session = session;
-  const senderOption = document.querySelector('#message-sender option[value="webhook"]');
-  senderOption.disabled = !session?.user || session.user.authMode === 'password';
-  senderOption.textContent = senderOption.disabled ? 'Sign in with Discord to use your profile' : 'My name & avatar (webhook)';
   const fileLimit = session?.uploadLimits?.maxFileBytes || 60 * 1024 * 1024;
   document.querySelector('#message-file-help').textContent = `ZIPs, PDFs, and other downloads. Up to 10 files including the header image, ${Math.floor(fileLimit / 1024 / 1024)} MB each. Discord server limits also apply. Files are included when you save this message.`;
   renderSessionIdentity(session);
@@ -7884,6 +7881,7 @@ function applyMessage(message) {
   state.attachments = Array.isArray(message.attachments) ? message.attachments : [];
   document.querySelector('#message-sender').value = message.sender === 'webhook' ? 'webhook' : 'bean';
   document.querySelector('#message-sender').beanPicker?.sync();
+  document.querySelector('#message-webhook-url').value = '';
   document.querySelector('#message-files').value = '';
   imageInput.value = '';
   sectionsContainer.innerHTML = '';
@@ -8354,9 +8352,13 @@ function collectBlocks() {
 
 function updatePreview() {
   const payload = collectPayload();
-  const profile = payload.sender === 'webhook' ? state.session?.user : null;
-  document.querySelector('#preview-sender-name').textContent = profile?.displayName || profile?.username || 'Bean';
-  document.querySelector('#preview-sender-avatar').src = profile?.avatarUrl || '/assets/bean-icon.png';
+  const usesWebhook = payload.sender === 'webhook';
+  document.querySelector('#message-webhook-field').hidden = !usesWebhook;
+  document.querySelector('#message-webhook-url').required = usesWebhook;
+  document.querySelector('#message-webhook-url').disabled = !usesWebhook;
+  document.querySelector('#preview-sender-name').textContent = usesWebhook ? 'Your webhook' : 'Bean';
+  document.querySelector('#preview-sender-avatar').hidden = usesWebhook;
+  document.querySelector('#preview-sender-avatar').src = '/assets/bean-icon.png';
   renderMessageAttachments();
   const color = normalizeMessageColor(payload.color);
   const blocks = payload.blocks.filter((block) => {
