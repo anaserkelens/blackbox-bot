@@ -10078,8 +10078,12 @@ function readFileAsDataUrl(file) {
 }
 
 async function api(path, options = {}) {
+  const body = options.body ? JSON.stringify(options.body) : undefined;
+  const largeUpload = Boolean(body && body.length >= 1024 * 1024);
+  const publishing = ['/api/send-message', '/api/mailbox/send'].includes(path);
+  const timeoutMs = largeUpload || publishing ? 300000 : 15000;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   const headers = {};
   if (selectedGuildId) headers['X-Bean-Guild-Id'] = selectedGuildId;
   const sessionToken = getSessionToken();
@@ -10093,19 +10097,25 @@ async function api(path, options = {}) {
   }
 
   let response;
+  let text;
 
   try {
     response = await fetch(path, {
       method: options.method || 'GET',
       headers: Object.keys(headers).length ? headers : undefined,
-      body: options.body ? JSON.stringify(options.body) : undefined,
+      body,
       cache: 'no-store',
       credentials: 'same-origin',
       signal: controller.signal,
     });
+    text = await response.text();
   } catch (error) {
     if (error.name === 'AbortError') {
-      throw new Error('The dashboard API did not respond. Check the Railway deployment logs.');
+      throw new Error(publishing
+        ? 'Sending did not finish within five minutes. Check the Discord channel before trying again—the message may still have been sent.'
+        : largeUpload
+          ? 'The upload did not finish within five minutes. Check your connection and whether the save completed before retrying.'
+          : 'The dashboard request timed out after 15 seconds. Check your connection and try again.');
     }
 
     throw new Error('Could not reach the dashboard API. Refresh the page and check Railway logs.');
@@ -10113,7 +10123,6 @@ async function api(path, options = {}) {
     clearTimeout(timeout);
   }
 
-  const text = await response.text();
   let data = {};
 
   if (text) {
@@ -10125,6 +10134,9 @@ async function api(path, options = {}) {
   }
 
   if (!response.ok) {
+    if (response.status === 413 && !data.error?.startsWith('This upload')) {
+      throw new Error('The upload was rejected as too large by the server or hosting service. Check DASHBOARD_MAX_UPLOAD_MB and DASHBOARD_MAX_BODY_MB, or use a smaller file.');
+    }
     if (path === '/api/session' && options.recoverSession !== false && response.status === 403 && selectedGuildId) {
       window.sessionStorage.removeItem(selectedGuildKey);
       window.location.reload();

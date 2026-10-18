@@ -1575,13 +1575,19 @@ async function handleSendMessage(client, request, response, options = {}) {
   }
 
   let message;
+  const publishStartedAt = Date.now();
+  console.log('Dashboard publish started:', { channelId, sender: body.sender || 'bean',
+    files: payload.files.length, bytes: payload.files.reduce((total, file) => total + (file.attachment?.length || 0), 0) });
   try {
     message = await sendDashboardMessage(client, channel, payload, options.source === 'mailbox' ? 'bean' : body.sender,
       body.webhookUrl);
   } catch (error) {
+    console.warn('Dashboard publish failed:', { channelId, elapsedMs: Date.now() - publishStartedAt,
+      code: error.code || null, status: error.status || null });
     sendJson(response, 400, { error: error.code === 40005 ? 'Discord rejected the upload size. Try a smaller file for this server.' : error.message });
     return;
   }
+  console.log('Dashboard publish completed:', { channelId, messageId: message.id, elapsedMs: Date.now() - publishStartedAt });
 
   if (options.source === 'mailbox') {
     await sendStructuredLog(client, config.channels.operationLog, {
