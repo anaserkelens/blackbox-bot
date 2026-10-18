@@ -20,6 +20,7 @@ const {
 } = require('./beanProtection');
 const { config } = require('./config');
 const { validateJoinRole } = require('./joinRole');
+const { sendDashboardMessage } = require('./dashboardPublisher');
 const { runWithGuild } = require('./guildContext');
 const {
   getCommunityGrowthOverview,
@@ -447,6 +448,7 @@ async function handleScopedRequest(client, request, response) {
         guildId: config.guildId,
         guilds: request.dashboardGuilds || [],
         user: session.user,
+        uploadLimits: { maxFileBytes: config.dashboard.maxUploadBytes, maxBodyBytes: config.dashboard.maxBodyBytes },
         permissions: getSessionPermissions(session),
         discordOauthEnabled: isDiscordOauthConfigured(),
       });
@@ -1572,7 +1574,14 @@ async function handleSendMessage(client, request, response, options = {}) {
     return;
   }
 
-  const message = await channel.send(payload);
+  let message;
+  try {
+    message = await sendDashboardMessage(client, channel, payload, options.source === 'mailbox' ? 'bean' : body.sender,
+      request.dashboardSession?.user);
+  } catch (error) {
+    sendJson(response, 400, { error: error.code === 40005 ? 'Discord rejected the upload size. Try a smaller file for this server.' : error.message });
+    return;
+  }
 
   if (options.source === 'mailbox') {
     await sendStructuredLog(client, config.channels.operationLog, {
@@ -3196,8 +3205,10 @@ function readTextBody(request, maxBytes) {
       bytes += Buffer.byteLength(chunk);
 
       if (bytes > maxBytes) {
-        reject(new Error('Request body is too large.'));
-        request.destroy();
+        const error = new Error('This upload or saved-message collection exceeds the dashboard request limit. Use smaller files or increase DASHBOARD_MAX_BODY_MB.');
+        error.statusCode = 413;
+        reject(error);
+        body = '';
         return;
       }
 
@@ -3379,7 +3390,7 @@ function getBotInviteUrl() {
   const permissions = [
     'ViewChannel', 'SendMessages', 'ReadMessageHistory', 'EmbedLinks', 'AttachFiles',
     'AddReactions', 'UseExternalEmojis', 'MentionEveryone', 'ViewAuditLog',
-    'ManageChannels', 'ManageRoles', 'ManageMessages', 'ManageGuild',
+    'ManageChannels', 'ManageRoles', 'ManageMessages', 'ManageGuild', 'ManageWebhooks',
     'KickMembers', 'BanMembers', 'ModerateMembers', 'Connect', 'MoveMembers',
     'CreatePrivateThreads', 'ManageThreads', 'SendMessagesInThreads',
   ].reduce((bits, name) => bits | PermissionFlagsBits[name], 0n);

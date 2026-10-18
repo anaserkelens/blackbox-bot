@@ -10047,3 +10047,21 @@ button.growth-search-result span {
 .bean-picker-group { padding: 10px 12px 5px; color: var(--text-faint); font-size: 0.72rem; font-weight: 700; }
 #join-role-form { display: grid; gap: 12px; }
 #join-role-form > button[type='submit'] { justify-self: start; }
+.message-uploads { margin: 20px 0; }
+.message-file-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border, #414650);
+  border-radius: 10px;
+  background: var(--well, #161b23);
+  min-width: 0;
+}
+.message-file-card > i { color: #a6abff; font-size: 28px; }
+.message-file-card > span { flex: 1; min-width: 0; }
+.message-file-card strong { display: block; color: #8bbcff; overflow-wrap: anywhere; font-weight: 500; }
+.message-file-card small { display: block; color: var(--muted, #a3acba); margin-top: 4px; }
+#preview-files:not(:empty) { margin-top: 18px; }
+.message-sender-preview { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+.message-sender-preview img { width: 36px; height: 36px; object-fit: cover; border-radius: 50%; }

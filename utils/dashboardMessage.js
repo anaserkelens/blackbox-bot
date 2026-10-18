@@ -13,13 +13,14 @@ function createDashboardMessagePayload(input, config) {
   const blocks = normalizeBlocks(input.blocks, input.sections);
   const buttons = normalizeButtons(input.buttons);
   const image = normalizeImage(input.image, config);
+  const attachments = normalizeAttachments(input.attachments, config);
   const accentColor = normalizeColor(input.color);
 
   if (accentColor !== null) {
     component.setAccentColor(accentColor);
   }
 
-  if (!image && blocks.length === 0 && buttons.length === 0) {
+  if (!image && blocks.length === 0 && buttons.length === 0 && attachments.length === 0) {
     throw new Error('Add at least one text block, divider, spacer, image, or button.');
   }
 
@@ -87,12 +88,41 @@ function createDashboardMessagePayload(input, config) {
   }
 
   const payload = component.toDiscordPayload(files);
+  if (attachments.length + files.length > 10) throw new Error('Use at most 10 files, including the header image.');
+  const usedNames = new Set(files.map((file) => file.name));
+  for (const attachment of attachments) {
+    let name = attachment.name;
+    let suffix = 1;
+    while (usedNames.has(name)) name = `${suffix++}-${attachment.name}`;
+    usedNames.add(name);
+    files.push({ attachment: attachment.buffer, name });
+    payload.components[0].components.push({ type: 13, file: { url: `attachment://${name}` } });
+  }
+  const countComponents = (items) => items.reduce((count, item) => count + 1
+    + countComponents(item.components || []) + (item.accessory ? 1 : 0), 0);
+  if (countComponents(payload.components) > 40) throw new Error('This message has too many blocks, buttons, and files. Remove a few before sending.');
 
   if (!input.allowMentions) {
     payload.allowedMentions = { parse: [] };
   }
 
   return payload;
+}
+
+function normalizeAttachments(attachments, config) {
+  if (attachments == null) return [];
+  if (!Array.isArray(attachments) || attachments.length > 10) throw new Error('Use at most 10 attachments.');
+  return attachments.map((file) => {
+    const match = String(file?.dataUrl || '').match(/^data:[^;,]*;base64,([A-Za-z0-9+/]*={0,2})$/);
+    if (!match || match[1].length % 4 !== 0) throw new Error('Attachment upload is invalid. Choose the file again.');
+    const buffer = Buffer.from(match[1], 'base64');
+    if (!buffer.length) throw new Error('Empty files cannot be uploaded.');
+    if (buffer.length > config.dashboard.maxUploadBytes) {
+      throw new Error(`Each file must be ${Math.floor(config.dashboard.maxUploadBytes / 1024 / 1024)} MB or smaller.`);
+    }
+    const name = String(file.name || 'download').replace(/[^a-zA-Z0-9._-]/g, '_').slice(-100) || 'download';
+    return { name, buffer };
+  });
 }
 
 function addSpacer(component) {

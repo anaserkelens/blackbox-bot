@@ -150,6 +150,12 @@ test('multiple servers isolate settings, events, background jobs, dashboard acce
   const crossServer = await request('/api/send-message', { method: 'POST', headers,
     body: JSON.stringify({ channelId: '111111111111111112', blocks: [{ type: 'text', content: 'Wrong server' }] }) });
   assert.equal(crossServer.status, 400); assert.equal(sent.length, 2);
+  const passwordWebhook = await request('/api/send-message', { method: 'POST', headers,
+    body: JSON.stringify({ channelId: '222222222222222223', sender: 'webhook',
+      attachments: [{ name: 'release.zip', dataUrl: 'data:application/zip;base64,UEsDBA==' }] }) });
+  assert.equal(passwordWebhook.status, 400);
+  assert.match(passwordWebhook.data.error, /Sign in with Discord/);
+  assert.equal(sent.length, 2);
   const crossSettings = await request('/api/welcome-embed', { method: 'PUT', headers,
     body: JSON.stringify({ settings: { channelId: '111111111111111112' } }) });
   assert.equal(crossSettings.status, 400);

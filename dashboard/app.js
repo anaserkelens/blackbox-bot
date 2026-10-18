@@ -847,6 +847,9 @@ function bindEvents() {
   voiceRoomSettingsForm.addEventListener('submit', handleVoiceRoomSettingsSave);
   voiceRoomList.addEventListener('click', handleVoiceRoomListClick);
   imageInput.addEventListener('change', handleImageChange);
+  document.querySelector('#message-files').addEventListener('change', handleAttachmentChange);
+  document.querySelector('#message-sender').addEventListener('change', updatePreview);
+  enhanceDashboardSelect(document.querySelector('#message-sender'));
   addSectionButton.addEventListener('click', () => addSection(''));
   addDividerButton.addEventListener('click', () => addDivider('small'));
   addSpacerButton.addEventListener('click', () => addSpacerBlock('small'));
@@ -4252,7 +4255,13 @@ function showDashboard(session) {
   startInterfaceClock();
   setGuildName(session?.guildName);
   state.session = session;
+  const senderOption = document.querySelector('#message-sender option[value="webhook"]');
+  senderOption.disabled = !session?.user || session.user.authMode === 'password';
+  senderOption.textContent = senderOption.disabled ? 'Sign in with Discord to use your profile' : 'My name & avatar (webhook)';
+  const fileLimit = session?.uploadLimits?.maxFileBytes || 60 * 1024 * 1024;
+  document.querySelector('#message-file-help').textContent = `ZIPs, PDFs, and other downloads. Up to 10 files including the header image, ${Math.floor(fileLimit / 1024 / 1024)} MB each. Discord server limits also apply. Files are included when you save this message.`;
   renderSessionIdentity(session);
+  updatePreview();
   applySessionPermissions(session?.permissions);
   setBotStatus(Boolean(session?.botReady), session?.tag);
   const requestedPath = getSafeDashboardPath(new URLSearchParams(window.location.search).get('next'));
@@ -7740,6 +7749,8 @@ async function handleSaveMessage() {
     channelId: payload.channelId,
     color: payload.color,
     image: payload.image,
+    sender: payload.sender,
+    attachments: payload.attachments,
     blocks: payload.blocks,
     buttons: payload.buttons,
     allowMentions: payload.allowMentions,
@@ -7870,6 +7881,10 @@ function applyMessage(message) {
   messageColorPicker.value = messageColorInput.value || '#f6c75f';
   allowMentionsInput.checked = Boolean(message.allowMentions);
   state.image = message.image || null;
+  state.attachments = Array.isArray(message.attachments) ? message.attachments : [];
+  document.querySelector('#message-sender').value = message.sender === 'webhook' ? 'webhook' : 'bean';
+  document.querySelector('#message-sender').beanPicker?.sync();
+  document.querySelector('#message-files').value = '';
   imageInput.value = '';
   sectionsContainer.innerHTML = '';
   buttonsContainer.innerHTML = '';
@@ -8034,6 +8049,8 @@ function sanitizeSavedMessage(message) {
     channelId: String(message.channelId || ''),
     color: normalizeMessageColor(message.color) || null,
     image: message.image && typeof message.image === 'object' ? message.image : null,
+    sender: message.sender === 'webhook' ? 'webhook' : 'bean',
+    attachments: Array.isArray(message.attachments) ? message.attachments : [],
     blocks: sanitizeBlocks(message),
     buttons: Array.isArray(message.buttons)
       ? message.buttons.map((button) => ({
@@ -8278,6 +8295,13 @@ async function handleImageChange() {
     return;
   }
 
+  const fileLimit = state.session?.uploadLimits?.maxFileBytes || 60 * 1024 * 1024;
+  if (file.size > fileLimit || (state.attachments || []).length >= 10) {
+    setSendStatus(`Use an image up to ${Math.floor(fileLimit / 1024 / 1024)} MB and at most 10 files including the image.`, 'error');
+    imageInput.value = '';
+    return;
+  }
+
   state.image = {
     name: file.name,
     dataUrl: await readFileAsDataUrl(file),
@@ -8291,6 +8315,8 @@ function collectPayload() {
     channelId: channelInput.value.trim(),
     color: messageColorInput.value.trim(),
     image: state.image,
+    sender: document.querySelector('#message-sender').value || 'bean',
+    attachments: state.attachments || [],
     blocks: collectBlocks(),
     buttons: [...buttonsContainer.querySelectorAll('.button-block')].map((block) => ({
       label: block.querySelector('.button-label').value,
@@ -8328,6 +8354,10 @@ function collectBlocks() {
 
 function updatePreview() {
   const payload = collectPayload();
+  const profile = payload.sender === 'webhook' ? state.session?.user : null;
+  document.querySelector('#preview-sender-name').textContent = profile?.displayName || profile?.username || 'Bean';
+  document.querySelector('#preview-sender-avatar').src = profile?.avatarUrl || '/assets/bean-icon.png';
+  renderMessageAttachments();
   const color = normalizeMessageColor(payload.color);
   const blocks = payload.blocks.filter((block) => {
     if (block.type !== 'text') {
@@ -8374,6 +8404,74 @@ function updatePreview() {
   }
 
   sectionCount.textContent = `${blocks.length} block${blocks.length === 1 ? '' : 's'}`;
+}
+
+async function handleAttachmentChange(event) {
+  const input = event.target;
+  const files = [...input.files];
+  const limit = state.session?.uploadLimits?.maxFileBytes || 60 * 1024 * 1024;
+  input.disabled = true;
+  sendButton.disabled = true;
+  try {
+    if (files.length + (state.attachments || []).length + (state.image ? 1 : 0) > 10) {
+      throw new Error('Use at most 10 files, including the header image.');
+    }
+    if (files.some((file) => !file.size || file.size > limit)) {
+      throw new Error(`Choose non-empty files up to ${Math.floor(limit / 1024 / 1024)} MB each.`);
+    }
+    const existing = state.attachments || [];
+    const estimatedBytes = (files.reduce((sum, file) => sum + file.size, 0) * 4 / 3)
+      + JSON.stringify(collectPayload()).length;
+    if (estimatedBytes > (state.session?.uploadLimits?.maxBodyBytes || 128 * 1024 * 1024) - 65536) {
+      throw new Error('These files exceed the dashboard upload limit together. Remove a file or use smaller files.');
+    }
+    const uploaded = await Promise.all(files.map(async (file) => ({ name: file.name, size: file.size, dataUrl: await readFileAsDataUrl(file) })));
+    state.attachments = [...existing, ...uploaded];
+    updatePreview();
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    setSendStatus('', '');
+  } catch (error) {
+    setSendStatus(error.message, 'error');
+  } finally {
+    input.value = '';
+    input.disabled = false;
+    sendButton.disabled = false;
+  }
+}
+
+function renderMessageAttachments() {
+  const list = document.querySelector('#message-file-list');
+  const preview = document.querySelector('#preview-files');
+  list.replaceChildren();
+  preview.replaceChildren();
+  (state.attachments || []).forEach((file, index) => {
+    const card = document.createElement('div');
+    card.className = 'message-file-card';
+    const icon = document.createElement('i');
+    icon.className = 'fa-solid fa-file-arrow-down';
+    icon.setAttribute('aria-hidden', 'true');
+    const label = document.createElement('span');
+    const name = document.createElement('strong');
+    name.textContent = file.name;
+    const size = document.createElement('small');
+    const bytes = file.size || Math.floor((file.dataUrl?.split(',')[1]?.length || 0) * 3 / 4);
+    size.textContent = `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+    label.append(name, size);
+    card.append(icon, label);
+    preview.append(card.cloneNode(true));
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'secondary';
+    remove.textContent = 'Remove';
+    remove.setAttribute('aria-label', `Remove ${file.name}`);
+    remove.addEventListener('click', () => {
+      state.attachments.splice(index, 1);
+      updatePreview();
+      document.querySelector('#message-files').dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    card.append(remove);
+    list.append(card);
+  });
 }
 
 function handleMessageColorPickerInput() {

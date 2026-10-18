@@ -528,6 +528,15 @@
                 </label>
 
                 <label class="field">
+                  Send as
+                  <select id="message-sender" aria-label="Send as">
+                    <option value="bean">Bean</option>
+                    <option value="webhook">My name &amp; avatar (webhook)</option>
+                  </select>
+                  <small class="muted">Webhook messages use your Discord profile and still show the APP badge.</small>
+                </label>
+
+                <label class="field">
                   Embed color
                   <span class="color-control">
                     <input id="message-color-picker" type="color" value="#f6c75f" aria-label="Choose embed color" />
@@ -563,6 +572,14 @@
               </div>
               <div id="buttons" class="stack"></div>
 
+              <section class="message-uploads stack">
+                <label class="field">Downloadable files
+                  <input id="message-files" type="file" multiple />
+                  <small id="message-file-help" class="muted">Add ZIPs, PDFs, or other files. Downloads appear below your content.</small>
+                </label>
+                <div id="message-file-list" class="stack" aria-live="polite"></div>
+              </section>
+
               <div class="action-row">
                 <div class="composer-actions">
                   <button id="delete-message" class="danger" type="button" disabled>Delete Message</button>
@@ -577,10 +594,12 @@
                 <h2>Preview</h2>
                 <span id="section-count" class="muted">0 blocks</span>
               </div>
+              <div class="message-sender-preview"><img id="preview-sender-avatar" src="/assets/bean-icon.png" alt="" /><strong id="preview-sender-name">Bean</strong><span class="ov-bot-tag">APP</span></div>
               <div id="discord-preview" class="discord-preview">
                 <img id="preview-image" alt="" hidden />
                 <div id="preview-sections"></div>
                 <div id="preview-buttons" class="preview-buttons"></div>
+                <div id="preview-files" class="stack"></div>
               </div>
             </aside>
           </section>
